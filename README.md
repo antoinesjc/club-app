@@ -49,4 +49,4 @@ Same as the website calendar: the title gives the level (`HSK 2-4`) and category
 
 1. ✅ Login, sessions + "I'm in", profiles + fruit avatars, member directory
 2. ✅ Notifications (reminder 1 h before sessions you're in, new sessions, notes are up; email fallback), host attendance + notes, members can download notes as a PDF ("My sessions" replaces Notion)
-3. XP, levels, fruit unlocks, leaderboard
+3. ✅ XP (+20 per ticked session, +50 every 4 weeks in a row, +150 bootcamp or any bonus given by an admin on the member page), 18 levels and fruit unlocks, leaderboard (month / all time; hosts excluded). Levels and fruit levels live in `fruits.js` **and** in the database functions `xp_level` / `fruit_level`: change both.

@@ -1,5 +1,5 @@
 import { createClient } from "./vendor/supabase.js";
-import { FRUITS, BACKGROUNDS, STARTER_FRUITS, fruitSvg, fruitInfo } from "./fruits.js";
+import { FRUITS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js";
 import { COUNTRIES } from "./countries.js";
 
 // ---------------------------------------------------------------------------
@@ -41,6 +41,10 @@ const state = {
   notes: new Map(),      // session_id -> session_notes row (published, or drafts for hosts)
   noteDraft: new Map(),  // host editing: session_id -> {vocab, body}
   push: { supported: false, subscribed: false, permission: "default" },
+  board: [],             // leaderboard rows (members only, not hosts)
+  awards: [],            // XP given by admins (own rows; all rows for admins)
+  membersTab: "lb",      // "lb" leaderboard | "all" directory
+  lbPeriod: "month",     // "month" | "all"
 };
 const VAPID_PUBLIC = "BDzM2jJc6wlM2C39lLVzvrPCdUgr45MEH_3zRZIxetGlzAeJqmyCl5YGsAc2QozO-ECD38lJWeyQJD3lvOzrNY4";
 
@@ -59,6 +63,33 @@ const tint = (hex, a) => {
 };
 const cat = (s) => CATEGORIES[s.category] || CATEGORIES.general;
 const isHost = () => state.role === "host" || state.role === "admin";
+const isAdmin = () => state.role === "admin";
+
+// ---------- XP ----------
+const myRow = () => state.board.find((r) => r.user_id === state.user?.id);
+const myXp = () => myRow()?.total ?? 0;
+const myLevel = () => (isHost() ? 18 : levelFor(myXp()));
+const weekKey = (d) => {
+  const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); // back to Monday
+  return Math.round(x.getTime() / 6048e5);
+};
+function myStreak() {
+  const weeks = new Set(state.sessions.filter((s) => attended(s)).map((s) => weekKey(new Date(s.starts_at))));
+  let w = weekKey(new Date());
+  if (!weeks.has(w)) w -= 1; // this week isn't over yet
+  let n = 0;
+  while (weeks.has(w)) { n++; w--; }
+  return n;
+}
+function rankList(period) {
+  const k = period === "month" ? "month" : "total";
+  return [...state.board].sort((a, b) => b[k] - a[k] || (a.name || "").localeCompare(b.name || ""));
+}
+function myRank(period) {
+  const list = rankList(period), i = list.findIndex((r) => r.user_id === state.user.id);
+  return i < 0 ? null : i + 1;
+}
 
 function toast(msg) {
   const t = document.getElementById("toast");
@@ -138,11 +169,15 @@ async function loadAll() {
   for (const r of [ses, ints, profs, roles]) if (r.error) throw r.error;
   state.sessions = ses.data;
 
-  const [att, notes] = await Promise.all([
+  const [att, notes, board, awards] = await Promise.all([
     sb.from("attendance").select("session_id, user_id"),
     sb.from("session_notes").select("*"),
+    sb.rpc("xp_board"),
+    sb.from("xp_awards").select("*").order("awarded_at", { ascending: false }),
   ]);
-  for (const r of [att, notes]) if (r.error) throw r.error;
+  for (const r of [att, notes, board, awards]) if (r.error) throw r.error;
+  state.board = board.data;
+  state.awards = awards.data;
   state.attendance = new Map();
   for (const a of att.data) {
     if (!state.attendance.has(a.session_id)) state.attendance.set(a.session_id, new Set());
@@ -167,6 +202,16 @@ async function loadAll() {
   state.roles = new Map(roles.data.map((r) => [r.id, r.role]));
   state.me = state.profiles.get(state.user.id) || state.me;
   state.loaded = true;
+  if (!isHost()) {
+    try {
+      const lv = myLevel(), seen = +(localStorage.getItem("mz-level") || 0);
+      if (seen && lv > seen) {
+        const f = FRUITS.filter((x) => x.level > seen && x.level <= lv);
+        setTimeout(() => toast(`Level ${lv}! You unlocked ${f.map((x) => zh(x.zh)).join(", ") || "a new fruit"}.`), 600);
+      }
+      localStorage.setItem("mz-level", String(lv));
+    } catch { /* storage off */ }
+  }
 }
 
 async function startSession(user) {
@@ -283,7 +328,7 @@ const routeArg = () => decodeURIComponent((location.hash.replace(/^#\/?/, "").sp
 const hostLink = (s) => `#/host/${encodeURIComponent(s.id)}`;
 
 function nav() {
-  const r = route() === "host" ? "sessions" : route();
+  const r = route() === "host" ? "sessions" : route() === "member" ? "members" : route();
   const item = (id, label, icon) => `<a href="#/${id}" ${r === id ? 'aria-current="page"' : ""}>${icon}<span>${label}</span></a>`;
   return `<nav class="nav" aria-label="Main">
     <div class="brand"><img src="icons/logo.png" alt=""><span>MANDARIN ZEST CLUB</span></div>
@@ -295,8 +340,9 @@ function render() {
   if (!state.user) { app.innerHTML = loginView(); return; }
   if (!state.role) { app.innerHTML = notMemberView(); return; }
   if (!state.loaded) return;
-  const views = { home: homeView, sessions: mySessionsView, members: membersView, me: profileView, host: hostView };
-  const view = (route() === "host" && !isHost()) ? homeView : (views[route()] || homeView);
+  const views = { home: homeView, sessions: mySessionsView, members: membersView, me: profileView, host: hostView, member: memberView };
+  const blocked = (route() === "host" && !isHost()) || (route() === "member" && !isAdmin());
+  const view = blocked ? homeView : (views[route()] || homeView);
   app.innerHTML = `<div class="shell ${trad() ? "zh-trad" : ""}">${nav()}<main class="main" id="main">${view()}</main></div>`;
 }
 
@@ -410,6 +456,25 @@ function grouped(list) {
   return out;
 }
 
+function xpCard() {
+  const xp = myXp(), p = progress(xp), streak = myStreak(), rank = myRank("month");
+  const idx = trad() ? 1 : 0;
+  return `<a class="card green xpcard" href="#/me" aria-label="Your level and fruit">
+    <div class="row">
+      <div class="grow">
+        <div style="font-size:13px;opacity:.85">Level ${p.level} · ${xp.toLocaleString()} XP</div>
+        <div style="font-size:18px;font-weight:800;margin-top:2px">${p.max ? "Every fruit unlocked!" : `${p.toNext} XP to unlock ${esc(zh(p.next.zh))} <span style="font-weight:600">${esc(p.next.py[idx])}</span>`}</div>
+      </div>
+      ${p.max ? avatar(state.me, 50, { flag: false }) : avatar(state.me, 50, { locked: true, flag: false, fruit: p.next.key })}
+    </div>
+    <div class="xpbar" role="progressbar" aria-label="Progress to the next level" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${p.pct}"><span style="width:${Math.max(3, p.pct)}%"></span></div>
+    <div class="row" style="gap:8px;flex-wrap:wrap;font-size:13px;font-weight:600">
+      <span class="pill">${streak ? `${streak}-week streak` : "Join a session to start a streak"}</span>
+      ${rank && myRow()?.month > 0 ? `<span class="pill">#${rank} this month</span>` : ""}
+    </div>
+  </a>`;
+}
+
 function homeView() {
   const me = state.me, f = featured();
   const rest = upcoming().filter((s) => s !== f).slice(0, 14);
@@ -421,6 +486,7 @@ function homeView() {
     </div>
     <a href="#/me" aria-label="My profile" style="border-radius:50%">${avatar(me, 48)}</a>
   </header>
+  ${isHost() ? "" : xpCard()}
   ${featuredCard(f)}
   ${installHint()}
   <div class="row between" style="align-items:baseline">
@@ -538,7 +604,7 @@ function hostView() {
     ${others.length ? `<label class="field" style="font-weight:600">Add someone who joined
       <select class="input" data-act-change="attend-add"><option value="">Choose a member…</option>
       ${others.map((p) => `<option value="${p.id}">${esc(p.display_name || "Member")}</option>`).join("")}</select></label>` : ""}
-    <div class="small muted">${came.size} ticked. Ticks save right away${state.role ? "; XP for attendance arrives with the leaderboard" : ""}.</div>
+    <div class="small muted">${came.size} ticked. Ticks save right away. Each tick gives that member +${XP_SESSION} XP.</div>
   </section>
 
   <section class="card">
@@ -609,19 +675,125 @@ async function saveNotes(sid, publish) {
 // Members
 // ---------------------------------------------------------------------------
 function membersView() {
+  const lb = state.membersTab === "lb";
+  return `
+  <header><div class="eyebrow">Mandarin Zest Club</div><h1>Members</h1></header>
+  <div class="tabs" role="tablist">
+    <button type="button" role="tab" aria-selected="${lb}" data-act="mtab" data-v="lb">Leaderboard</button>
+    <button type="button" role="tab" aria-selected="${!lb}" data-act="mtab" data-v="all">Everyone</button>
+  </div>
+  ${lb ? leaderboard() : directory()}`;
+}
+
+const memberLink = (id) => (isAdmin() ? `#/member/${id}` : "");
+const linkOrDiv = (id, cls, inner) => {
+  const href = memberLink(id);
+  return href ? `<a class="${cls}" href="${href}">${inner}</a>` : `<div class="${cls}">${inner}</div>`;
+};
+
+function leaderboard() {
+  const period = state.lbPeriod, k = period === "month" ? "month" : "total";
+  const list = rankList(period);
+  const month = new Date().toLocaleDateString([], { month: "long" });
+  const periods = `<div class="periods" role="group" aria-label="Period">
+    <button type="button" data-act="lbp" data-v="month" aria-pressed="${period === "month"}">${esc(month)}</button>
+    <button type="button" data-act="lbp" data-v="all" aria-pressed="${period === "all"}">All time</button></div>`;
+  if (!list.length || !list.some((r) => r[k] > 0)) {
+    return `${periods}<div class="card"><h2>No XP yet${period === "month" ? " this month" : ""}</h2>
+      <p class="small muted" style="margin:0;line-height:1.5">Members get +${XP_SESSION} XP for every session they join (the host ticks who came), +${XP_STREAK} XP for every 4 weeks in a row, and +${XP_BOOTCAMP} XP per bootcamp.</p></div>`;
+  }
+  const row = (r) => ({ ...r, display_name: r.name, fruit: r.fruit, bg: r.bg, country: r.country });
+  const top = list.slice(0, 3).map(row);
+  const order = [top[1], top[0], top[2]];
+  const heights = [64, 88, 50], colors = ["#f8dacd", "#f37a48", "#fdf1ea"], sizes = [58, 70, 54], ranks = [2, 1, 3];
+  const podium = `<div class="podium">${order.map((p, i) => p ? linkOrDiv(p.user_id, "", `
+      ${avatar(p, sizes[i])}<b>${esc(p.name || "Member")}</b>
+      <div class="step" style="height:${heights[i]}px;background:${colors[i]}"><span class="n">${ranks[i]}</span><span class="small">${p[k]} XP</span></div>`) : "<div></div>").join("")}</div>`;
+  const rest = list.slice(3).map((r, i) => linkOrDiv(r.user_id, `lbrow${r.user_id === state.user.id ? " me" : ""}`, `
+      <span class="rk">${i + 4}</span>${avatar(row(r), 40)}
+      <div class="grow"><b>${esc(r.name || "Member")}${r.user_id === state.user.id ? " (you)" : ""}</b><div class="small muted">Level ${r.level}</div></div>
+      <b>${r[k]} XP</b>`)).join("");
+  const mine = myRank(period);
+  return `${periods}
+  <div class="small muted" style="text-align:center">${period === "month" ? `XP earned in ${esc(month)}` : "All XP ever earned"}</div>
+  ${podium}
+  <div class="stack" style="gap:6px">${rest}</div>
+  ${!isHost() && mine && mine <= 3 ? `<p class="small" style="text-align:center;margin:0"><b>You're #${mine}!</b></p>` : ""}
+  <p class="small muted" style="margin:0">+${XP_SESSION} XP per session · +${XP_STREAK} XP every 4 weeks in a row · +${XP_BOOTCAMP} XP per bootcamp. Hosts don't take part.</p>`;
+}
+
+function directory() {
   const all = [...state.profiles.values()].filter((p) => state.roles.has(p.id) && (p.show_in_directory || p.id === state.user.id));
   const byName = (a, b) => (a.display_name || "").localeCompare(b.display_name || "");
   const hosts = all.filter((p) => ["host", "admin"].includes(state.roles.get(p.id))).sort(byName);
   const members = all.filter((p) => !["host", "admin"].includes(state.roles.get(p.id))).sort(byName);
-  const sub = (p) => [p.chinese_level, p.discord ? `@${p.discord}` : ""].filter(Boolean).map(esc).join(" · ");
+  const levelOf = (id) => state.board.find((r) => r.user_id === id)?.level || 1;
+  const sub = (p) => [`Lv ${levelOf(p.id)}`, p.chinese_level, p.discord ? `@${p.discord}` : ""].filter(Boolean).map(esc).join(" · ");
   return `
-  <header><div class="eyebrow">Mandarin Zest Club</div><h1>Members</h1></header>
   ${hosts.length ? `<div class="daylabel">Hosts</div>
   <div class="hostgrid">${hosts.map((p) => `<div class="hostcard">${avatar(p, 44)}<div class="grow"><b style="display:block;overflow:hidden;text-overflow:ellipsis">${esc(p.display_name || "Host")}</b><div class="badge">HOST</div>${p.discord ? `<div class="small muted">@${esc(p.discord)}</div>` : ""}</div></div>`).join("")}</div>` : ""}
   <div class="daylabel">Members · ${members.length}</div>
-  ${members.length ? `<div class="mgrid">${members.map((p) => `<div class="mcard">${avatar(p, 52)}<b>${esc(p.display_name || "Member")}${p.id === state.user.id ? " (you)" : ""}</b><span class="small muted">${sub(p) || "&nbsp;"}</span></div>`).join("")}</div>`
+  ${members.length ? `<div class="mgrid">${members.map((p) => linkOrDiv(p.id, "mcard", `${avatar(p, 52)}<b>${esc(p.display_name || "Member")}${p.id === state.user.id ? " (you)" : ""}</b><span class="small muted">${sub(p) || "&nbsp;"}</span>`)).join("")}</div>`
     : `<p class="muted small">Members appear here once they've logged in.</p>`}
-  <p class="small muted">Leaderboard and XP are coming soon. Prefer not to be listed? Turn it off in <a href="#/me">Me</a>.</p>`;
+  <p class="small muted">Prefer not to be listed? Turn it off in <a href="#/me">Me</a>.${isAdmin() ? " As admin, tap a member to give XP." : ""}</p>`;
+}
+
+// ---------------------------------------------------------------------------
+// Admin: one member, give XP (bootcamps, bonuses)
+// ---------------------------------------------------------------------------
+function memberView() {
+  const id = routeArg();
+  const r = state.board.find((x) => x.user_id === id);
+  const p = state.profiles.get(id) || (r && { id, display_name: r.name, fruit: r.fruit, bg: r.bg, country: r.country });
+  if (!p) return `<a class="linkbtn" href="#/members">← Back</a><div class="card"><h2>Member not found</h2></div>`;
+  const xp = r?.total || 0, pr = progress(xp);
+  const came = state.sessions.filter((s) => (state.attendance.get(s.id) || new Set()).has(id)).length;
+  const awards = state.awards.filter((a) => a.user_id === id);
+  return `
+  <a class="linkbtn" href="#/members" style="text-decoration:none;font-weight:700;align-self:flex-start">← Back</a>
+  <header class="row" style="gap:16px">${avatar(p, 80)}
+    <div class="grow"><div class="eyebrow">Admin view</div><h1>${esc(p.display_name || "Member")}</h1>
+    <div class="small muted">Level ${pr.level} · ${xp.toLocaleString()} XP${r ? ` · ${r.month.toLocaleString()} XP this month` : ""} · ${came} sessions ticked</div></div>
+  </header>
+  ${r ? "" : `<div class="card mint"><div class="small">This person is a host or admin, so they don't earn XP.</div></div>`}
+  <form class="card" data-form="award" style="gap:12px">
+    <h2>Give XP</h2>
+    <div class="periods" style="justify-content:flex-start" role="group" aria-label="Kind">
+      <button type="button" data-act="award-kind" data-v="bootcamp" aria-pressed="${(state.awardKind || "bootcamp") === "bootcamp"}">Bootcamp +${XP_BOOTCAMP}</button>
+      <button type="button" data-act="award-kind" data-v="bonus" aria-pressed="${state.awardKind === "bonus"}">Other bonus</button>
+    </div>
+    <div class="grid2">
+      <label class="field">Points<input class="input" name="points" type="number" min="-2000" max="2000" step="1" value="${state.awardKind === "bonus" ? 50 : XP_BOOTCAMP}" required></label>
+      <label class="field">Reason<input class="input" name="reason" maxlength="120" placeholder="${state.awardKind === "bonus" ? "e.g. helped a new member" : "e.g. Pronunciation Bootcamp, Jan 2027"}"></label>
+    </div>
+    <button class="btn green block" ${r ? "" : "disabled"}>Give XP</button>
+    <div class="small muted">Use a negative number to correct a mistake. Members see their own awards.</div>
+  </form>
+  <section class="card" style="gap:0">
+    <h2 style="margin-bottom:6px">XP given by admins</h2>
+    ${awards.length ? awards.map((a) => `<div class="awardrow"><b style="width:64px">${a.points > 0 ? "+" : ""}${a.points}</b>
+      <span class="grow">${esc(a.kind === "bootcamp" ? "Bootcamp" : "Bonus")}${a.reason ? ` · ${esc(a.reason)}` : ""}<br><span class="small muted">${new Date(a.awarded_at).toLocaleDateString()}</span></span>
+      <button type="button" class="xbtn" data-act="award-del" data-id="${a.id}" aria-label="Remove this award">×</button></div>`).join("")
+      : `<p class="small muted" style="margin:0">None yet. Session XP comes from attendance ticks.</p>`}
+  </section>`;
+}
+
+async function giveXp(form) {
+  const id = routeArg();
+  const points = parseInt(form.points.value, 10);
+  if (!points || Math.abs(points) > 2000) { toast("Enter a number of points."); return; }
+  const kind = state.awardKind || "bootcamp";
+  const { data, error } = await sb.from("xp_awards").insert({ user_id: id, points, kind, reason: form.reason.value.trim().slice(0, 120) }).select().single();
+  if (error) { toast("Couldn't give XP."); return; }
+  state.awards.unshift(data);
+  await refreshBoard();
+  toast(`${points > 0 ? "+" : ""}${points} XP given`);
+}
+
+async function refreshBoard() {
+  const { data } = await sb.rpc("xp_board");
+  if (data) state.board = data;
+  render();
 }
 
 // ---------------------------------------------------------------------------
@@ -634,14 +806,14 @@ function draft() {
 
 function profileView() {
   const d = draft(), info = fruitInfo(d.fruit), idx = trad() ? 1 : 0;
-  const level = 1; // XP and levels arrive in phase 3
+  const level = myLevel();
   const changed = ["display_name", "fruit", "bg", "country", "chinese_level", "discord", "show_in_directory", "script"]
     .some((k) => d[k] !== state.me[k]);
   return `
   <header class="row" style="gap:16px">
     ${avatar(d, 96)}
     <div class="grow">
-      <div class="eyebrow">${state.role === "admin" ? "Admin" : state.role === "host" ? "Host" : "Member"}</div>
+      <div class="eyebrow">${state.role === "admin" ? "Admin · all fruits" : state.role === "host" ? "Host · all fruits" : `Level ${level} · ${myXp().toLocaleString()} XP`}</div>
       <h1>${esc(d.display_name || "Me")}</h1>
       <div style="font-size:15px;font-weight:700;color:var(--orange-ink);margin-top:4px">${zh(info.zh)} <span style="font-weight:600">${esc(info.py[idx])}</span></div>
     </div>
@@ -653,7 +825,7 @@ function profileView() {
     </label>
 
     <div>
-      <div class="row between" style="align-items:baseline;margin-bottom:8px"><h2>Your fruit</h2><span class="small muted">Earn XP to unlock more</span></div>
+      <div class="row between" style="align-items:baseline;margin-bottom:8px"><h2>Your fruit</h2><span class="small muted">${isHost() ? "Hosts have them all" : level >= 18 ? "All unlocked!" : "Join sessions to unlock more"}</span></div>
       <div class="fruits">${FRUITS.map((f) => {
         const locked = f.level > level, on = f.key === d.fruit;
         return `<button type="button" class="fruitbtn" data-act="fruit" data-key="${f.key}" ${locked ? "disabled" : ""} aria-pressed="${on}" aria-label="${esc(f.en)} ${esc(zh(f.zh))}${locked ? `, unlocks at level ${f.level}` : ""}">
@@ -696,7 +868,7 @@ function profileView() {
 
     <label class="check">
       <input type="checkbox" name="show_in_directory" ${d.show_in_directory ? "checked" : ""}>
-      <span style="font-size:14.5px;line-height:1.35"><b>Show me in the member directory</b><br><span class="muted">Hosts can always see who's coming to their session.</span></span>
+      <span style="font-size:14.5px;line-height:1.35"><b>Show me in the member directory</b><br><span class="muted">You still appear on the leaderboard, and hosts can always see who's coming to their session.</span></span>
     </label>
 
     <button class="btn block" ${changed ? "" : "disabled"}>${changed ? "Save changes" : "Saved"}</button>
@@ -946,6 +1118,9 @@ document.addEventListener("submit", async (e) => {
     else { state.login.error = "Enter the code from the email."; render(); }
   } else if (kind === "profile") {
     saveProfile();
+  } else if (kind === "award") {
+    const btn = form.querySelector("button.btn"); btn.disabled = true;
+    await giveXp(form);
   }
 });
 
@@ -1011,6 +1186,18 @@ document.addEventListener("click", async (e) => {
   } else if (act === "note-save" || act === "note-publish") {
     el.disabled = true;
     await saveNotes(routeArg(), act === "note-publish");
+  } else if (act === "mtab") {
+    state.membersTab = el.dataset.v; render();
+  } else if (act === "lbp") {
+    state.lbPeriod = el.dataset.v; render();
+  } else if (act === "award-kind") {
+    state.awardKind = el.dataset.v; render();
+  } else if (act === "award-del") {
+    if (!confirm("Remove this XP award?")) return;
+    const { error } = await sb.from("xp_awards").delete().eq("id", el.dataset.id);
+    if (error) { toast("Couldn't remove it."); return; }
+    state.awards = state.awards.filter((a) => a.id !== el.dataset.id);
+    await refreshBoard();
   } else if (act === "notes-pdf") {
     el.disabled = true;
     await downloadNotesPdf(el.dataset.id);

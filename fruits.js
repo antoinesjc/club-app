@@ -101,3 +101,25 @@ export function fruitInfo(key) {
 }
 
 export const STARTER_FRUITS = FRUITS.filter((f) => f.level === 1).map((f) => f.key);
+
+// XP rules (also in the database: public.xp_events, xp_level, fruit_level).
+export const XP_SESSION = 20, XP_STREAK = 50, XP_BOOTCAMP = 150;
+
+export function levelFor(xp) {
+  let lv = 1;
+  for (let i = 0; i < LEVELS.length; i++) if (xp >= LEVELS[i]) lv = i + 1;
+  return lv;
+}
+
+// Progress toward the next level and the fruit it unlocks.
+export function progress(xp) {
+  const lv = levelFor(xp);
+  if (lv >= LEVELS.length) return { level: lv, max: true, pct: 100, toNext: 0, next: null };
+  const from = LEVELS[lv - 1], to = LEVELS[lv];
+  return {
+    level: lv, max: false,
+    pct: Math.round(((xp - from) / (to - from)) * 100),
+    toNext: to - xp,
+    next: FRUITS.find((f) => f.level === lv + 1) || null,
+  };
+}
