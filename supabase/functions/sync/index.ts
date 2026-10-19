@@ -1,5 +1,6 @@
 // One endpoint for the background jobs:
 //   {action:"calendar"}            Google Calendar → sessions   (every 15 min, pg_cron)
+//   {action:"notify"}              reminders, new sessions, notes (every 5 min, pg_cron)
 //   {action:"stripe"}              Stripe → members_stripe      (daily, pg_cron)
 //   {action:"sheet", rows:[...]}   "Members" tab → members_manual, returns the Stripe list
 //                                  for the "From Stripe" tab    (Apps Script, on edit + hourly)
@@ -8,6 +9,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import ICAL from "npm:ical.js@2";
 import { parseIcs } from "../_shared/calendar.js";
 import { allClubMembers } from "../_shared/stripe.ts";
+import { queueNewSeries, runNotify } from "../_shared/notify.ts";
 
 const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
   auth: { persistSession: false },
@@ -45,7 +47,8 @@ async function syncCalendar() {
   if (e2) throw e2;
   const gone = (upcoming ?? []).map((r) => r.id).filter((id) => !ids.has(id));
   if (gone.length) await db.from("sessions").update({ cancelled: true }).in("id", gone);
-  return { sessions: rows.length, cancelled: gone.length };
+  const announced = await queueNewSeries(db, rows);
+  return { sessions: rows.length, cancelled: gone.length, announced };
 }
 
 async function syncStripe() {
@@ -98,6 +101,8 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({}));
     switch (body.action) {
+      case "notify":
+        return json({ ok: true, ...(await runNotify(db)) });
       case "calendar":
         return json({ ok: true, ...(await syncCalendar()) });
       case "stripe":

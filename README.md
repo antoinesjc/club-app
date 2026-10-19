@@ -16,7 +16,9 @@ Backend: Supabase project `mandarin-zest-club` (ref `eypehvhcqzhwssydvrhn`, EU).
 | `manifest.webmanifest`, `sw.js`, `icons/` | Install as an app, offline shell |
 | `supabase/migrations/` | Database: tables, access rules, schedules |
 | `supabase/functions/send-code` | Login: sends the 6-digit code only to Club members (live Stripe check for new payers) |
-| `supabase/functions/sync` | Background jobs: Google Calendar → sessions (every 15 min), Stripe → members (daily 02:07 UTC), sheet sync |
+| `supabase/functions/sync` | Background jobs: Google Calendar → sessions (every 15 min), Stripe → members (daily 02:07 UTC), sheet sync, notifications (every 5 min) |
+| `supabase/functions/push-test` | "Send me a test" notification button |
+| `supabase/functions/_shared/notify.ts` | Web Push + email fallback (Resend, needs the `RESEND_API_KEY` secret) |
 | `apps-script/club-members.gs` | Apps Script for the "Club members" Google Sheet |
 
 ## Who can log in
@@ -32,7 +34,8 @@ Payment links: monthly `plink_1UR8dsFSITwJ0tdScr66iqQh`, yearly `plink_1UR8h6FSI
 
 ## Secrets (Supabase → Edge Functions → Secrets, set by Antoine)
 
-`STRIPE_KEY` (restricted, read-only), `GCAL_ICS_URL` (secret iCal address of the Club calendar).
+`STRIPE_KEY` (restricted, read-only), `GCAL_ICS_URL` (secret iCal address of the Club calendar), `RESEND_API_KEY` (email fallback; without it only app notifications are sent).
+The notification keys (VAPID) live in `private.config`; the public one is also in `app.js`.
 The sheet sync secret lives in `private.config` in the database and in the Apps Script's Script properties.
 
 ## Calendar rules
@@ -44,5 +47,5 @@ Same as the website calendar: the title gives the level (`HSK 2-4`) and category
 ## Phases
 
 1. ✅ Login, sessions + "I'm in", profiles + fruit avatars, member directory
-2. Notifications, host attendance + notes ("My sessions" replaces Notion)
+2. ✅ Notifications (reminder 1 h before sessions you're in, new sessions, notes are up; email fallback), host attendance + notes with files ("My sessions" replaces Notion)
 3. XP, levels, fruit unlocks, leaderboard

@@ -37,7 +37,13 @@ const state = {
   draft: null,          // unsaved profile edits
   loaded: false,
   installPrompt: null,
+  attendance: new Map(), // session_id -> Set(user_id) (own rows for members, all for hosts)
+  notes: new Map(),      // session_id -> session_notes row (published, or drafts for hosts)
+  files: new Map(),      // session_id -> [note_files]
+  noteDraft: new Map(),  // host editing: session_id -> {vocab, body}
+  push: { supported: false, subscribed: false, permission: "default" },
 };
+const VAPID_PUBLIC = "BDzM2jJc6wlM2C39lLVzvrPCdUgr45MEH_3zRZIxetGlzAeJqmyCl5YGsAc2QozO-ECD38lJWeyQJD3lvOzrNY4";
 
 const app = document.getElementById("app");
 
@@ -70,6 +76,8 @@ const ICON = {
   me: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21 a8 8 0 0 1 16 0"/></svg>',
   video: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="12" height="12" rx="2"/><path d="M15 10 l6 -3 v10 l-6 -3"/></svg>',
   lock: '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11 V8 a4 4 0 0 1 8 0 v3"/></svg>',
+  file: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3 H7 a2 2 0 0 0 -2 2 v14 a2 2 0 0 0 2 2 h10 a2 2 0 0 0 2 -2 V8z"/><path d="M14 3 v5 h5"/></svg>',
+  bell: '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8 a6 6 0 0 1 12 0 c0 7 3 9 3 9 H3 s3 -2 3 -9"/><path d="M10.3 21 a1.94 1.94 0 0 0 3.4 0"/></svg>',
   phone: '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18 h2"/></svg>',
 };
 
@@ -129,6 +137,33 @@ async function loadAll() {
   ]);
   for (const r of [ses, ints, profs, roles]) if (r.error) throw r.error;
   state.sessions = ses.data;
+
+  const [att, notes, files] = await Promise.all([
+    sb.from("attendance").select("session_id, user_id"),
+    sb.from("session_notes").select("*"),
+    sb.from("note_files").select("*").order("created_at"),
+  ]);
+  for (const r of [att, notes, files]) if (r.error) throw r.error;
+  state.attendance = new Map();
+  for (const a of att.data) {
+    if (!state.attendance.has(a.session_id)) state.attendance.set(a.session_id, new Set());
+    state.attendance.get(a.session_id).add(a.user_id);
+  }
+  state.notes = new Map(notes.data.map((n) => [n.session_id, n]));
+  state.files = new Map();
+  for (const f of files.data) {
+    if (!state.files.has(f.session_id)) state.files.set(f.session_id, []);
+    state.files.get(f.session_id).push(f);
+  }
+  // Older sessions you attended or joined (for My sessions).
+  const known = new Set(state.sessions.map((s) => s.id));
+  const mine = new Set([...ints.data.filter((i) => i.user_id === state.user.id).map((i) => i.session_id),
+    ...att.data.filter((a) => a.user_id === state.user.id).map((a) => a.session_id)]);
+  const missing = [...mine].filter((id) => !known.has(id));
+  if (missing.length) {
+    const old = await sb.from("sessions").select("*").in("id", missing.slice(0, 300));
+    if (!old.error) state.sessions = [...old.data, ...state.sessions].sort((a, b) => a.starts_at.localeCompare(b.starts_at));
+  }
   state.interests = new Map();
   for (const i of ints.data) {
     if (!state.interests.has(i.session_id)) state.interests.set(i.session_id, new Set());
@@ -148,6 +183,15 @@ async function startSession(user) {
   if (!state.role) return render();
   await loadAll();
   render();
+  // Remember the member's time zone so notifications show the right time.
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (tz && state.me && state.me.timezone !== tz) {
+      await sb.from("profiles").update({ timezone: tz }).eq("id", state.user.id);
+      state.me.timezone = tz;
+    }
+  } catch { /* not important */ }
+  checkPush();
 }
 
 // ---------------------------------------------------------------------------
@@ -241,9 +285,11 @@ function notMemberView() {
 // Shell
 // ---------------------------------------------------------------------------
 const route = () => (location.hash.replace(/^#\/?/, "") || "home").split("/")[0];
+const routeArg = () => decodeURIComponent((location.hash.replace(/^#\/?/, "").split("/").slice(1).join("/")) || "");
+const hostLink = (s) => `#/host/${encodeURIComponent(s.id)}`;
 
 function nav() {
-  const r = route();
+  const r = route() === "host" ? "sessions" : route();
   const item = (id, label, icon) => `<a href="#/${id}" ${r === id ? 'aria-current="page"' : ""}>${icon}<span>${label}</span></a>`;
   return `<nav class="nav" aria-label="Main">
     <div class="brand"><img src="icons/logo.png" alt=""><span>MANDARIN ZEST CLUB</span></div>
@@ -255,8 +301,8 @@ function render() {
   if (!state.user) { app.innerHTML = loginView(); return; }
   if (!state.role) { app.innerHTML = notMemberView(); return; }
   if (!state.loaded) return;
-  const views = { home: homeView, sessions: mySessionsView, members: membersView, me: profileView };
-  const view = views[route()] || homeView;
+  const views = { home: homeView, sessions: mySessionsView, members: membersView, me: profileView, host: hostView };
+  const view = (route() === "host" && !isHost()) ? homeView : (views[route()] || homeView);
   app.innerHTML = `<div class="shell ${trad() ? "zh-trad" : ""}">${nav()}<main class="main" id="main">${view()}</main></div>`;
 }
 
@@ -307,6 +353,7 @@ function details(s) {
   if (isHost()) lines.push(whoList(s));
   else if (going(s).size) lines.push(`<div class="row">${goingAvatars(s, 8)}<span class="small muted">${goingLine(s)}</span></div>`);
   if (s.meet_url && !ended(s)) lines.push(`<a class="btn" href="${esc(s.meet_url)}" target="_blank" rel="noopener">${ICON.video}Join on Google Meet</a>`);
+  if (isHost() && Date.parse(s.starts_at) <= Date.now() + 30 * 60e3) lines.push(`<a class="btn ghost" href="${hostLink(s)}">Attendance &amp; notes</a>`);
   return `<div class="sdetail">${lines.join("")}</div>`;
 }
 
@@ -355,6 +402,7 @@ function featuredCard(s) {
       ${iAmIn(s) ? "" : inButton(s)}
     </div>
     ${isHost() ? whoList(s) : ""}
+    ${isHost() && Date.parse(s.starts_at) <= Date.now() + 30 * 60e3 ? `<a class="btn ghost" href="${hostLink(s)}">Attendance &amp; notes</a>` : ""}
   </section>`;
 }
 
@@ -388,17 +436,227 @@ function homeView() {
   <div class="slist">${rest.length ? grouped(rest) : `<p class="muted small">Nothing else planned yet.</p>`}</div>`;
 }
 
+const attended = (s, uid = state.user.id) => (state.attendance.get(s.id) || new Set()).has(uid);
+const published = (s) => !!state.notes.get(s.id)?.published_at;
+
+function linkify(text) {
+  return esc(text).replace(/(https?:\/\/[^\s<]+[^\s<.,;:!?)])/g, '<a href="$1" target="_blank" rel="noopener">$1</a>').replace(/\n/g, "<br>");
+}
+
+function notesBlock(s) {
+  const n = state.notes.get(s.id);
+  const files = state.files.get(s.id) || [];
+  if (!n?.published_at) return `<div class="small muted">No notes yet. You'll get a notification when your host shares them.</div>`;
+  const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
+  return `
+    ${vocab.length ? `<div class="vocab" role="table" aria-label="Vocabulary">${vocab.map((v) => `<div class="vrow" role="row"><span class="vz" role="cell">${esc(v.hanzi)}</span><span class="vp" role="cell">${esc(v.pinyin)}</span><span class="vm" role="cell">${esc(v.meaning)}</span></div>`).join("")}</div>` : ""}
+    ${n.body ? `<div class="notebody">${linkify(n.body)}</div>` : ""}
+    ${files.length ? `<div class="stack">${files.map((f) => `<button type="button" class="filebtn" data-act="open-file" data-path="${esc(f.path)}">${ICON.file}<span class="grow">${esc(f.name)}</span><span class="small muted">${fmtSize(f.size)}</span></button>`).join("")}</div>` : ""}`;
+}
+
+const fmtSize = (b) => (b > 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`);
+
+function pastItem(s) {
+  const c = cat(s), a = new Date(s.starts_at), open = state.open.has(s.id);
+  const came = attended(s);
+  return `<div class="sitem">
+    <div class="top">
+      <button type="button" class="open" data-act="open" data-id="${esc(s.id)}" aria-expanded="${open}">
+        <span class="datebox" style="background:${tint(c.color, .14)};color:${c.color}">
+          <div class="dow">${esc(a.toLocaleDateString([], { month: "short" }).toUpperCase())}</div><div class="day">${a.getDate()}</div>
+        </span>
+        <span class="grow">
+          <div class="stitle">${esc(s.title)}</div>
+          <div class="smeta">${came ? "Attended" : "You said you'd come"}${published(s) ? " · Notes ready" : ""}</div>
+        </span>
+      </button>
+      ${published(s) ? `<span class="chip" style="background:var(--green)">Notes</span>` : ""}
+    </div>
+    ${open ? `<div class="sdetail">${s.host_name ? `<div class="small muted">Host: ${esc(s.host_name)}</div>` : ""}${notesBlock(s)}</div>` : ""}
+  </div>`;
+}
+
 function mySessionsView() {
-  const mine = state.sessions.filter((s) => iAmIn(s));
+  const mine = state.sessions.filter((s) => iAmIn(s) || attended(s));
   const next = mine.filter((s) => !ended(s));
   const past = mine.filter((s) => ended(s)).reverse();
+  const hostRecent = isHost()
+    ? state.sessions.filter((s) => Date.parse(s.starts_at) <= Date.now() + 30 * 60e3 && Date.parse(s.starts_at) > Date.now() - 21 * 864e5).reverse()
+    : [];
   return `
   <header><div class="eyebrow">Mandarin Zest Club</div><h1>My sessions</h1></header>
+  ${hostRecent.length ? `<h2>Hosting: attendance &amp; notes</h2>
+  <div class="slist">${hostRecent.map((s) => {
+    const n = state.notes.get(s.id), count = (state.attendance.get(s.id) || new Set()).size;
+    const status = n?.published_at ? "Notes published" : n ? "Draft notes" : "No notes yet";
+    const a = new Date(s.starts_at);
+    return `<a class="sitem hostrow" href="${hostLink(s)}"><div class="top">
+      <span class="grow"><div class="stitle">${esc(s.title)}</div>
+      <div class="smeta">${esc(dayName(a))} · ${fmtTime(a)} · ${count} attended · ${status}</div></span>
+      <span class="toggle" style="display:inline-flex;align-items:center">Open</span></div></a>`;
+  }).join("")}</div>` : ""}
   <h2>Coming up</h2>
   <div class="slist">${next.length ? grouped(next) : `<div class="card"><p class="muted small" style="margin:0">Tap <b>I'm in</b> on a session and it shows up here.</p></div>`}</div>
   <h2>Past sessions</h2>
-  <div class="card mint"><div class="small" style="line-height:1.45"><b>Session notes are coming soon.</b> Your host's vocabulary, sentences and corrections will appear here after each session.</div></div>
-  <div class="slist">${past.length ? past.map(sessionItem).join("") : `<p class="muted small">Sessions you joined in the last month will be listed here.</p>`}</div>`;
+  <div class="slist">${past.length ? past.map(pastItem).join("") : `<p class="muted small">Sessions you joined will be listed here, with your host's notes.</p>`}</div>`;
+}
+
+// ---------------------------------------------------------------------------
+// Host: attendance and notes
+// ---------------------------------------------------------------------------
+function noteDraft(id) {
+  if (!state.noteDraft.has(id)) {
+    const n = state.notes.get(id);
+    const vocab = (n?.vocab || []).map((v) => ({ ...v }));
+    while (vocab.length < 3) vocab.push({ hanzi: "", pinyin: "", meaning: "" });
+    state.noteDraft.set(id, { vocab, body: n?.body || "", dirty: false });
+  }
+  return state.noteDraft.get(id);
+}
+
+function hostView() {
+  const id = routeArg();
+  const s = state.sessions.find((x) => x.id === id);
+  if (!s) return `<a class="linkbtn" href="#/sessions">← Back</a><div class="card"><h2>Session not found</h2><p class="muted small" style="margin:0">It may have been removed from the calendar.</p></div>`;
+  const a = new Date(s.starts_at);
+  const came = state.attendance.get(s.id) || new Set();
+  const candidateIds = new Set([...going(s), ...came]);
+  const people = [...candidateIds].map((uid) => state.profiles.get(uid) || { id: uid, display_name: "Member", fruit: "orange", bg: "#fdf1ea" })
+    .sort((x, y) => (x.display_name || "").localeCompare(y.display_name || ""));
+  const others = [...state.profiles.values()].filter((p) => state.roles.has(p.id) && !candidateIds.has(p.id))
+    .sort((x, y) => (x.display_name || "").localeCompare(y.display_name || ""));
+  const d = noteDraft(s.id), n = state.notes.get(s.id), files = state.files.get(s.id) || [];
+  return `
+  <div class="row between">
+    <a class="linkbtn" href="#/sessions" style="text-decoration:none;font-weight:700">← Back</a>
+    <span class="chip" style="background:var(--green)">HOST VIEW</span>
+  </div>
+  <header>
+    <div class="when">${esc(dayName(a))} · ${fmtTime(a)}${isLive(s) ? " · live now" : ended(s) ? " · ended" : ""}</div>
+    <h1>${esc(s.title)}</h1>
+  </header>
+
+  <section class="card">
+    <div class="row between" style="align-items:baseline"><h2>1 · Who came?</h2><span class="small muted">${going(s).size} said they'd come</span></div>
+    ${people.length ? `<div class="whogrid">${people.map((p) => {
+      const on = came.has(p.id);
+      return `<button type="button" class="whobtn" role="checkbox" aria-checked="${on}" data-act="attend" data-uid="${p.id}">
+        ${avatar(p, 32, { flag: false })}<span class="grow">${esc(p.display_name || "Member")}</span><span class="tick" aria-hidden="true">${on ? "✓" : ""}</span></button>`;
+    }).join("")}</div>` : `<p class="small muted" style="margin:0">Nobody said they'd come. Add who joined below.</p>`}
+    ${others.length ? `<label class="field" style="font-weight:600">Add someone who joined
+      <select class="input" data-act-change="attend-add"><option value="">Choose a member…</option>
+      ${others.map((p) => `<option value="${p.id}">${esc(p.display_name || "Member")}</option>`).join("")}</select></label>` : ""}
+    <div class="small muted">${came.size} ticked. Ticks save right away${state.role ? "; XP for attendance arrives with the leaderboard" : ""}.</div>
+  </section>
+
+  <section class="card">
+    <div class="row between" style="align-items:baseline"><h2>2 · Session notes</h2>
+      <span class="small ${n?.published_at ? "" : "muted"}" style="${n?.published_at ? "color:var(--green);font-weight:700" : ""}">${n?.published_at ? "Published" : n ? "Draft: only hosts see it" : "Not started"}</span></div>
+    <div class="vhead small muted"><span>汉字</span><span>Pinyin</span><span>Meaning</span><span></span></div>
+    <div class="stack" style="gap:6px">${d.vocab.map((v, i) => `<div class="vedit">
+      <input class="input" aria-label="Word ${i + 1}, characters" data-vocab="${i}" data-k="hanzi" value="${esc(v.hanzi)}" placeholder="汉字" lang="zh">
+      <input class="input" aria-label="Word ${i + 1}, pinyin" data-vocab="${i}" data-k="pinyin" value="${esc(v.pinyin)}" placeholder="pinyin">
+      <input class="input" aria-label="Word ${i + 1}, meaning" data-vocab="${i}" data-k="meaning" value="${esc(v.meaning)}" placeholder="meaning">
+      <button type="button" class="xbtn" data-act="vocab-del" data-i="${i}" aria-label="Remove word ${i + 1}">×</button></div>`).join("")}</div>
+    <button type="button" class="linkbtn" data-act="vocab-add" style="align-self:flex-start">+ Add a word</button>
+    <label class="field">Sentences, corrections, links
+      <textarea class="input" id="notebody" rows="7" style="padding:12px 14px;min-height:150px;resize:vertical" placeholder="我昨天去了超市。&#10;Correction: 我去超市了 → …&#10;Video: https://…">${esc(d.body)}</textarea>
+    </label>
+    <div class="stack">
+      ${files.map((f) => `<div class="filebtn">${ICON.file}<span class="grow">${esc(f.name)}</span><span class="small muted">${fmtSize(f.size)}</span><button type="button" class="xbtn" data-act="file-del" data-id="${f.id}" aria-label="Remove ${esc(f.name)}">×</button></div>`).join("")}
+      <label class="btn ghost" style="cursor:pointer">${ICON.file}Attach files<input type="file" multiple data-act-change="file-add" class="sr-only"></label>
+    </div>
+    <div class="row" style="gap:8px;flex-wrap:wrap">
+      <button type="button" class="btn ghost grow" data-act="note-save">Save draft</button>
+      <button type="button" class="btn grow" data-act="note-publish">${n?.published_at ? "Update notes" : "Publish notes"}</button>
+    </div>
+    <div class="small muted" style="text-align:center">${n?.published_at ? "Members already got the \"Notes are up\" notification. Updates don't notify again." : "Publishing notifies everyone who came or said they'd come."}</div>
+  </section>`;
+}
+
+async function setAttendance(sid, uid, on) {
+  if (document.getElementById("notebody")) readNoteForm(sid); // keep typed notes
+  const set = state.attendance.get(sid) || new Set();
+  on ? set.add(uid) : set.delete(uid);
+  state.attendance.set(sid, set);
+  render();
+  const q = on ? sb.from("attendance").insert({ session_id: sid, user_id: uid })
+    : sb.from("attendance").delete().eq("session_id", sid).eq("user_id", uid);
+  const { error } = await q;
+  if (error && !/duplicate/i.test(error.message)) {
+    on ? set.delete(uid) : set.add(uid);
+    render(); toast("Couldn't save that tick.");
+  }
+}
+
+function readNoteForm(sid) {
+  const d = noteDraft(sid);
+  for (const el of document.querySelectorAll("[data-vocab]")) {
+    const row = d.vocab[+el.dataset.vocab];
+    if (row) row[el.dataset.k] = el.value;
+  }
+  const body = document.getElementById("notebody");
+  if (body) d.body = body.value;
+  return d;
+}
+
+async function saveNotes(sid, publish) {
+  const d = readNoteForm(sid);
+  const vocab = d.vocab.map((v) => ({ hanzi: (v.hanzi || "").trim(), pinyin: (v.pinyin || "").trim(), meaning: (v.meaning || "").trim() }))
+    .filter((v) => v.hanzi || v.pinyin || v.meaning).slice(0, 200);
+  const { data, error } = await sb.from("session_notes").upsert({ session_id: sid, vocab, body: d.body.slice(0, 20000) }).select().single();
+  if (error) { toast("Couldn't save the notes. Try again."); return; }
+  state.notes.set(sid, data);
+  if (publish) {
+    const r = await sb.rpc("publish_notes", { p_session: sid });
+    if (r.error) { toast("Saved, but couldn't publish. Try again."); return; }
+    state.notes.set(sid, { ...data, published_at: data.published_at || new Date().toISOString() });
+    toast(r.data?.first ? "Published! Members will be notified." : "Notes updated");
+  } else toast("Draft saved");
+  state.noteDraft.delete(sid);
+  render();
+}
+
+async function addFiles(sid, fileList) {
+  const list = [...fileList];
+  for (const f of list) {
+    if (f.size > 20 * 1048576) { toast(`${f.name} is over 20 MB`); continue; }
+    readNoteForm(sid);
+    const safe = f.name.replace(/[^\w.\-]+/g, "_").slice(-80);
+    const key = await sessionKey(sid);
+    const path = `${key}/${Date.now()}-${safe}`;
+    toast(`Uploading ${f.name}…`);
+    const up = await sb.storage.from("session-files").upload(path, f, { contentType: f.type || "application/octet-stream" });
+    if (up.error) { toast(`Couldn't upload ${f.name}`); continue; }
+    const { data, error } = await sb.from("note_files").insert({ session_id: sid, path, name: f.name.slice(0, 200), size: f.size }).select().single();
+    if (error) { toast(`Couldn't attach ${f.name}`); continue; }
+    if (!state.files.has(sid)) state.files.set(sid, []);
+    state.files.get(sid).push(data);
+  }
+  render();
+}
+
+async function sessionKey(sid) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(sid));
+  return [...new Uint8Array(buf)].slice(0, 12).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function deleteFile(sid, id) {
+  const f = (state.files.get(sid) || []).find((x) => x.id === id);
+  if (!f || !confirm(`Remove ${f.name}?`)) return;
+  readNoteForm(sid);
+  await sb.storage.from("session-files").remove([f.path]);
+  const { error } = await sb.from("note_files").delete().eq("id", id);
+  if (error) { toast("Couldn't remove it."); return; }
+  state.files.set(sid, state.files.get(sid).filter((x) => x.id !== id));
+  render();
+}
+
+async function openFile(path) {
+  const w = window.open("", "_blank");
+  const { data, error } = await sb.storage.from("session-files").createSignedUrl(path, 3600);
+  if (error) { w?.close(); toast("Couldn't open the file."); return; }
+  if (w) w.location = data.signedUrl; else location.href = data.signedUrl;
 }
 
 // ---------------------------------------------------------------------------
@@ -498,6 +756,7 @@ function profileView() {
     <button class="btn block" ${changed ? "" : "disabled"}>${changed ? "Save changes" : "Saved"}</button>
   </form>
 
+  ${notificationsCard()}
   ${installHint(true)}
   <div class="row between">
     <span class="small muted">${esc(state.user.email)}</span>
@@ -516,6 +775,111 @@ async function saveProfile() {
   state.me = data; state.profiles.set(data.id, data); state.draft = null;
   toast("Saved");
   render();
+}
+
+// ---------------------------------------------------------------------------
+// Notifications
+// ---------------------------------------------------------------------------
+function notificationsCard() {
+  const p = state.push, me = state.me;
+  let device;
+  if (!p.supported) {
+    device = isIOS() && !standalone()
+      ? `<p class="small" style="margin:0;line-height:1.45">On iPhone, notifications work once the app is on your Home Screen (Share → <b>Add to Home Screen</b>), then open it from there.</p>`
+      : `<p class="small" style="margin:0;line-height:1.45">This browser can't show app notifications. You'll get emails instead.</p>`;
+  } else if (p.permission === "denied") {
+    device = `<p class="small" style="margin:0;line-height:1.45">Notifications are blocked for this app. Allow them in your browser's site settings (tap the icon next to the address), then come back here.</p>`;
+  } else if (p.subscribed) {
+    device = `<div class="row" style="flex-wrap:wrap;gap:8px"><span class="small" style="color:var(--green);font-weight:800">On for this device ✓</span>
+      <button type="button" class="btn ghost" data-act="push-test" style="min-height:40px">Send me a test</button>
+      <button type="button" class="linkbtn" data-act="push-off">Turn off</button></div>`;
+  } else {
+    device = `<button type="button" class="btn green block" data-act="push-on">${ICON.bell}Turn on notifications</button>`;
+  }
+  const tog = (k, label, sub) => `<label class="check"><input type="checkbox" data-pref="${k}" ${me[k] ? "checked" : ""}>
+    <span style="font-size:14.5px;line-height:1.35"><b>${label}</b><br><span class="muted">${sub}</span></span></label>`;
+  return `<section class="stack" style="gap:10px" aria-label="Notifications">
+    <h2>Notifications</h2>
+    ${device}
+    ${tog("notify_reminders", "Session reminders", "1 hour before sessions you said you'd join")}
+    ${tog("notify_new", "New sessions", "When a new session is added to the calendar")}
+    ${tog("notify_notes", "Notes are up", "When your host shares the notes of a session you joined")}
+    ${tog("notify_email", "Email me instead", "For reminders and notes, when this app can't notify you")}
+  </section>`;
+}
+
+async function checkPush() {
+  const ok = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+  state.push.supported = ok;
+  if (!ok) return;
+  state.push.permission = Notification.permission;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    state.push.subscribed = !!sub && Notification.permission === "granted";
+    if (sub && state.push.subscribed) await saveSubscription(sub); // keep it attached to this account
+  } catch { /* ignore */ }
+  if (route() === "me") keepForm(() => render());
+}
+
+function b64ToBytes(b64) {
+  const pad = "=".repeat((4 - (b64.length % 4)) % 4);
+  const raw = atob((b64 + pad).replace(/-/g, "+").replace(/_/g, "/"));
+  return Uint8Array.from(raw, (c) => c.charCodeAt(0));
+}
+
+async function saveSubscription(sub) {
+  const j = sub.toJSON();
+  const row = { endpoint: j.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth, user_id: state.user.id, user_agent: navigator.userAgent.slice(0, 200) };
+  const { error } = await sb.from("push_subscriptions").upsert(row, { onConflict: "endpoint" });
+  return !error;
+}
+
+async function enablePush() {
+  try {
+    const perm = await Notification.requestPermission();
+    state.push.permission = perm;
+    if (perm !== "granted") { keepForm(() => render()); return; }
+    const reg = await navigator.serviceWorker.ready;
+    const sub = (await reg.pushManager.getSubscription())
+      || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToBytes(VAPID_PUBLIC) });
+    if (!(await saveSubscription(sub))) throw new Error("save");
+    state.push.subscribed = true;
+    toast("Notifications are on");
+    keepForm(() => render());
+    testPush(true);
+  } catch (e) {
+    console.error(e);
+    toast("Couldn't turn on notifications. Try again.");
+  }
+}
+
+async function disablePush() {
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    if (sub) {
+      await sb.from("push_subscriptions").delete().eq("endpoint", sub.endpoint);
+      await sub.unsubscribe();
+    }
+  } catch { /* ignore */ }
+  state.push.subscribed = false;
+  keepForm(() => render());
+}
+
+async function testPush(quiet = false) {
+  const { data: { session } } = await sb.auth.getSession();
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/push-test`, {
+    method: "POST", headers: { Authorization: `Bearer ${session.access_token}`, apikey: SUPABASE_KEY },
+  }).then((r) => r.json()).catch(() => ({}));
+  if (!quiet) toast(res.ok ? "Test sent. It should arrive in a few seconds." : "The test didn't reach this device. Try turning notifications off and on.");
+}
+
+async function savePref(key, value) {
+  state.me[key] = value;
+  if (state.draft) state.draft[key] = value;
+  const { error } = await sb.from("profiles").update({ [key]: value }).eq("id", state.user.id);
+  toast(error ? "Couldn't save that setting." : "Saved");
 }
 
 // ---------------------------------------------------------------------------
@@ -604,7 +968,36 @@ document.addEventListener("click", async (e) => {
     state.installPrompt = null; render();
   } else if (act === "hide-install") {
     localStorage.setItem("mz-hide-install", "1"); render();
+  } else if (act === "push-on") {
+    enablePush();
+  } else if (act === "push-off") {
+    disablePush();
+  } else if (act === "push-test") {
+    testPush();
+  } else if (act === "attend") {
+    const sid = routeArg(), uid = el.dataset.uid;
+    setAttendance(sid, uid, !(state.attendance.get(sid) || new Set()).has(uid));
+  } else if (act === "vocab-add" || act === "vocab-del") {
+    const sid = routeArg(), d = readNoteForm(sid);
+    if (act === "vocab-add") d.vocab.push({ hanzi: "", pinyin: "", meaning: "" });
+    else d.vocab.splice(+el.dataset.i, 1);
+    const y = scrollY; render(); scrollTo(0, y);
+    if (act === "vocab-add") document.querySelector(`[data-vocab="${d.vocab.length - 1}"]`)?.focus();
+  } else if (act === "note-save" || act === "note-publish") {
+    el.disabled = true;
+    await saveNotes(routeArg(), act === "note-publish");
+  } else if (act === "file-del") {
+    deleteFile(routeArg(), el.dataset.id);
+  } else if (act === "open-file") {
+    openFile(el.dataset.path);
   }
+});
+
+document.addEventListener("change", (e) => {
+  const el = e.target;
+  if (el.dataset.pref) savePref(el.dataset.pref, el.checked);
+  else if (el.dataset.actChange === "attend-add" && el.value) setAttendance(routeArg(), el.value, true);
+  else if (el.dataset.actChange === "file-add" && el.files?.length) addFiles(routeArg(), el.files);
 });
 
 // Re-render the profile without losing typed values in text fields.
@@ -638,6 +1031,7 @@ async function toggleIn(id) {
 
 addEventListener("hashchange", () => {
   if (route() !== "me") state.draft = null;
+  if (route() !== "host") state.noteDraft.clear();
   render();
   document.getElementById("main")?.focus?.();
   scrollTo(0, 0);
