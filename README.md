@@ -59,3 +59,4 @@ Same as the website calendar: the title gives the level (`HSK 2-4`) and category
 - Short bio (140 characters) on Me.
 - Chinese level options: Beginner, Lower intermediate, Intermediate, Upper intermediate, Advanced.
 - Member cards: tap anyone in Members to see avatar, bio, level and XP, sessions attended, Chinese level, country and Discord; admins also give XP there.
+- Desktop: List / Calendar switch on Home (month grid, colours by session type, ✓ for sessions you joined; choice remembered). Phones keep the list.

@@ -1,6 +1,6 @@
-import { createClient } from "./vendor/supabase.js?v=8";
-import { FRUITS, HOST_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=8";
-import { COUNTRIES } from "./countries.js?v=8";
+import { createClient } from "./vendor/supabase.js?v=9";
+import { FRUITS, HOST_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=9";
+import { COUNTRIES } from "./countries.js?v=9";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -47,7 +47,11 @@ const state = {
   membersTab: "lb",      // "lb" leaderboard | "all" directory
   lbPeriod: "month",     // "month" | "all"
   stats: new Map(),      // user_id -> sessions attended
+  view: (() => { try { return localStorage.getItem("mz-view") || "list"; } catch { return "list"; } })(),
+  calMonth: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+  calPick: null,         // session id selected in the calendar
 };
+const wide = () => matchMedia("(min-width: 900px)").matches;
 const VAPID_PUBLIC = "BDzM2jJc6wlM2C39lLVzvrPCdUgr45MEH_3zRZIxetGlzAeJqmyCl5YGsAc2QozO-ECD38lJWeyQJD3lvOzrNY4";
 
 const app = document.getElementById("app");
@@ -482,6 +486,47 @@ function xpCard() {
   </a>`;
 }
 
+// ---------- Month calendar (desktop) ----------
+function calendarView() {
+  const m = state.calMonth, y = m.getFullYear(), mo = m.getMonth();
+  const first = new Date(y, mo, 1), start = new Date(y, mo, 1 - ((first.getDay() + 6) % 7));
+  const byDay = new Map();
+  for (const s of state.sessions) {
+    if (s.cancelled) continue;
+    const k = dayKey(new Date(s.starts_at));
+    if (!byDay.has(k)) byDay.set(k, []);
+    byDay.get(k).push(s);
+  }
+  const today = dayKey(new Date());
+  const weekdays = [...Array(7)].map((_, i) => new Date(2024, 0, 1 + i).toLocaleDateString([], { weekday: "short" }));
+  let cells = "";
+  for (let i = 0; i < 42; i++) {
+    const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
+    if (i === 35 && d.getMonth() !== mo) break; // 5 rows are enough this month
+    const k = dayKey(d), list = byDay.get(k) || [];
+    const chips = list.slice(0, 3).map((s) => {
+      const c = cat(s), mine = iAmIn(s), past = ended(s);
+      return `<button type="button" class="calchip${past ? " past" : ""}${state.calPick === s.id ? " on" : ""}" data-act="cal-open" data-id="${esc(s.id)}"
+        style="--c:${c.color};--t:${tint(c.color, .14)}" title="${esc(s.title)}">${mine ? "✓ " : ""}<b>${fmtTime(new Date(s.starts_at))}</b> ${esc(s.title)}</button>`;
+    }).join("");
+    const more = list.length > 3 ? `<button type="button" class="calmore" data-act="cal-open" data-id="${esc(list[3].id)}">+${list.length - 3} more</button>` : "";
+    cells += `<div class="calcell${d.getMonth() !== mo ? " out" : ""}${k === today ? " today" : ""}">
+      <span class="calday">${d.getDate()}</span>${chips}${more}</div>`;
+  }
+  const pick = state.sessions.find((s) => s.id === state.calPick);
+  return `<section class="cal" aria-label="Sessions calendar">
+    <div class="row between calhead">
+      <button type="button" class="xbtn" data-act="cal-move" data-v="-1" aria-label="Previous month">‹</button>
+      <div class="row" style="gap:10px"><h2>${esc(first.toLocaleDateString([], { month: "long", year: "numeric" }))}</h2>
+        <button type="button" class="linkbtn" data-act="cal-move" data-v="0">Today</button></div>
+      <button type="button" class="xbtn" data-act="cal-move" data-v="1" aria-label="Next month">›</button>
+    </div>
+    <div class="calgrid">${weekdays.map((w) => `<div class="calwd">${esc(w)}</div>`).join("")}${cells}</div>
+    <div class="legend">${Object.values(CATEGORIES).map((c) => `<span><i style="background:${c.color}"></i>${esc(c.label)}</span>`).join("")}<span>✓ you're in</span></div>
+  </section>
+  ${pick ? `<div class="slist">${sessionItem(pick)}</div>` : `<p class="small muted" style="margin:0">Click a session to see the details, who's coming and the Meet link.</p>`}`;
+}
+
 function homeView() {
   const me = state.me, f = featured();
   const rest = upcoming().filter((s) => s !== f).slice(0, 14);
@@ -496,11 +541,18 @@ function homeView() {
   ${isHost() ? "" : xpCard()}
   ${featuredCard(f)}
   ${installHint()}
-  <div class="row between" style="align-items:baseline">
-    <h2>Coming up</h2>
-    ${tzCity ? `<span class="small muted">Times in ${esc(tzCity)}</span>` : ""}
+  <div class="row between" style="align-items:center;flex-wrap:wrap;gap:8px">
+    <h2>${wide() && state.view === "cal" ? "Calendar" : "Coming up"}</h2>
+    <div class="row" style="gap:10px">
+      ${tzCity ? `<span class="small muted">Times in ${esc(tzCity)}</span>` : ""}
+      <div class="seg viewswitch" role="group" aria-label="View">
+        <button type="button" data-act="view" data-v="list" aria-pressed="${state.view !== "cal"}">List</button>
+        <button type="button" data-act="view" data-v="cal" aria-pressed="${state.view === "cal"}">Calendar</button>
+      </div>
+    </div>
   </div>
-  <div class="slist">${rest.length ? grouped(rest) : `<p class="muted small">Nothing else planned yet.</p>`}</div>`;
+  ${wide() && state.view === "cal" ? calendarView()
+    : `<div class="slist">${rest.length ? grouped(rest) : `<p class="muted small">Nothing else planned yet.</p>`}</div>`}`;
 }
 
 const attended = (s, uid = state.user.id) => (state.attendance.get(s.id) || new Set()).has(uid);
@@ -946,7 +998,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=8");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=9");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -1230,6 +1282,19 @@ document.addEventListener("click", async (e) => {
   } else if (act === "note-save" || act === "note-publish") {
     el.disabled = true;
     await saveNotes(routeArg(), act === "note-publish");
+  } else if (act === "view") {
+    state.view = el.dataset.v;
+    try { localStorage.setItem("mz-view", state.view); } catch { /* storage off */ }
+    render();
+  } else if (act === "cal-move") {
+    const v = +el.dataset.v, m = state.calMonth;
+    state.calMonth = v === 0 ? new Date(new Date().getFullYear(), new Date().getMonth(), 1) : new Date(m.getFullYear(), m.getMonth() + v, 1);
+    render();
+  } else if (act === "cal-open") {
+    state.calPick = state.calPick === el.dataset.id ? null : el.dataset.id;
+    if (state.calPick) state.open.add(state.calPick);
+    render();
+    if (state.calPick) document.querySelector(".cal + .slist")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   } else if (act === "mtab") {
     state.membersTab = el.dataset.v; render();
   } else if (act === "lbp") {
@@ -1300,6 +1365,8 @@ document.addEventListener("visibilitychange", async () => {
   try { await loadAll(); if (route() !== "me") render(); } catch { /* offline: keep what we have */ }
 });
 setInterval(() => { if (state.role && route() === "home") render(); }, 60e3); // keep "in 2 h" fresh
+let wasWide = wide();
+addEventListener("resize", () => { if (wide() !== wasWide) { wasWide = wide(); if (state.role && route() === "home") render(); } });
 
 // ---------------------------------------------------------------------------
 // Boot
@@ -1319,4 +1386,4 @@ sb.auth.onAuthStateChange((event) => {
   if (event === "SIGNED_OUT" && state.user) { state.user = null; state.role = null; render(); }
 });
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=8").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=9").catch(() => {});

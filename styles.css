@@ -286,3 +286,27 @@ a.mcard { text-decoration: none; color: inherit; }
 a.hostcard { text-decoration: none; color: inherit; }
 a.hostcard:hover, .podium a:hover b { border-color: var(--orange); color: inherit; }
 .podium a { text-decoration: none; color: inherit; display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; width: 100%; }
+
+/* ---------- Month calendar (desktop only) ---------- */
+.viewswitch { display: none; min-width: 190px; }
+.viewswitch button { min-height: 36px; font-size: 13.5px; }
+@media (min-width: 900px) { .viewswitch { display: grid; } }
+.cal { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.calhead h2 { margin: 0; }
+.calgrid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border-top: 1px solid var(--line); border-left: 1px solid var(--line); }
+.calwd { padding: 6px 8px; font-size: 12px; font-weight: 800; letter-spacing: .04em; color: var(--faint); text-transform: uppercase; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); background: #fffdfb; }
+.calcell { min-height: 104px; padding: 4px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.calcell.out { background: #fcf8f5; }
+.calcell.out .calday { color: #b8aaa1; }
+.calday { font-size: 12.5px; font-weight: 700; padding: 2px 4px; align-self: flex-start; border-radius: 999px; min-width: 24px; text-align: center; }
+.calcell.today .calday { background: var(--orange); color: var(--ink); }
+.calchip { all: unset; box-sizing: border-box; cursor: pointer; display: block; width: 100%; font-size: 11.5px; line-height: 1.3; padding: 3px 6px; border-radius: 7px;
+  background: var(--t); color: var(--ink); border-left: 3px solid var(--c); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.calchip b { color: var(--c); font-weight: 800; }
+.calchip:hover, .calchip.on { outline: 2px solid var(--c); }
+.calchip:focus-visible { outline: 3px solid #4f7a94; }
+.calchip.past { opacity: .55; }
+.calmore { all: unset; cursor: pointer; font-size: 11.5px; font-weight: 700; color: var(--orange-ink); padding: 0 6px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12.5px; color: var(--muted); }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+@media (min-width: 900px) { .main:has(.cal) { max-width: 1040px; } }
