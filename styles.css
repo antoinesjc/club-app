@@ -334,3 +334,22 @@ a.hostcard:hover, .podium a:hover b { border-color: var(--orange); color: inheri
 .bootprice.pending { background: #fdf1ea; color: var(--muted); }
 .btn.discord { background: #5865f2; color: #fff; }
 .btn.discord:hover { background: #4752c4; color: #fff; }
+
+/* ---------- Stickers ---------- */
+.av .stk {
+  position: absolute; left: -3px; bottom: -1px; width: max(16px, calc(var(--s) * .42)); height: max(16px, calc(var(--s) * .42));
+  border-radius: 50%; background: #fff; box-shadow: 0 0 0 2px #fff, 0 1px 3px rgba(42,36,32,.25); overflow: hidden;
+}
+.av .stk svg { width: 100%; height: 100%; display: block; }
+.stkbig { display: inline-grid; place-items: center; width: var(--z, 52px); height: var(--z, 52px); border-radius: 50%; overflow: hidden; flex: none; }
+.stkbig svg { width: 100%; height: 100%; display: block; }
+.stkbig.none { background: var(--line, #ecdcd2); color: var(--muted, #6f625a); font-weight: 800; font-size: 18px; }
+.stkpick { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 8px; }
+.stkbtn {
+  display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 4px; min-height: 44px;
+  border: 2px solid transparent; border-radius: 16px; background: none; font: inherit; color: inherit; cursor: pointer;
+}
+.stkbtn[aria-pressed="true"] { border-color: var(--orange, #f37a48); background: #fff4ee; }
+.stkbtn:disabled { opacity: .45; cursor: default; }
+.stkrow { display: flex; flex-wrap: wrap; gap: 14px; }
+.stkitem { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 72px; text-align: center; }

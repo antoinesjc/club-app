@@ -61,3 +61,9 @@ Same as the website calendar: the title gives the level (`HSK 2-4`) and category
 - Member cards: tap anyone in Members to see avatar, bio, level and XP, sessions attended, Chinese level, country and Discord; admins also give XP there.
 - Desktop: List / Calendar switch on Home (month grid, colours by session type, ✓ for sessions you joined; choice remembered). Phones keep the list.
 - Bootcamps: read from the website feed (`bootcamps.json` in Mandarin-Zest-Class-Calendar, rebuilt daily), sorted by date, with the Club price; "Ask a host to join" opens the Club Discord. Desktop: sidebar item. Phone: "Explore our bootcamps" square on Home (no prices there).
+
+## Stickers (20 Oct 2026)
+- Catalogue in `stickers.js` (bubble tea, four tones, lantern, dumpling, brush, mooncake). Keys must match `public.sticker_ok()` in the database.
+- Admins give stickers on a member's card ("Give XP or a sticker"): pick the bootcamp, set the XP (0 = sticker only), pick the sticker (suggested from the bootcamp title). Table `sticker_awards`; taking one back also removes it from the avatar.
+- Members wear one sticker (`profiles.sticker`) at the bottom-left of their avatar; the Stickers section in Me only appears once they have one. Hosts and admins see and can wear all of them.
+- To add a sticker: add it to `stickers.js` and to `sticker_ok()`.

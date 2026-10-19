@@ -1,6 +1,7 @@
-import { createClient } from "./vendor/supabase.js?v=11";
-import { FRUITS, HOST_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=11";
-import { COUNTRIES } from "./countries.js?v=11";
+import { createClient } from "./vendor/supabase.js?v=12";
+import { FRUITS, HOST_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=12";
+import { COUNTRIES } from "./countries.js?v=12";
+import { STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=12";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -124,12 +125,14 @@ const ICON = {
   phone: '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18 h2"/></svg>',
 };
 
-function avatar(p, size, { locked = false, flag = true, fruit, bg } = {}) {
+function avatar(p, size, { locked = false, flag = true, fruit, bg, sticker } = {}) {
   const f = fruit || p?.fruit || "orange";
   const c = flag && !locked ? p?.country : "";
+  const st = sticker !== undefined ? sticker : flag && !locked ? p?.sticker : "";
   return `<span class="av${locked ? " locked" : ""}" style="--s:${size}px;--bg-av:${esc(bg || p?.bg || "#fdf1ea")}">` +
     `<span class="disc">${fruitSvg(f)}</span>` +
     (c ? `<img class="flag" src="flags/${esc(c)}.svg" alt="${esc(countryName(c))}" loading="lazy">` : "") +
+    (st && stickerInfo(st) ? `<span class="stk" title="${esc(stickerInfo(st).en)}">${stickerSvg(st)}</span>` : "") +
     (locked ? `<span class="lock">${ICON.lock}</span>` : "") + `</span>`;
 }
 
@@ -182,17 +185,23 @@ async function loadAll() {
   state.sessions = ses.data;
 
   let stats;
+  let stk, worn;
   const [att, notes, board, awards] = await Promise.all([
     sb.from("attendance").select("session_id, user_id"),
     sb.from("session_notes").select("*"),
     sb.rpc("xp_board"),
     sb.from("xp_awards").select("*").order("awarded_at", { ascending: false }),
     sb.rpc("member_stats"),
-  ]).then((r) => { stats = r.pop(); return r; });
+    sb.from("sticker_awards").select("*").order("awarded_at", { ascending: false }),
+    sb.rpc("board_stickers"),
+  ]).then((r) => { worn = r.pop(); stk = r.pop(); stats = r.pop(); return r; });
   for (const r of [att, notes, board, awards]) if (r.error) throw r.error;
   if (!stats.error) state.stats = new Map(stats.data.map((x) => [x.user_id, x.sessions]));
   state.board = board.data;
   state.awards = awards.data;
+  state.stickerAwards = stk.error ? [] : stk.data;
+  state.worn = new Map(worn.error ? [] : worn.data.map((x) => [x.user_id, x.sticker]));
+  for (const r of state.board) r.sticker = state.worn.get(r.user_id) || null;
   state.attendance = new Map();
   for (const a of att.data) {
     if (!state.attendance.has(a.session_id)) state.attendance.set(a.session_id, new Set());
@@ -226,8 +235,17 @@ async function loadAll() {
       }
       localStorage.setItem("mz-level", String(lv));
     } catch { /* storage off */ }
+    try {
+      const mine = myStickers(), raw = localStorage.getItem("mz-stickers");
+      const seen = raw ? JSON.parse(raw) : null;
+      const fresh = seen ? mine.filter((k) => !seen.includes(k)) : [];
+      if (fresh.length) setTimeout(() => toast(`New sticker! ${fresh.map((k) => stickerInfo(k)?.en).join(", ")}. Put it on your avatar in Me.`), 1400);
+      localStorage.setItem("mz-stickers", JSON.stringify(mine));
+    } catch { /* storage off */ }
   }
 }
+
+const myStickers = (id = state.user?.id) => (state.stickerAwards || []).filter((a) => a.user_id === id).map((a) => a.sticker).filter((k) => stickerInfo(k));
 
 async function startSession(user) {
   state.user = user;
@@ -893,7 +911,7 @@ function memberView() {
   const id = routeArg();
   const r = state.board.find((x) => x.user_id === id);
   const full = state.profiles.get(id);
-  const p = full || (r && { id, display_name: r.name, fruit: r.fruit, bg: r.bg, country: r.country });
+  const p = full || (r && { id, display_name: r.name, fruit: r.fruit, bg: r.bg, country: r.country, sticker: r.sticker });
   if (!p) return `<a class="linkbtn" href="#/members">← Back</a><div class="card"><h2>Member not found</h2></div>`;
   const role = state.roles.get(id), host = role === "host" || role === "admin";
   const me = id === state.user.id;
@@ -917,51 +935,96 @@ function memberView() {
   </header>
   ${full?.bio ? `<p class="bio">${esc(full.bio)}</p>` : me ? `<p class="small muted" style="margin:0">Add a short bio in <a href="#/me">Me</a> so others know a bit about you.</p>` : ""}
   <div class="facts">${facts.map(([v, l]) => `<div class="fact"><b>${esc(v)}</b><span>${esc(l)}</span></div>`).join("")}</div>
+  ${(() => { const got = myStickers(id); return got.length ? `<section class="card" style="gap:10px"><h2>Stickers collected · ${got.length}</h2>
+    <div class="stkrow">${got.map((k) => `<div class="stkitem"><span class="stkbig">${stickerSvg(k)}</span><span class="small">${esc(stickerInfo(k).en)}</span></div>`).join("")}</div></section>` : ""; })()}
   ${full?.discord ? `<a class="chatcard" style="display:flex" href="${DISCORD_CHAT}" target="_blank" rel="noopener">${ICON.chat}<span class="grow"><b>@${esc(full.discord)}</b><br><span class="small">Say hi on the Club Discord</span></span><span aria-hidden="true" style="font-size:20px">↗</span></a>` : ""}
   ${!full && !me ? `<p class="small muted" style="margin:0">This member keeps their profile out of the directory.</p>` : ""}
   ${isAdmin() ? adminXpBlock(id, r, awards) : ""}`;
 }
 
 function adminXpBlock(id, r, awards) {
+  const kind = state.awardKind || "bootcamp";
+  const camps = Array.isArray(state.bootcamps) ? [...state.bootcamps].sort((x, y) => bootSortKey(x).localeCompare(bootSortKey(y))) : [];
+  if (kind === "bootcamp" && !state.bootcamps) loadBootcamps().then(render);
+  const pick = state.awardCamp ?? camps[0]?.title ?? "";
+  const owned = new Set(myStickers(id));
+  const suggested = kind === "bootcamp" ? stickerForBootcamp(pick) : "";
+  const stk = state.awardSticker ?? (owned.has(suggested) ? "" : suggested);
+  const gotStickers = (state.stickerAwards || []).filter((a) => a.user_id === id);
   return `
   <form class="card" data-form="award" style="gap:12px">
-    <div class="row between" style="align-items:baseline"><h2>Give XP</h2><span class="small muted">Admin only</span></div>
-    ${r ? "" : `<div class="small muted">Hosts and admins don't earn XP.</div>`}
+    <div class="row between" style="align-items:baseline"><h2>Give XP or a sticker</h2><span class="small muted">Admin only</span></div>
+    ${r ? "" : `<div class="small muted">Hosts and admins don't earn XP or stickers (they have them all).</div>`}
     <div class="periods" style="justify-content:flex-start" role="group" aria-label="Kind">
-      <button type="button" data-act="award-kind" data-v="bootcamp" aria-pressed="${(state.awardKind || "bootcamp") === "bootcamp"}">Bootcamp +${XP_BOOTCAMP}</button>
-      <button type="button" data-act="award-kind" data-v="bonus" aria-pressed="${state.awardKind === "bonus"}">Other bonus</button>
+      <button type="button" data-act="award-kind" data-v="bootcamp" aria-pressed="${kind === "bootcamp"}">Bootcamp</button>
+      <button type="button" data-act="award-kind" data-v="bonus" aria-pressed="${kind === "bonus"}">Other bonus</button>
     </div>
+    ${kind === "bootcamp" ? `<label class="field">Which bootcamp
+      <select class="input" name="camp" data-act-change="award-camp">
+        ${camps.map((c) => `<option value="${esc(c.title)}" ${c.title === pick ? "selected" : ""}>${esc(c.title)}${c.dates ? ` · ${esc(c.dates)}` : ""}</option>`).join("")}
+        <option value="" ${pick === "" ? "selected" : ""}>Another bootcamp (type it below)</option>
+      </select></label>` : ""}
     <div class="grid2">
-      <label class="field">Points<input class="input" name="points" type="number" min="-2000" max="2000" step="1" value="${state.awardKind === "bonus" ? 50 : XP_BOOTCAMP}" required></label>
-      <label class="field">Reason<input class="input" name="reason" maxlength="120" placeholder="${state.awardKind === "bonus" ? "e.g. helped a new member" : "e.g. Pronunciation Bootcamp, Jan 2027"}"></label>
+      <label class="field">XP to give<input class="input" name="points" type="number" min="-2000" max="2000" step="1" value="${kind === "bonus" ? 50 : XP_BOOTCAMP}"></label>
+      <label class="field">Reason<input class="input" name="reason" maxlength="120" placeholder="${kind === "bonus" ? "e.g. helped a new member" : pick ? "optional, e.g. Nov 2026" : "e.g. Pronunciation Bootcamp, Jan 2027"}"></label>
     </div>
-    <button class="btn green block" ${r ? "" : "disabled"}>Give XP</button>
-    <div class="small muted">Use a negative number to correct a mistake. Members see their own awards.</div>
+    <div>
+      <div class="row between" style="align-items:baseline;margin-bottom:8px"><span style="font-weight:700;font-size:14.5px">Sticker to unlock</span><span class="small muted">${owned.size ? `Has ${owned.size}` : "Has none yet"}</span></div>
+      <div class="stkpick">
+        <button type="button" class="stkbtn" data-act="award-stk" data-key="" aria-pressed="${!stk}"><span class="stkbig none">—</span><span class="small">None</span></button>
+        ${STICKERS.map((t) => `<button type="button" class="stkbtn" data-act="award-stk" data-key="${t.key}" aria-pressed="${stk === t.key}" ${owned.has(t.key) ? "disabled" : ""}>
+          <span class="stkbig">${stickerSvg(t.key)}</span><span class="small">${owned.has(t.key) ? "Has it" : esc(t.en)}</span></button>`).join("")}
+      </div>
+    </div>
+    <button class="btn green block" ${r ? "" : "disabled"}>Give</button>
+    <div class="small muted">Set XP to 0 to give only a sticker. Use a negative number to correct a mistake. Members see their own awards.</div>
   </form>
   <section class="card" style="gap:0">
-    <h2 style="margin-bottom:6px">XP given by admins</h2>
-    ${awards.length ? awards.map((a) => `<div class="awardrow"><b style="width:64px">${a.points > 0 ? "+" : ""}${a.points}</b>
+    <h2 style="margin-bottom:6px">Given by admins</h2>
+    ${awards.length || gotStickers.length ? [
+      ...awards.map((a) => `<div class="awardrow"><b style="width:64px">${a.points > 0 ? "+" : ""}${a.points}</b>
       <span class="grow">${esc(a.kind === "bootcamp" ? "Bootcamp" : "Bonus")}${a.reason ? ` · ${esc(a.reason)}` : ""}<br><span class="small muted">${new Date(a.awarded_at).toLocaleDateString()}</span></span>
-      <button type="button" class="xbtn" data-act="award-del" data-id="${a.id}" aria-label="Remove this award">×</button></div>`).join("")
-      : `<p class="small muted" style="margin:0">None yet. Session XP comes from attendance ticks.</p>`}
+      <button type="button" class="xbtn" data-act="award-del" data-id="${a.id}" aria-label="Remove this award">×</button></div>`),
+      ...gotStickers.filter((a) => stickerInfo(a.sticker)).map((a) => `<div class="awardrow"><span style="width:64px"><span class="stkbig" style="--z:36px">${stickerSvg(a.sticker)}</span></span>
+      <span class="grow">Sticker · ${esc(stickerInfo(a.sticker).en)}${a.reason ? ` · ${esc(a.reason)}` : ""}<br><span class="small muted">${new Date(a.awarded_at).toLocaleDateString()}</span></span>
+      <button type="button" class="xbtn" data-act="stk-del" data-id="${a.id}" aria-label="Take this sticker back">×</button></div>`),
+    ].join("") : `<p class="small muted" style="margin:0">Nothing yet. Session XP comes from attendance ticks.</p>`}
   </section>`;
 }
 
 async function giveXp(form) {
   const id = routeArg();
-  const points = parseInt(form.points.value, 10);
-  if (!points || Math.abs(points) > 2000) { toast("Enter a number of points."); return; }
   const kind = state.awardKind || "bootcamp";
-  const { data, error } = await sb.from("xp_awards").insert({ user_id: id, points, kind, reason: form.reason.value.trim().slice(0, 120) }).select().single();
-  if (error) { toast("Couldn't give XP."); return; }
-  state.awards.unshift(data);
+  const points = parseInt(form.points.value || "0", 10) || 0;
+  if (Math.abs(points) > 2000) { toast("XP must be between -2000 and 2000."); return; }
+  const camp = kind === "bootcamp" ? (form.camp?.value || "") : "";
+  const extra = form.reason.value.trim();
+  const reason = [camp, extra].filter(Boolean).join(" · ").slice(0, 120);
+  const sticker = state.awardSticker ?? (kind === "bootcamp" ? stickerForBootcamp(camp) : "");
+  const owned = myStickers(id);
+  const giveSticker = sticker && !owned.includes(sticker);
+  if (!points && !giveSticker) { toast("Enter some XP or pick a sticker."); return; }
+  const done = [];
+  if (points) {
+    const { data, error } = await sb.from("xp_awards").insert({ user_id: id, points, kind, reason }).select().single();
+    if (error) { toast("Couldn't give XP."); return; }
+    state.awards.unshift(data);
+    done.push(`${points > 0 ? "+" : ""}${points} XP`);
+  }
+  if (giveSticker) {
+    const { data, error } = await sb.from("sticker_awards").insert({ user_id: id, sticker, reason }).select().single();
+    if (error) { toast(done.length ? `${done[0]} given, but the sticker failed.` : "Couldn't give the sticker."); }
+    else { state.stickerAwards.unshift(data); done.push(`the ${stickerInfo(sticker).en} sticker`); }
+  }
+  state.awardSticker = undefined;
+  form.reset();
   await refreshBoard();
-  toast(`${points > 0 ? "+" : ""}${points} XP given`);
+  if (done.length) toast(`Gave ${done.join(" and ")}`);
 }
 
 async function refreshBoard() {
   const { data } = await sb.rpc("xp_board");
-  if (data) state.board = data;
+  if (data) { state.board = data; for (const r of state.board) r.sticker = state.worn?.get(r.user_id) || null; }
   render();
 }
 
@@ -976,8 +1039,9 @@ function draft() {
 function profileView() {
   const d = draft(), info = fruitInfo(d.fruit), idx = trad() ? 1 : 0;
   const level = myLevel();
-  const changed = ["display_name", "fruit", "bg", "country", "chinese_level", "discord", "show_in_directory", "script", "bio"]
-    .some((k) => d[k] !== state.me[k]);
+  const changed = ["display_name", "fruit", "bg", "country", "chinese_level", "discord", "show_in_directory", "script", "bio", "sticker"]
+    .some((k) => (d[k] ?? null) !== (state.me[k] ?? null));
+  const stickerKeys = isHost() ? STICKERS.map((t) => t.key) : myStickers();
   return `
   <header class="row" style="gap:16px">
     ${avatar(d, 96)}
@@ -1013,6 +1077,16 @@ function profileView() {
           <span class="cap">${locked ? `Lv ${f.level}` : esc(zh(f.zh))}</span></button>`;
       }).join("")}</div>
     </div>
+
+    ${stickerKeys.length ? `<div>
+      <div class="row between" style="align-items:baseline;margin-bottom:8px"><h2>Stickers</h2><span class="small muted">${isHost() ? "Hosts have them all" : `${stickerKeys.length} collected`}</span></div>
+      <div class="stkpick">
+        <button type="button" class="stkbtn" data-act="sticker" data-key="" aria-pressed="${!d.sticker}"><span class="stkbig none">—</span><span class="small">None</span></button>
+        ${stickerKeys.map((k) => { const t = stickerInfo(k); return `<button type="button" class="stkbtn" data-act="sticker" data-key="${k}" aria-pressed="${d.sticker === k}" aria-label="${esc(t.en)} ${esc(zh(t.zh))}">
+          <span class="stkbig">${stickerSvg(k)}</span><span class="small">${esc(zh(t.zh))}</span></button>`; }).join("")}
+      </div>
+      <p class="small muted" style="margin:8px 0 0">Your sticker shows at the bottom-left of your avatar.${isHost() ? " Members only see the stickers they've collected from bootcamps." : ""}</p>
+    </div>` : ""}
 
     <div>
       <h2 style="margin-bottom:8px">Background</h2>
@@ -1065,7 +1139,7 @@ function profileView() {
 async function saveProfile() {
   const d = draft();
   const patch = {};
-  for (const k of ["display_name", "fruit", "bg", "country", "chinese_level", "discord", "show_in_directory", "script", "bio"]) patch[k] = d[k];
+  for (const k of ["display_name", "fruit", "bg", "country", "chinese_level", "discord", "show_in_directory", "script", "bio", "sticker"]) patch[k] = d[k] ?? null;
   patch.display_name = String(patch.display_name || "").trim().slice(0, 40);
   patch.discord = String(patch.discord || "").trim().replace(/^@/, "").slice(0, 40);
   patch.bio = String(patch.bio || "").replace(/\s+/g, " ").trim().slice(0, BIO_MAX);
@@ -1084,7 +1158,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=11");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=12");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -1386,7 +1460,21 @@ document.addEventListener("click", async (e) => {
   } else if (act === "lbp") {
     state.lbPeriod = el.dataset.v; render();
   } else if (act === "award-kind") {
-    state.awardKind = el.dataset.v; render();
+    state.awardKind = el.dataset.v; state.awardSticker = undefined; render();
+  } else if (act === "award-stk") {
+    state.awardSticker = el.dataset.key; render();
+  } else if (act === "stk-del") {
+    if (!confirm("Take this sticker back?")) return;
+    const a = state.stickerAwards.find((x) => x.id === el.dataset.id);
+    const { error } = await sb.from("sticker_awards").delete().eq("id", el.dataset.id);
+    if (error) { toast("Couldn't remove it."); return; }
+    state.stickerAwards = state.stickerAwards.filter((x) => x.id !== el.dataset.id);
+    const p = a && state.profiles.get(a.user_id);
+    if (p && p.sticker === a.sticker && state.roles.get(a.user_id) === "member") p.sticker = null;
+    if (a && state.worn.get(a.user_id) === a.sticker) state.worn.delete(a.user_id);
+    await refreshBoard();
+  } else if (act === "sticker") {
+    keepForm(() => { draft().sticker = el.dataset.key || null; render(); });
   } else if (act === "award-del") {
     if (!confirm("Remove this XP award?")) return;
     const { error } = await sb.from("xp_awards").delete().eq("id", el.dataset.id);
@@ -1404,6 +1492,7 @@ document.addEventListener("change", (e) => {
   const el = e.target;
   if (el.dataset.pref) savePref(el.dataset.pref, el.checked);
   else if (el.dataset.actChange === "attend-add" && el.value) setAttendance(routeArg(), el.value, true);
+  else if (el.dataset.actChange === "award-camp") { state.awardCamp = el.value; state.awardSticker = undefined; render(); }
 });
 
 // Re-render the profile without losing typed values in text fields.
@@ -1472,4 +1561,4 @@ sb.auth.onAuthStateChange((event) => {
   if (event === "SIGNED_OUT" && state.user) { state.user = null; state.role = null; render(); }
 });
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=11").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=12").catch(() => {});
