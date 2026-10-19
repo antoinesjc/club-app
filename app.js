@@ -1,6 +1,6 @@
-import { createClient } from "./vendor/supabase.js";
-import { FRUITS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js";
-import { COUNTRIES } from "./countries.js";
+import { createClient } from "./vendor/supabase.js?v=5";
+import { FRUITS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=5";
+import { COUNTRIES } from "./countries.js?v=5";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -903,7 +903,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=5");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -1275,4 +1275,4 @@ sb.auth.onAuthStateChange((event) => {
   if (event === "SIGNED_OUT" && state.user) { state.user = null; state.role = null; render(); }
 });
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=5").catch(() => {});

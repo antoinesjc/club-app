@@ -1,9 +1,9 @@
 // Keeps the app shell available offline, and shows Club notifications.
 // Data always comes from the network.
-const VERSION = "mz-club-v4";
+const VERSION = "mz-club-v5";
 const SHELL = [
-  "./", "index.html", "styles.css?v=4", "app.js?v=4", "fruits.js", "countries.js",
-  "vendor/supabase.js", "manifest.webmanifest", "icons/logo.png", "icons/icon-192.png",
+  "./", "index.html", "styles.css?v=5", "app.js?v=5", "fruits.js?v=5", "countries.js?v=5",
+  "vendor/supabase.js?v=5", "manifest.webmanifest", "icons/logo.png", "icons/icon-192.png",
 ];
 
 self.addEventListener("install", (e) => {
@@ -22,7 +22,7 @@ self.addEventListener("fetch", (e) => {
   if (e.request.method !== "GET" || url.origin !== location.origin) return;
   // Network first, so updates show up right away; cache as a fallback.
   e.respondWith(
-    fetch(e.request)
+    fetch(e.request, { cache: "no-cache" }) // always ask the server, so files never mix versions
       .then((res) => {
         if (res.ok) {
           const copy = res.clone();
