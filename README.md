@@ -11,7 +11,7 @@ Backend: Supabase project `mandarin-zest-club` (ref `eypehvhcqzhwssydvrhn`, EU).
 |---|---|
 | `index.html`, `styles.css`, `app.js` | The app: login, Home, My sessions, Members, Me |
 | `fruits.js` | Fruit avatars (SVG), Chinese names (simplified/traditional), **levels and unlocks** (`LEVELS`, `level` per fruit) |
-| `hosts-art.js` | Six host-only illustrated avatars (Confucius, Empress, Poet, General, Calligrapher, Opera star) |
+| `hosts-art.js` | Eight host-only illustrated avatars (Confucius, Empress, Poet, General, Calligrapher, Opera star, Qipao lady, Tang lady) |
 | `countries.js`, `flags/` | Country list and flags ([flag-icons](https://github.com/lipis/flag-icons), MIT) |
 | `vendor/supabase.js` | Bundled `@supabase/supabase-js` 2.118 (no CDN needed) |
 | `vendor/pdf.js` | Bundled jsPDF 4.2.1 + html2canvas 1.4.1, loaded only for "Download PDF" |

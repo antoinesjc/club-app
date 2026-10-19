@@ -8,6 +8,8 @@ export const HOST_AVATARS = [
   { key: "host-general", en: "General", zh: ["将军", "將軍"], py: ["jiāngjūn", "jiāngjūn"] },
   { key: "host-calligrapher", en: "Calligrapher", zh: ["书法家", "書法家"], py: ["shūfǎjiā", "shūfǎjiā"] },
   { key: "host-opera", en: "Opera star", zh: ["京剧演员", "京劇演員"], py: ["jīngjù yǎnyuán", "jīngjù yǎnyuán"] },
+  { key: "host-qipao", en: "Qipao lady", zh: ["旗袍女士", "旗袍女士"], py: ["qípáo nǚshì", "qípáo nǚshì"] },
+  { key: "host-tang", en: "Tang lady", zh: ["唐朝仕女", "唐朝仕女"], py: ["Tángcháo shìnǚ", "Tángcháo shìnǚ"] },
 ];
 
 const SKIN = "#f6d2b0", INK = "#2a2420";
@@ -84,4 +86,41 @@ export const HOST_ART = {
     `<path d="M18 26 q14 -14 28 0 q-14 -5 -28 0z" fill="${INK}"/><path d="M19 22 q13 -12 26 0" fill="none" stroke="#f2b632" stroke-width="3" stroke-linecap="round"/>` +
     `<circle cx="20" cy="18" r="3.4" fill="#d7263d"/><circle cx="32" cy="12" r="3.4" fill="#1f8a70"/><circle cx="44" cy="18" r="3.4" fill="#d7263d"/>` +
     `<circle cx="26" cy="14" r="2.2" fill="#f2b632"/><circle cx="38" cy="14" r="2.2" fill="#f2b632"/>`,
+
+  // Lady in a qipao: 1930s wavy hair with a flower, high collar with frog buttons, floral teal silk
+  "host-qipao":
+    `<path d="M10 64 C11 53 19 48 32 48 C45 48 53 53 54 64 Z" fill="#1f8a70"/>` +
+    `<g fill="#f6d2b0" opacity=".9"><circle cx="17" cy="58" r="2.4"/><circle cx="46" cy="56" r="2.4"/><circle cx="25" cy="62" r="1.8"/><circle cx="40" cy="62" r="1.8"/></g>` +
+    `<g fill="#f4a3a0"><circle cx="17" cy="58" r="1"/><circle cx="46" cy="56" r="1"/></g>` +
+    `<path d="M26.5 44 h11 v6 q-5.5 3 -11 0z" fill="#1f8a70"/>` +
+    `<path d="M32 50 q5 1 7 5" stroke="#f2b632" stroke-width="1.6" fill="none" stroke-linecap="round"/>` +
+    `<path d="M33.5 52.5 h3 M35.5 54.8 h3" stroke="#f2b632" stroke-width="1.6" stroke-linecap="round"/>` +
+    `<path d="M26.5 45.5 h11" stroke="#f2b632" stroke-width="1.2"/>` +
+    `<path d="M19 36 q-3 -16 13 -17 q16 1 13 17 q-1 6 -4 8 q1 -10 -3 -15 q-6 4 -15 3 q-2 5 -1 12 q-3 -3 -3 -8z" fill="${INK}"/>` +
+    face(33, 10.5) +
+    `<path d="M21.5 31 q2 -9 10.5 -9.5 q-6 3 -7 9 q-2 -1 -3.5 0.5z" fill="${INK}"/>` +
+    `<path d="M42.5 31 q-1 -7 -6 -9 q4 1 6 4z" fill="${INK}"/>` +
+    `<circle cx="42" cy="22" r="3.6" fill="#d7263d"/><circle cx="42" cy="22" r="1.4" fill="#f2b632"/>` +
+    `<path d="M24.8 30.2 q2.2 -1.2 4.4 0 M34.8 30.2 q2.2 -1.2 4.4 0" stroke="${INK}" stroke-width="1.2" fill="none" stroke-linecap="round"/>` +
+    eyes(33) + cheeks(36.5) + `<path d="M30 38.8 q2 1.5 4 0" stroke="#c8102e" stroke-width="2" fill="none" stroke-linecap="round"/>` +
+    `<circle cx="21.8" cy="38" r="1.2" fill="#fff"/><circle cx="42.2" cy="38" r="1.2" fill="#fff"/>`,
+
+  // Tang dynasty lady: high bun with flowers and a golden comb, red forehead flower, wide red-and-gold dress, pink shawl
+  "host-tang":
+    `<path d="M8 64 C9 52 18 47 32 47 C46 47 55 52 56 64 Z" fill="#d7263d"/>` +
+    `<path d="M20 49.5 q12 7 24 0" fill="#fbe2a8"/><path d="M20 49.5 q12 7 24 0" fill="none" stroke="#f2b632" stroke-width="2"/>` +
+    `<path d="M6 60 q8 -14 16 -11 q-6 4 -8 15z M58 60 q-8 -14 -16 -11 q6 4 8 15z" fill="#f9b8c4" opacity=".95"/>` +
+    neck +
+    `<ellipse cx="32" cy="16" rx="9" ry="7.5" fill="${INK}"/><ellipse cx="25" cy="19.5" rx="5" ry="4.5" fill="${INK}"/><ellipse cx="39" cy="19.5" rx="5" ry="4.5" fill="${INK}"/>` +
+    `<path d="M20 34 q-2 -12 12 -13.5 q14 1.5 12 13.5 q-3 -8 -12 -8.5 q-9 0.5 -12 8.5z" fill="${INK}"/>` +
+    face(34, 11) +
+    `<path d="M21 30 q3 -6 11 -6 q8 0 11 6 q-4 -3 -11 -3 q-7 0 -11 3z" fill="${INK}"/>` +
+    `<path d="M24 13.5 q8 -4 16 0" stroke="#f2b632" stroke-width="2.4" fill="none" stroke-linecap="round"/>` +
+    `<circle cx="22" cy="17" r="2.8" fill="#f9b8c4"/><circle cx="22" cy="17" r="1.1" fill="#f2b632"/>` +
+    `<circle cx="42" cy="17" r="2.8" fill="#f9b8c4"/><circle cx="42" cy="17" r="1.1" fill="#f2b632"/>` +
+    `<circle cx="32" cy="9.8" r="2.4" fill="#d7263d"/>` +
+    `<path d="M32 26.6 l1.3 1.6 l-1.3 1.6 l-1.3 -1.6z" fill="#d7263d"/>` +
+    `<path d="M25.5 31.6 q2 -1.4 4 0 M34.5 31.6 q2 -1.4 4 0" stroke="${INK}" stroke-width="1.3" fill="none" stroke-linecap="round"/>` +
+    eyes(34) + `<circle cx="24" cy="37.5" r="2.6" fill="#f4a3a0" opacity=".85"/><circle cx="40" cy="37.5" r="2.6" fill="#f4a3a0" opacity=".85"/>` +
+    `<circle cx="32" cy="39.8" r="1.3" fill="#c8102e"/>`,
 };
