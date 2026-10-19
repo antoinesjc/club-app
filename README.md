@@ -11,6 +11,7 @@ Backend: Supabase project `mandarin-zest-club` (ref `eypehvhcqzhwssydvrhn`, EU).
 |---|---|
 | `index.html`, `styles.css`, `app.js` | The app: login, Home, My sessions, Members, Me |
 | `fruits.js` | Fruit avatars (SVG), Chinese names (simplified/traditional), **levels and unlocks** (`LEVELS`, `level` per fruit) |
+| `hosts-art.js` | Six host-only illustrated avatars (Confucius, Empress, Poet, General, Calligrapher, Opera star) |
 | `countries.js`, `flags/` | Country list and flags ([flag-icons](https://github.com/lipis/flag-icons), MIT) |
 | `vendor/supabase.js` | Bundled `@supabase/supabase-js` 2.118 (no CDN needed) |
 | `vendor/pdf.js` | Bundled jsPDF 4.2.1 + html2canvas 1.4.1, loaded only for "Download PDF" |
@@ -50,3 +51,11 @@ Same as the website calendar: the title gives the level (`HSK 2-4`) and category
 1. ✅ Login, sessions + "I'm in", profiles + fruit avatars, member directory
 2. ✅ Notifications (reminder 1 h before sessions you're in, new sessions, notes are up; email fallback), host attendance + notes, members can download notes as a PDF ("My sessions" replaces Notion)
 3. ✅ XP (+20 per ticked session, +50 every 4 weeks in a row, +150 bootcamp or any bonus given by an admin on the member page), 18 levels and fruit unlocks, leaderboard (month / all time; hosts excluded). Levels and fruit levels live in `fruits.js` **and** in the database functions `xp_level` / `fruit_level`: change both.
+
+## Later additions (19 Oct)
+
+- Discord chat link: left sidebar on the web, top of Members on phones.
+- Host-only illustrated avatars (`hosts-art.js`; database checks `host-*` keys are used by hosts only).
+- Short bio (140 characters) on Me.
+- Chinese level options: Beginner, Lower intermediate, Intermediate, Upper intermediate, Advanced.
+- Member cards: tap anyone in Members to see avatar, bio, level and XP, sessions attended, Chinese level, country and Discord; admins also give XP there.

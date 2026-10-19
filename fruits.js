@@ -1,3 +1,5 @@
+import { HOST_AVATARS, HOST_ART } from "./hosts-art.js?v=7";
+export { HOST_AVATARS };
 // Fruit avatars and the levels that unlock them (Antoine's table, 19 Oct 2026).
 // To change levels or XP later, edit LEVELS and the `level` of each fruit.
 
@@ -93,11 +95,11 @@ const ART = {
 };
 
 export function fruitSvg(key) {
-  return `<svg viewBox="0 0 64 64" aria-hidden="true">${ART[key] || ART.orange}</svg>`;
+  return `<svg viewBox="0 0 64 64" aria-hidden="true">${ART[key] || HOST_ART[key] || ART.orange}</svg>`;
 }
 
 export function fruitInfo(key) {
-  return FRUITS.find((f) => f.key === key) || FRUITS[0];
+  return FRUITS.find((f) => f.key === key) || HOST_AVATARS.find((h) => h.key === key) || FRUITS[0];
 }
 
 export const STARTER_FRUITS = FRUITS.filter((f) => f.level === 1).map((f) => f.key);

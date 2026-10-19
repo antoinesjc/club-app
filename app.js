@@ -1,6 +1,6 @@
-import { createClient } from "./vendor/supabase.js?v=6";
-import { FRUITS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=6";
-import { COUNTRIES } from "./countries.js?v=6";
+import { createClient } from "./vendor/supabase.js?v=7";
+import { FRUITS, HOST_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=7";
+import { COUNTRIES } from "./countries.js?v=7";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -22,8 +22,8 @@ const CATEGORIES = {
   character: { label: "Character focus", color: "#7d5a8c" },
   general: { label: "Open topic", color: "#6b6559" },
 };
-const LEVEL_OPTIONS = ["", "Just starting", "HSK 1", "HSK 2", "HSK 3", "HSK 4", "HSK 5", "HSK 6", "HSK 7-9",
-  "TOCFL A1", "TOCFL A2", "TOCFL B1", "TOCFL B2", "TOCFL C1", "TOCFL C2", "Native / heritage"];
+const LEVEL_OPTIONS = ["", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced"];
+const BIO_MAX = 140;
 
 const state = {
   user: null,
@@ -46,6 +46,7 @@ const state = {
   awards: [],            // XP given by admins (own rows; all rows for admins)
   membersTab: "lb",      // "lb" leaderboard | "all" directory
   lbPeriod: "month",     // "month" | "all"
+  stats: new Map(),      // user_id -> sessions attended
 };
 const VAPID_PUBLIC = "BDzM2jJc6wlM2C39lLVzvrPCdUgr45MEH_3zRZIxetGlzAeJqmyCl5YGsAc2QozO-ECD38lJWeyQJD3lvOzrNY4";
 
@@ -171,13 +172,16 @@ async function loadAll() {
   for (const r of [ses, ints, profs, roles]) if (r.error) throw r.error;
   state.sessions = ses.data;
 
+  let stats;
   const [att, notes, board, awards] = await Promise.all([
     sb.from("attendance").select("session_id, user_id"),
     sb.from("session_notes").select("*"),
     sb.rpc("xp_board"),
     sb.from("xp_awards").select("*").order("awarded_at", { ascending: false }),
-  ]);
+    sb.rpc("member_stats"),
+  ]).then((r) => { stats = r.pop(); return r; });
   for (const r of [att, notes, board, awards]) if (r.error) throw r.error;
+  if (!stats.error) state.stats = new Map(stats.data.map((x) => [x.user_id, x.sessions]));
   state.board = board.data;
   state.awards = awards.data;
   state.attendance = new Map();
@@ -344,7 +348,7 @@ function render() {
   if (!state.role) { app.innerHTML = notMemberView(); return; }
   if (!state.loaded) return;
   const views = { home: homeView, sessions: mySessionsView, members: membersView, me: profileView, host: hostView, member: memberView };
-  const blocked = (route() === "host" && !isHost()) || (route() === "member" && !isAdmin());
+  const blocked = route() === "host" && !isHost();
   const view = blocked ? homeView : (views[route()] || homeView);
   app.innerHTML = `<div class="shell ${trad() ? "zh-trad" : ""}">${nav()}<main class="main" id="main">${view()}</main></div>`;
 }
@@ -691,7 +695,7 @@ function membersView() {
   ${lb ? leaderboard() : directory()}`;
 }
 
-const memberLink = (id) => (isAdmin() ? `#/member/${id}` : "");
+const memberLink = (id) => `#/member/${id}`;
 const linkOrDiv = (id, cls, inner) => {
   const href = memberLink(id);
   return href ? `<a class="${cls}" href="${href}">${inner}</a>` : `<div class="${cls}">${inner}</div>`;
@@ -737,33 +741,54 @@ function directory() {
   const sub = (p) => [`Lv ${levelOf(p.id)}`, p.chinese_level, p.discord ? `@${p.discord}` : ""].filter(Boolean).map(esc).join(" · ");
   return `
   ${hosts.length ? `<div class="daylabel">Hosts</div>
-  <div class="hostgrid">${hosts.map((p) => `<div class="hostcard">${avatar(p, 44)}<div class="grow"><b style="display:block;overflow:hidden;text-overflow:ellipsis">${esc(p.display_name || "Host")}</b><div class="badge">HOST</div>${p.discord ? `<div class="small muted">@${esc(p.discord)}</div>` : ""}</div></div>`).join("")}</div>` : ""}
+  <div class="hostgrid">${hosts.map((p) => linkOrDiv(p.id, "hostcard", `${avatar(p, 44)}<div class="grow"><b style="display:block;overflow:hidden;text-overflow:ellipsis">${esc(p.display_name || "Host")}</b><div class="badge">HOST</div>${p.discord ? `<div class="small muted">@${esc(p.discord)}</div>` : ""}</div>`)).join("")}</div>` : ""}
   <div class="daylabel">Members · ${members.length}</div>
   ${members.length ? `<div class="mgrid">${members.map((p) => linkOrDiv(p.id, "mcard", `${avatar(p, 52)}<b>${esc(p.display_name || "Member")}${p.id === state.user.id ? " (you)" : ""}</b><span class="small muted">${sub(p) || "&nbsp;"}</span>`)).join("")}</div>`
     : `<p class="muted small">Members appear here once they've logged in.</p>`}
-  <p class="small muted">Prefer not to be listed? Turn it off in <a href="#/me">Me</a>.${isAdmin() ? " As admin, tap a member to give XP." : ""}</p>`;
+  <p class="small muted">Tap someone to see their profile. Prefer not to be listed? Turn it off in <a href="#/me">Me</a>.${isAdmin() ? " As admin, you can give XP from a member's profile." : ""}</p>`;
 }
 
 // ---------------------------------------------------------------------------
-// Admin: one member, give XP (bootcamps, bonuses)
+// One member's profile card (everyone); admins can also give XP here
 // ---------------------------------------------------------------------------
 function memberView() {
   const id = routeArg();
   const r = state.board.find((x) => x.user_id === id);
-  const p = state.profiles.get(id) || (r && { id, display_name: r.name, fruit: r.fruit, bg: r.bg, country: r.country });
+  const full = state.profiles.get(id);
+  const p = full || (r && { id, display_name: r.name, fruit: r.fruit, bg: r.bg, country: r.country });
   if (!p) return `<a class="linkbtn" href="#/members">← Back</a><div class="card"><h2>Member not found</h2></div>`;
+  const role = state.roles.get(id), host = role === "host" || role === "admin";
+  const me = id === state.user.id;
   const xp = r?.total || 0, pr = progress(xp);
-  const came = state.sessions.filter((s) => (state.attendance.get(s.id) || new Set()).has(id)).length;
-  const awards = state.awards.filter((a) => a.user_id === id);
+  const sessions = state.stats.get(id) || 0;
+  const info = fruitInfo(p.fruit), idx = trad() ? 1 : 0;
+  const facts = [
+    host ? null : [`Level ${pr.level}`, `${xp.toLocaleString()} XP${r?.month ? ` · ${r.month.toLocaleString()} this month` : ""}`],
+    [String(sessions), sessions === 1 ? "session attended" : "sessions attended"],
+    full?.chinese_level ? [full.chinese_level, "Chinese level"] : null,
+    full?.country ? [countryName(full.country), "Country"] : null,
+  ].filter(Boolean);
+  const awards = isAdmin() ? state.awards.filter((a) => a.user_id === id) : [];
   return `
   <a class="linkbtn" href="#/members" style="text-decoration:none;font-weight:700;align-self:flex-start">← Back</a>
-  <header class="row" style="gap:16px">${avatar(p, 80)}
-    <div class="grow"><div class="eyebrow">Admin view</div><h1>${esc(p.display_name || "Member")}</h1>
-    <div class="small muted">Level ${pr.level} · ${xp.toLocaleString()} XP${r ? ` · ${r.month.toLocaleString()} XP this month` : ""} · ${came} sessions ticked</div></div>
+  <header class="row" style="gap:16px">${avatar(p, 88)}
+    <div class="grow"><div class="eyebrow">${host ? "Host" : "Member"}${me ? " · you" : ""}</div>
+      <h1>${esc(p.display_name || "Member")}</h1>
+      <div style="font-size:14.5px;font-weight:700;color:var(--orange-ink);margin-top:4px">${esc(zh(info.zh))} <span style="font-weight:600">${esc(info.py[idx])}</span></div>
+    </div>
   </header>
-  ${r ? "" : `<div class="card mint"><div class="small">This person is a host or admin, so they don't earn XP.</div></div>`}
+  ${full?.bio ? `<p class="bio">${esc(full.bio)}</p>` : me ? `<p class="small muted" style="margin:0">Add a short bio in <a href="#/me">Me</a> so others know a bit about you.</p>` : ""}
+  <div class="facts">${facts.map(([v, l]) => `<div class="fact"><b>${esc(v)}</b><span>${esc(l)}</span></div>`).join("")}</div>
+  ${full?.discord ? `<a class="chatcard" style="display:flex" href="${DISCORD_CHAT}" target="_blank" rel="noopener">${ICON.chat}<span class="grow"><b>@${esc(full.discord)}</b><br><span class="small">Say hi on the Club Discord</span></span><span aria-hidden="true" style="font-size:20px">↗</span></a>` : ""}
+  ${!full && !me ? `<p class="small muted" style="margin:0">This member keeps their profile out of the directory.</p>` : ""}
+  ${isAdmin() ? adminXpBlock(id, r, awards) : ""}`;
+}
+
+function adminXpBlock(id, r, awards) {
+  return `
   <form class="card" data-form="award" style="gap:12px">
-    <h2>Give XP</h2>
+    <div class="row between" style="align-items:baseline"><h2>Give XP</h2><span class="small muted">Admin only</span></div>
+    ${r ? "" : `<div class="small muted">Hosts and admins don't earn XP.</div>`}
     <div class="periods" style="justify-content:flex-start" role="group" aria-label="Kind">
       <button type="button" data-act="award-kind" data-v="bootcamp" aria-pressed="${(state.awardKind || "bootcamp") === "bootcamp"}">Bootcamp +${XP_BOOTCAMP}</button>
       <button type="button" data-act="award-kind" data-v="bonus" aria-pressed="${state.awardKind === "bonus"}">Other bonus</button>
@@ -813,7 +838,7 @@ function draft() {
 function profileView() {
   const d = draft(), info = fruitInfo(d.fruit), idx = trad() ? 1 : 0;
   const level = myLevel();
-  const changed = ["display_name", "fruit", "bg", "country", "chinese_level", "discord", "show_in_directory", "script"]
+  const changed = ["display_name", "fruit", "bg", "country", "chinese_level", "discord", "show_in_directory", "script", "bio"]
     .some((k) => d[k] !== state.me[k]);
   return `
   <header class="row" style="gap:16px">
@@ -830,8 +855,19 @@ function profileView() {
       <input class="input" name="display_name" maxlength="40" value="${esc(d.display_name)}" autocomplete="nickname">
     </label>
 
+    <label class="field">Short bio
+      <textarea class="input" name="bio" maxlength="${BIO_MAX}" rows="2" style="padding:12px 14px;min-height:76px;resize:none" placeholder="e.g. Learning Chinese for my trip to Taipei. I love bubble tea and hiking.">${esc(d.bio || "")}</textarea>
+      <span class="small muted" id="biocount" style="font-weight:500;text-align:right">${(d.bio || "").length}/${BIO_MAX}</span>
+    </label>
+
+    ${isHost() ? `<div>
+      <div class="row between" style="align-items:baseline;margin-bottom:8px"><h2>Host characters</h2><span class="small muted">Only hosts can use these</span></div>
+      <div class="fruits">${HOST_AVATARS.map((h) => `<button type="button" class="fruitbtn" data-act="fruit" data-key="${h.key}" aria-pressed="${h.key === d.fruit}" aria-label="${esc(h.en)} ${esc(zh(h.zh))}">
+          <span class="ring">${avatar(d, 48, { flag: false, fruit: h.key })}</span>
+          <span class="cap">${esc(zh(h.zh))}</span></button>`).join("")}</div>
+    </div>` : ""}
     <div>
-      <div class="row between" style="align-items:baseline;margin-bottom:8px"><h2>Your fruit</h2><span class="small muted">${isHost() ? "Hosts have them all" : level >= 18 ? "All unlocked!" : "Join sessions to unlock more"}</span></div>
+      <div class="row between" style="align-items:baseline;margin-bottom:8px"><h2>${isHost() ? "Or a fruit" : "Your fruit"}</h2><span class="small muted">${isHost() ? "Hosts have them all" : level >= 18 ? "All unlocked!" : "Join sessions to unlock more"}</span></div>
       <div class="fruits">${FRUITS.map((f) => {
         const locked = f.level > level, on = f.key === d.fruit;
         return `<button type="button" class="fruitbtn" data-act="fruit" data-key="${f.key}" ${locked ? "disabled" : ""} aria-pressed="${on}" aria-label="${esc(f.en)} ${esc(zh(f.zh))}${locked ? `, unlocks at level ${f.level}` : ""}">
@@ -891,9 +927,10 @@ function profileView() {
 async function saveProfile() {
   const d = draft();
   const patch = {};
-  for (const k of ["display_name", "fruit", "bg", "country", "chinese_level", "discord", "show_in_directory", "script"]) patch[k] = d[k];
+  for (const k of ["display_name", "fruit", "bg", "country", "chinese_level", "discord", "show_in_directory", "script", "bio"]) patch[k] = d[k];
   patch.display_name = String(patch.display_name || "").trim().slice(0, 40);
   patch.discord = String(patch.discord || "").trim().replace(/^@/, "").slice(0, 40);
+  patch.bio = String(patch.bio || "").replace(/\s+/g, " ").trim().slice(0, BIO_MAX);
   const { data, error } = await sb.from("profiles").update(patch).eq("id", state.user.id).select().single();
   if (error) { toast("Couldn't save. Please try again."); return; }
   state.me = data; state.profiles.set(data.id, data); state.draft = null;
@@ -909,7 +946,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=6");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=7");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -1135,6 +1172,7 @@ document.addEventListener("input", (e) => {
   if (!form || !e.target.name) return;
   const d = draft();
   d[e.target.name] = e.target.type === "checkbox" ? e.target.checked : e.target.value;
+  if (e.target.name === "bio") { const c = document.getElementById("biocount"); if (c) c.textContent = `${e.target.value.length}/${BIO_MAX}`; }
   const btn = form.querySelector(".btn.block");
   if (btn) { btn.disabled = false; btn.textContent = "Save changes"; }
 });
@@ -1220,7 +1258,7 @@ document.addEventListener("change", (e) => {
 // Re-render the profile without losing typed values in text fields.
 function keepForm(fn) {
   const form = document.querySelector('form[data-form="profile"]');
-  if (form) for (const input of form.querySelectorAll("input[name], select[name]")) {
+  if (form) for (const input of form.querySelectorAll("input[name], select[name], textarea[name]")) {
     draft()[input.name] = input.type === "checkbox" ? input.checked : input.value;
   }
   const y = scrollY;
@@ -1281,4 +1319,4 @@ sb.auth.onAuthStateChange((event) => {
   if (event === "SIGNED_OUT" && state.user) { state.user = null; state.role = null; render(); }
 });
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=6").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=7").catch(() => {});
