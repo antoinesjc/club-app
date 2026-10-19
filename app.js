@@ -1,6 +1,6 @@
-import { createClient } from "./vendor/supabase.js?v=5";
-import { FRUITS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=5";
-import { COUNTRIES } from "./countries.js?v=5";
+import { createClient } from "./vendor/supabase.js?v=6";
+import { FRUITS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=6";
+import { COUNTRIES } from "./countries.js?v=6";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -8,6 +8,7 @@ import { COUNTRIES } from "./countries.js?v=5";
 const SUPABASE_URL = "https://eypehvhcqzhwssydvrhn.supabase.co";
 const SUPABASE_KEY = "sb_publishable_sFnX5WLyN96IvLDDRY96mw_6dJaG6BG";
 const CLUB_PAGE = "https://www.mandarinzest.com/mandarin-zest-club";
+const DISCORD_CHAT = "https://discord.com/channels/1560844923874443297/1561210422533820587";
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, storageKey: "mz-club-auth" },
@@ -108,6 +109,7 @@ const ICON = {
   lock: '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11 V8 a4 4 0 0 1 8 0 v3"/></svg>',
   file: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3 H7 a2 2 0 0 0 -2 2 v14 a2 2 0 0 0 2 2 h10 a2 2 0 0 0 2 -2 V8z"/><path d="M14 3 v5 h5"/></svg>',
   download: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 v12 M7 10 l5 5 l5 -5 M5 21 h14"/></svg>',
+  chat: '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12 a8 8 0 0 1 -11.6 7.1 L4 20.5 l1.4 -4.6 A8 8 0 1 1 21 12z"/><path d="M8.5 12 h.01 M12 12 h.01 M15.5 12 h.01"/></svg>',
   bell: '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8 a6 6 0 0 1 12 0 c0 7 3 9 3 9 H3 s3 -2 3 -9"/><path d="M10.3 21 a1.94 1.94 0 0 0 3.4 0"/></svg>',
   phone: '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18 h2"/></svg>',
 };
@@ -333,6 +335,7 @@ function nav() {
   return `<nav class="nav" aria-label="Main">
     <div class="brand"><img src="icons/logo.png" alt=""><span>MANDARIN ZEST CLUB</span></div>
     ${item("home", "Home", ICON.home)}${item("sessions", "My sessions", ICON.cal)}${item("members", "Members", ICON.people)}${item("me", "Me", ICON.me)}
+    <a class="navchat" href="${DISCORD_CHAT}" target="_blank" rel="noopener">${ICON.chat}<span>Chat on Discord</span></a>
   </nav>`;
 }
 
@@ -678,6 +681,9 @@ function membersView() {
   const lb = state.membersTab === "lb";
   return `
   <header><div class="eyebrow">Mandarin Zest Club</div><h1>Members</h1></header>
+  <a class="chatcard" href="${DISCORD_CHAT}" target="_blank" rel="noopener">${ICON.chat}
+    <span class="grow"><b>Chat on Discord</b><br><span class="small">Say hi, ask questions, practise between sessions</span></span>
+    <span aria-hidden="true" style="font-size:20px">↗</span></a>
   <div class="tabs" role="tablist">
     <button type="button" role="tab" aria-selected="${lb}" data-act="mtab" data-v="lb">Leaderboard</button>
     <button type="button" role="tab" aria-selected="${!lb}" data-act="mtab" data-v="all">Everyone</button>
@@ -903,7 +909,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=5");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=6");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -1275,4 +1281,4 @@ sb.auth.onAuthStateChange((event) => {
   if (event === "SIGNED_OUT" && state.user) { state.user = null; state.role = null; render(); }
 });
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=5").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=6").catch(() => {});
