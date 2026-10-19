@@ -227,3 +227,17 @@ div.filebtn { cursor: default; }
   .vedit .input:nth-child(3) { grid-column: 1 / 4; }
   .vedit .xbtn { grid-row: 1; grid-column: 3; }
 }
+
+/* ---------- Notes PDF (rendered off-screen, then captured) ---------- */
+.pdfpage { position: absolute; left: -10000px; top: 0; width: 794px; box-sizing: border-box; padding: 56px 64px 40px; background: #fff; color: var(--ink); font-family: var(--font); }
+.pdfpage .pdfhead { display: flex; gap: 18px; align-items: center; padding-bottom: 18px; border-bottom: 2px solid var(--orange); margin-bottom: 18px; }
+.pdfpage h1 { font-size: 30px; margin: 4px 0 2px; }
+.pdfpage h2 { font-size: 18px; margin: 22px 0 10px; color: var(--orange-ink); }
+.pdfpage .pdfmeta { font-size: 14px; color: var(--muted); }
+.pdfpage .pdftopic { font-size: 15px; color: var(--muted); margin: 0; }
+.pdfpage .vocab { border-radius: 10px; }
+.pdfpage .vrow { grid-template-columns: 170px 210px 1fr; padding: 10px 14px; }
+.pdfpage .vz { font-size: 24px; }
+.pdfpage .vp, .pdfpage .vm { font-size: 16px; }
+.pdfpage .pdfbody p { margin: 0; font-size: 16px; line-height: 1.7; overflow-wrap: anywhere; }
+.pdfpage .pdffoot { margin-top: 28px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 12px; color: var(--faint); }

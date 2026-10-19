@@ -13,6 +13,7 @@ Backend: Supabase project `mandarin-zest-club` (ref `eypehvhcqzhwssydvrhn`, EU).
 | `fruits.js` | Fruit avatars (SVG), Chinese names (simplified/traditional), **levels and unlocks** (`LEVELS`, `level` per fruit) |
 | `countries.js`, `flags/` | Country list and flags ([flag-icons](https://github.com/lipis/flag-icons), MIT) |
 | `vendor/supabase.js` | Bundled `@supabase/supabase-js` 2.118 (no CDN needed) |
+| `vendor/pdf.js` | Bundled jsPDF 4.2.1 + html2canvas 1.4.1, loaded only for "Download PDF" |
 | `manifest.webmanifest`, `sw.js`, `icons/` | Install as an app, offline shell |
 | `supabase/migrations/` | Database: tables, access rules, schedules |
 | `supabase/functions/send-code` | Login: sends the 6-digit code only to Club members (live Stripe check for new payers) |
@@ -47,5 +48,5 @@ Same as the website calendar: the title gives the level (`HSK 2-4`) and category
 ## Phases
 
 1. ✅ Login, sessions + "I'm in", profiles + fruit avatars, member directory
-2. ✅ Notifications (reminder 1 h before sessions you're in, new sessions, notes are up; email fallback), host attendance + notes with files ("My sessions" replaces Notion)
+2. ✅ Notifications (reminder 1 h before sessions you're in, new sessions, notes are up; email fallback), host attendance + notes, members can download notes as a PDF ("My sessions" replaces Notion)
 3. XP, levels, fruit unlocks, leaderboard

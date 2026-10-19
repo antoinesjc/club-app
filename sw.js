@@ -1,8 +1,8 @@
 // Keeps the app shell available offline, and shows Club notifications.
 // Data always comes from the network.
-const VERSION = "mz-club-v2";
+const VERSION = "mz-club-v3";
 const SHELL = [
-  "./", "index.html", "styles.css?v=2", "app.js?v=2", "fruits.js", "countries.js",
+  "./", "index.html", "styles.css?v=3", "app.js?v=3", "fruits.js", "countries.js",
   "vendor/supabase.js", "manifest.webmanifest", "icons/logo.png", "icons/icon-192.png",
 ];
 

@@ -39,7 +39,6 @@ const state = {
   installPrompt: null,
   attendance: new Map(), // session_id -> Set(user_id) (own rows for members, all for hosts)
   notes: new Map(),      // session_id -> session_notes row (published, or drafts for hosts)
-  files: new Map(),      // session_id -> [note_files]
   noteDraft: new Map(),  // host editing: session_id -> {vocab, body}
   push: { supported: false, subscribed: false, permission: "default" },
 };
@@ -77,6 +76,7 @@ const ICON = {
   video: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="12" height="12" rx="2"/><path d="M15 10 l6 -3 v10 l-6 -3"/></svg>',
   lock: '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11 V8 a4 4 0 0 1 8 0 v3"/></svg>',
   file: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3 H7 a2 2 0 0 0 -2 2 v14 a2 2 0 0 0 2 2 h10 a2 2 0 0 0 2 -2 V8z"/><path d="M14 3 v5 h5"/></svg>',
+  download: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 v12 M7 10 l5 5 l5 -5 M5 21 h14"/></svg>',
   bell: '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8 a6 6 0 0 1 12 0 c0 7 3 9 3 9 H3 s3 -2 3 -9"/><path d="M10.3 21 a1.94 1.94 0 0 0 3.4 0"/></svg>',
   phone: '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18 h2"/></svg>',
 };
@@ -138,23 +138,17 @@ async function loadAll() {
   for (const r of [ses, ints, profs, roles]) if (r.error) throw r.error;
   state.sessions = ses.data;
 
-  const [att, notes, files] = await Promise.all([
+  const [att, notes] = await Promise.all([
     sb.from("attendance").select("session_id, user_id"),
     sb.from("session_notes").select("*"),
-    sb.from("note_files").select("*").order("created_at"),
   ]);
-  for (const r of [att, notes, files]) if (r.error) throw r.error;
+  for (const r of [att, notes]) if (r.error) throw r.error;
   state.attendance = new Map();
   for (const a of att.data) {
     if (!state.attendance.has(a.session_id)) state.attendance.set(a.session_id, new Set());
     state.attendance.get(a.session_id).add(a.user_id);
   }
   state.notes = new Map(notes.data.map((n) => [n.session_id, n]));
-  state.files = new Map();
-  for (const f of files.data) {
-    if (!state.files.has(f.session_id)) state.files.set(f.session_id, []);
-    state.files.get(f.session_id).push(f);
-  }
   // Older sessions you attended or joined (for My sessions).
   const known = new Set(state.sessions.map((s) => s.id));
   const mine = new Set([...ints.data.filter((i) => i.user_id === state.user.id).map((i) => i.session_id),
@@ -445,16 +439,14 @@ function linkify(text) {
 
 function notesBlock(s) {
   const n = state.notes.get(s.id);
-  const files = state.files.get(s.id) || [];
   if (!n?.published_at) return `<div class="small muted">No notes yet. You'll get a notification when your host shares them.</div>`;
   const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
   return `
     ${vocab.length ? `<div class="vocab" role="table" aria-label="Vocabulary">${vocab.map((v) => `<div class="vrow" role="row"><span class="vz" role="cell">${esc(v.hanzi)}</span><span class="vp" role="cell">${esc(v.pinyin)}</span><span class="vm" role="cell">${esc(v.meaning)}</span></div>`).join("")}</div>` : ""}
     ${n.body ? `<div class="notebody">${linkify(n.body)}</div>` : ""}
-    ${files.length ? `<div class="stack">${files.map((f) => `<button type="button" class="filebtn" data-act="open-file" data-path="${esc(f.path)}">${ICON.file}<span class="grow">${esc(f.name)}</span><span class="small muted">${fmtSize(f.size)}</span></button>`).join("")}</div>` : ""}`;
+    <button type="button" class="btn ghost" data-act="notes-pdf" data-id="${esc(s.id)}" style="align-self:flex-start">${ICON.download}Download PDF</button>`;
 }
 
-const fmtSize = (b) => (b > 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`);
 
 function pastItem(s) {
   const c = cat(s), a = new Date(s.starts_at), open = state.open.has(s.id);
@@ -525,7 +517,7 @@ function hostView() {
     .sort((x, y) => (x.display_name || "").localeCompare(y.display_name || ""));
   const others = [...state.profiles.values()].filter((p) => state.roles.has(p.id) && !candidateIds.has(p.id))
     .sort((x, y) => (x.display_name || "").localeCompare(y.display_name || ""));
-  const d = noteDraft(s.id), n = state.notes.get(s.id), files = state.files.get(s.id) || [];
+  const d = noteDraft(s.id), n = state.notes.get(s.id);
   return `
   <div class="row between">
     <a class="linkbtn" href="#/sessions" style="text-decoration:none;font-weight:700">← Back</a>
@@ -562,10 +554,6 @@ function hostView() {
     <label class="field">Sentences, corrections, links
       <textarea class="input" id="notebody" rows="7" style="padding:12px 14px;min-height:150px;resize:vertical" placeholder="我昨天去了超市。&#10;Correction: 我去超市了 → …&#10;Video: https://…">${esc(d.body)}</textarea>
     </label>
-    <div class="stack">
-      ${files.map((f) => `<div class="filebtn">${ICON.file}<span class="grow">${esc(f.name)}</span><span class="small muted">${fmtSize(f.size)}</span><button type="button" class="xbtn" data-act="file-del" data-id="${f.id}" aria-label="Remove ${esc(f.name)}">×</button></div>`).join("")}
-      <label class="btn ghost" style="cursor:pointer">${ICON.file}Attach files<input type="file" multiple data-act-change="file-add" class="sr-only"></label>
-    </div>
     <div class="row" style="gap:8px;flex-wrap:wrap">
       <button type="button" class="btn ghost grow" data-act="note-save">Save draft</button>
       <button type="button" class="btn grow" data-act="note-publish">${n?.published_at ? "Update notes" : "Publish notes"}</button>
@@ -615,48 +603,6 @@ async function saveNotes(sid, publish) {
   } else toast("Draft saved");
   state.noteDraft.delete(sid);
   render();
-}
-
-async function addFiles(sid, fileList) {
-  const list = [...fileList];
-  for (const f of list) {
-    if (f.size > 20 * 1048576) { toast(`${f.name} is over 20 MB`); continue; }
-    readNoteForm(sid);
-    const safe = f.name.replace(/[^\w.\-]+/g, "_").slice(-80);
-    const key = await sessionKey(sid);
-    const path = `${key}/${Date.now()}-${safe}`;
-    toast(`Uploading ${f.name}…`);
-    const up = await sb.storage.from("session-files").upload(path, f, { contentType: f.type || "application/octet-stream" });
-    if (up.error) { toast(`Couldn't upload ${f.name}`); continue; }
-    const { data, error } = await sb.from("note_files").insert({ session_id: sid, path, name: f.name.slice(0, 200), size: f.size }).select().single();
-    if (error) { toast(`Couldn't attach ${f.name}`); continue; }
-    if (!state.files.has(sid)) state.files.set(sid, []);
-    state.files.get(sid).push(data);
-  }
-  render();
-}
-
-async function sessionKey(sid) {
-  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(sid));
-  return [...new Uint8Array(buf)].slice(0, 12).map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-async function deleteFile(sid, id) {
-  const f = (state.files.get(sid) || []).find((x) => x.id === id);
-  if (!f || !confirm(`Remove ${f.name}?`)) return;
-  readNoteForm(sid);
-  await sb.storage.from("session-files").remove([f.path]);
-  const { error } = await sb.from("note_files").delete().eq("id", id);
-  if (error) { toast("Couldn't remove it."); return; }
-  state.files.set(sid, state.files.get(sid).filter((x) => x.id !== id));
-  render();
-}
-
-async function openFile(path) {
-  const w = window.open("", "_blank");
-  const { data, error } = await sb.storage.from("session-files").createSignedUrl(path, 3600);
-  if (error) { w?.close(); toast("Couldn't open the file."); return; }
-  if (w) w.location = data.signedUrl; else location.href = data.signedUrl;
 }
 
 // ---------------------------------------------------------------------------
@@ -775,6 +721,85 @@ async function saveProfile() {
   state.me = data; state.profiles.set(data.id, data); state.draft = null;
   toast("Saved");
   render();
+}
+
+// ---------------------------------------------------------------------------
+// Notes as a PDF (made on the member's device; nothing stored on the server)
+// ---------------------------------------------------------------------------
+async function downloadNotesPdf(sid) {
+  const s = state.sessions.find((x) => x.id === sid), n = state.notes.get(sid);
+  if (!s || !n?.published_at) return;
+  toast("Making your PDF…");
+  try {
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js");
+    const a = new Date(s.starts_at);
+    const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+    const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
+    const lines = (n.body || "").split("\n");
+
+    const page = document.createElement("div");
+    page.className = "pdfpage";
+    page.innerHTML = `
+      <div class="pdfhead pdfblock"><img src="icons/logo.png" alt="" width="64" height="49">
+        <div><div class="eyebrow">Mandarin Zest Club · Session notes</div><h1>${esc(s.title)}</h1>
+        <div class="pdfmeta">${esc(date)} · ${fmtTime(a)}${s.host_name ? ` · host ${esc(s.host_name)}` : ""}${s.level ? ` · ${esc(s.level)}` : ""}</div></div></div>
+      ${s.topic ? `<p class="pdfblock pdftopic">${esc(s.topic)}</p>` : ""}
+      ${vocab.length ? `<h2 class="pdfblock">Vocabulary</h2>
+        <div class="vocab">${vocab.map((v) => `<div class="vrow pdfblock"><span class="vz">${esc(v.hanzi)}</span><span class="vp">${esc(v.pinyin)}</span><span class="vm">${esc(v.meaning)}</span></div>`).join("")}</div>` : ""}
+      ${n.body.trim() ? `<h2 class="pdfblock">Sentences &amp; corrections</h2>
+        <div class="pdfbody">${lines.map((l) => `<p class="pdfblock">${l.trim() ? esc(l) : "&nbsp;"}</p>`).join("")}</div>` : ""}
+      <div class="pdffoot pdfblock">From the Mandarin Zest Club app · app.mandarinzest.com</div>`;
+    document.body.appendChild(page);
+    await document.fonts?.ready;
+    await Promise.all([...page.querySelectorAll("img")].map((img) => img.complete ? null : new Promise((r) => { img.onload = img.onerror = r; })));
+
+    // A4 at 96 dpi. Break pages between blocks, never through a line.
+    const W = 794, H = 1123, TOP = 48, BOTTOM = 56, SCALE = 2;
+    const base = page.getBoundingClientRect().top;
+    const ends = [];
+    for (const el of page.querySelectorAll(".pdfblock")) {
+      const r = el.getBoundingClientRect();
+      if (el.tagName === "H2") { ends.push(r.top - base - 4); continue; } // never leave a heading at the bottom
+      if (el.tagName === "P") {          // long paragraphs may break between their lines
+        const range = document.createRange();
+        range.selectNodeContents(el);
+        for (const line of range.getClientRects()) ends.push(line.bottom - base);
+      }
+      ends.push(r.bottom - base);
+    }
+    ends.sort((x, y) => x - y);
+    const total = page.scrollHeight;
+    const canvas = await html2canvas(page, { scale: SCALE, backgroundColor: "#ffffff", useCORS: true, logging: false });
+    page.remove();
+
+    const pdf = new jsPDF({ unit: "px", format: [W, H], hotfixes: ["px_scaling"] });
+    let start = 0, first = true;
+    while (start < total - 2) {
+      const room = H - (first ? 0 : TOP) - BOTTOM;
+      let end = Math.min(total, start + room);
+      if (end < total) {
+        const fit = ends.filter((e) => e > start + 40 && e <= start + room);
+        if (fit.length) end = fit[fit.length - 1] + 6;
+      }
+      const slice = document.createElement("canvas");
+      slice.width = canvas.width;
+      slice.height = Math.ceil((end - start) * SCALE);
+      const ctx = slice.getContext("2d");
+      ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, slice.width, slice.height);
+      ctx.drawImage(canvas, 0, start * SCALE, canvas.width, slice.height, 0, 0, slice.width, slice.height);
+      if (!first) pdf.addPage([W, H]);
+      pdf.addImage(slice.toDataURL("image/jpeg", 0.92), "JPEG", 0, first ? 0 : TOP, W, end - start);
+      start = end; first = false;
+    }
+    const day = `${a.getFullYear()}-${String(a.getMonth() + 1).padStart(2, "0")}-${String(a.getDate()).padStart(2, "0")}`;
+    const name = `Mandarin Zest Club - ${s.title} - ${day}`.replace(/[\\/:*?"<>|]+/g, "").slice(0, 100);
+    pdf.setProperties({ title: `${s.title} · Session notes`, author: "Mandarin Zest Club" });
+    pdf.save(`${name}.pdf`);
+  } catch (e) {
+    console.error(e);
+    document.querySelector(".pdfpage")?.remove();
+    toast("Couldn't make the PDF. Please try again.");
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -986,10 +1011,10 @@ document.addEventListener("click", async (e) => {
   } else if (act === "note-save" || act === "note-publish") {
     el.disabled = true;
     await saveNotes(routeArg(), act === "note-publish");
-  } else if (act === "file-del") {
-    deleteFile(routeArg(), el.dataset.id);
-  } else if (act === "open-file") {
-    openFile(el.dataset.path);
+  } else if (act === "notes-pdf") {
+    el.disabled = true;
+    await downloadNotesPdf(el.dataset.id);
+    el.disabled = false;
   }
 });
 
@@ -997,7 +1022,6 @@ document.addEventListener("change", (e) => {
   const el = e.target;
   if (el.dataset.pref) savePref(el.dataset.pref, el.checked);
   else if (el.dataset.actChange === "attend-add" && el.value) setAttendance(routeArg(), el.value, true);
-  else if (el.dataset.actChange === "file-add" && el.files?.length) addFiles(routeArg(), el.files);
 });
 
 // Re-render the profile without losing typed values in text fields.
