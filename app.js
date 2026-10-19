@@ -1,7 +1,7 @@
-import { createClient } from "./vendor/supabase.js?v=12";
-import { FRUITS, HOST_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=12";
-import { COUNTRIES } from "./countries.js?v=12";
-import { STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=12";
+import { createClient } from "./vendor/supabase.js?v=13";
+import { FRUITS, HOST_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=13";
+import { COUNTRIES } from "./countries.js?v=13";
+import { STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=13";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -194,7 +194,8 @@ async function loadAll() {
     sb.rpc("member_stats"),
     sb.from("sticker_awards").select("*").order("awarded_at", { ascending: false }),
     sb.rpc("board_stickers"),
-  ]).then((r) => { worn = r.pop(); stk = r.pop(); stats = r.pop(); return r; });
+    sb.from("bootcamp_rewards").select("*"),
+  ]).then((r) => { const rw = r.pop(); state.rewards = new Map(rw.error ? [] : rw.data.map((x) => [x.bootcamp, x])); worn = r.pop(); stk = r.pop(); stats = r.pop(); return r; });
   for (const r of [att, notes, board, awards]) if (r.error) throw r.error;
   if (!stats.error) state.stats = new Map(stats.data.map((x) => [x.user_id, x.sessions]));
   state.board = board.data;
@@ -544,6 +545,46 @@ function bootStatus(b) {
   return null; // already running or over: not listed
 }
 
+const bootKey = (b) => b.url || b.title;
+function rewardBlock(b) {
+  const key = bootKey(b), rw = state.rewards?.get(key), admin = isAdmin();
+  if (admin && state.rwEdit === key) {
+    const d = state.rwDraft;
+    return `<form class="bootreward edit" data-form="reward" data-k="${esc(key)}">
+      <div class="row between" style="align-items:baseline"><b>What members earn</b><span class="small muted">Admin only</span></div>
+      <label class="field">XP for finishing it<input class="input" name="xp" type="number" min="0" max="2000" step="10" value="${d.xp}"></label>
+      <div><div style="font-weight:700;font-size:14.5px;margin-bottom:6px">Sticker it unlocks</div>
+      <div class="stkpick">
+        <button type="button" class="stkbtn" data-act="rw-stk" data-key="" aria-pressed="${!d.sticker}"><span class="stkbig none">—</span><span class="small">None</span></button>
+        ${STICKERS.map((t) => `<button type="button" class="stkbtn" data-act="rw-stk" data-key="${t.key}" aria-pressed="${d.sticker === t.key}"><span class="stkbig">${stickerSvg(t.key)}</span><span class="small">${esc(t.en)}</span></button>`).join("")}
+      </div></div>
+      <div class="row" style="gap:10px"><button class="btn green grow">Save</button><button type="button" class="btn ghost" data-act="rw-cancel">Cancel</button></div>
+    </form>`;
+  }
+  const t = rw?.sticker && stickerInfo(rw.sticker);
+  const has = rw && (rw.xp > 0 || t);
+  if (!has && !admin) return "";
+  return `<div class="bootreward">
+    ${has ? `${t ? `<span class="stkbig" style="--z:48px">${stickerSvg(rw.sticker)}</span>` : `<span class="xpbadge">XP</span>`}
+      <div class="grow"><span class="lbl">Finish it and earn</span>
+        <b>${[rw.xp > 0 ? `+${rw.xp} XP` : "", t ? `the ${esc(t.en)} sticker ${esc(zh(t.zh))}` : ""].filter(Boolean).join(" + ")}</b>
+        ${t ? `<span class="small muted">A sticker for your avatar, only for people who did this bootcamp.</span>` : ""}</div>`
+      : `<div class="grow small muted">No XP or sticker set for this bootcamp yet.</div>`}
+    ${admin ? `<button type="button" class="linkbtn" data-act="rw-edit" data-k="${esc(key)}">${has ? "Edit" : "Set XP & sticker"}</button>` : ""}
+  </div>`;
+}
+
+async function saveReward(form) {
+  const key = form.dataset.k, d = state.rwDraft;
+  const xp = Math.max(0, Math.min(2000, parseInt(form.xp.value || "0", 10) || 0));
+  const row = { bootcamp: key, xp, sticker: d.sticker || null, updated_at: new Date().toISOString() };
+  const { data, error } = await sb.from("bootcamp_rewards").upsert(row).select().single();
+  if (error) { toast("Couldn't save."); return; }
+  state.rewards.set(key, data); state.rwEdit = null;
+  toast("Saved. Members see it on the card.");
+  render();
+}
+
 function bootCard(b, st) {
   const today = ymd(new Date());
   const early = b.early && b.earlyEnds && today <= b.earlyEnds
@@ -565,6 +606,7 @@ function bootCard(b, st) {
       ${b.club ? `<div class="bootprice"><div class="grow"><span>Your Club price</span><b>${esc(b.club)}</b></div>
         <div class="small" style="text-align:right;line-height:1.5">${b.price ? `Standard <s>${esc(b.price)}</s>` : ""}${early ? `<br>${early}` : ""}</div></div>`
         : `<div class="bootprice pending small">Club price announced soon.</div>`}
+      ${rewardBlock(b)}
       <div class="row" style="gap:10px;flex-wrap:wrap">
         <a class="btn discord grow" href="${DISCORD_CHAT}" target="_blank" rel="noopener">${ICON.chat}${st.open ? "Ask a host to join" : "Tell a host you're interested"}</a>
         ${b.url ? `<a class="btn ghost" href="${esc(b.url)}" target="_blank" rel="noopener">More info ↗</a>` : ""}
@@ -948,7 +990,9 @@ function adminXpBlock(id, r, awards) {
   if (kind === "bootcamp" && !state.bootcamps) loadBootcamps().then(render);
   const pick = state.awardCamp ?? camps[0]?.title ?? "";
   const owned = new Set(myStickers(id));
-  const suggested = kind === "bootcamp" ? stickerForBootcamp(pick) : "";
+  const campObj = camps.find((c) => c.title === pick);
+  const rw = kind === "bootcamp" && campObj ? state.rewards?.get(bootKey(campObj)) : null;
+  const suggested = kind === "bootcamp" ? (rw ? rw.sticker || "" : stickerForBootcamp(pick)) : "";
   const stk = state.awardSticker ?? (owned.has(suggested) ? "" : suggested);
   const gotStickers = (state.stickerAwards || []).filter((a) => a.user_id === id);
   return `
@@ -965,7 +1009,7 @@ function adminXpBlock(id, r, awards) {
         <option value="" ${pick === "" ? "selected" : ""}>Another bootcamp (type it below)</option>
       </select></label>` : ""}
     <div class="grid2">
-      <label class="field">XP to give<input class="input" name="points" type="number" min="-2000" max="2000" step="1" value="${kind === "bonus" ? 50 : XP_BOOTCAMP}"></label>
+      <label class="field">XP to give<input class="input" name="points" type="number" min="-2000" max="2000" step="1" value="${kind === "bonus" ? 50 : rw ? rw.xp : XP_BOOTCAMP}"></label>
       <label class="field">Reason<input class="input" name="reason" maxlength="120" placeholder="${kind === "bonus" ? "e.g. helped a new member" : pick ? "optional, e.g. Nov 2026" : "e.g. Pronunciation Bootcamp, Jan 2027"}"></label>
     </div>
     <div>
@@ -1000,7 +1044,9 @@ async function giveXp(form) {
   const camp = kind === "bootcamp" ? (form.camp?.value || "") : "";
   const extra = form.reason.value.trim();
   const reason = [camp, extra].filter(Boolean).join(" · ").slice(0, 120);
-  const sticker = state.awardSticker ?? (kind === "bootcamp" ? stickerForBootcamp(camp) : "");
+  const campObj = camp && Array.isArray(state.bootcamps) ? state.bootcamps.find((c) => c.title === camp) : null;
+  const rw = campObj ? state.rewards?.get(bootKey(campObj)) : null;
+  const sticker = state.awardSticker ?? (kind === "bootcamp" ? (rw ? rw.sticker || "" : stickerForBootcamp(camp)) : "");
   const owned = myStickers(id);
   const giveSticker = sticker && !owned.includes(sticker);
   if (!points && !giveSticker) { toast("Enter some XP or pick a sticker."); return; }
@@ -1158,7 +1204,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=12");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=13");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -1373,6 +1419,8 @@ document.addEventListener("submit", async (e) => {
     else { state.login.error = "Enter the code from the email."; render(); }
   } else if (kind === "profile") {
     saveProfile();
+  } else if (kind === "reward") {
+    await saveReward(form);
   } else if (kind === "award") {
     const btn = form.querySelector("button.btn"); btn.disabled = true;
     await giveXp(form);
@@ -1461,6 +1509,14 @@ document.addEventListener("click", async (e) => {
     state.lbPeriod = el.dataset.v; render();
   } else if (act === "award-kind") {
     state.awardKind = el.dataset.v; state.awardSticker = undefined; render();
+  } else if (act === "rw-edit") {
+    const rw = state.rewards.get(el.dataset.k);
+    state.rwEdit = el.dataset.k; state.rwDraft = { xp: rw ? rw.xp : XP_BOOTCAMP, sticker: rw ? rw.sticker : "" }; render();
+  } else if (act === "rw-cancel") {
+    state.rwEdit = null; render();
+  } else if (act === "rw-stk") {
+    const f = el.closest("form"); if (f) state.rwDraft.xp = f.xp.value;
+    state.rwDraft.sticker = el.dataset.key; render();
   } else if (act === "award-stk") {
     state.awardSticker = el.dataset.key; render();
   } else if (act === "stk-del") {
@@ -1561,4 +1617,4 @@ sb.auth.onAuthStateChange((event) => {
   if (event === "SIGNED_OUT" && state.user) { state.user = null; state.role = null; render(); }
 });
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=12").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=13").catch(() => {});

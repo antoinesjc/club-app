@@ -67,3 +67,4 @@ Same as the website calendar: the title gives the level (`HSK 2-4`) and category
 - Admins give stickers on a member's card ("Give XP or a sticker"): pick the bootcamp, set the XP (0 = sticker only), pick the sticker (suggested from the bootcamp title). Table `sticker_awards`; taking one back also removes it from the avatar.
 - Members wear one sticker (`profiles.sticker`) at the bottom-left of their avatar; the Stickers section in Me only appears once they have one. Hosts and admins see and can wear all of them.
 - To add a sticker: add it to `stickers.js` and to `sticker_ok()`.
+- Bootcamp rewards (table `bootcamp_rewards`, keyed by the bootcamp's page URL): admins tap "Edit" on a bootcamp card to set the XP and sticker; members see "Finish it and earn …" on the card, and the Give XP form fills in from it.
