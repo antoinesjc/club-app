@@ -60,3 +60,4 @@ Same as the website calendar: the title gives the level (`HSK 2-4`) and category
 - Chinese level options: Beginner, Lower intermediate, Intermediate, Upper intermediate, Advanced.
 - Member cards: tap anyone in Members to see avatar, bio, level and XP, sessions attended, Chinese level, country and Discord; admins also give XP there.
 - Desktop: List / Calendar switch on Home (month grid, colours by session type, ✓ for sessions you joined; choice remembered). Phones keep the list.
+- Bootcamps: read from the website feed (`bootcamps.json` in Mandarin-Zest-Class-Calendar, rebuilt daily), sorted by date, with the Club price; "Ask a host to join" opens the Club Discord. Desktop: sidebar item. Phone: "Explore our bootcamps" square on Home (no prices there).

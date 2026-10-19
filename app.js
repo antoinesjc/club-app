@@ -1,6 +1,6 @@
-import { createClient } from "./vendor/supabase.js?v=10";
-import { FRUITS, HOST_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=10";
-import { COUNTRIES } from "./countries.js?v=10";
+import { createClient } from "./vendor/supabase.js?v=11";
+import { FRUITS, HOST_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=11";
+import { COUNTRIES } from "./countries.js?v=11";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -9,6 +9,9 @@ const SUPABASE_URL = "https://eypehvhcqzhwssydvrhn.supabase.co";
 const SUPABASE_KEY = "sb_publishable_sFnX5WLyN96IvLDDRY96mw_6dJaG6BG";
 const CLUB_PAGE = "https://www.mandarinzest.com/mandarin-zest-club";
 const DISCORD_CHAT = "https://discord.com/channels/1560844923874443297/1561210422533820587";
+// Same feed as the website's bootcamp cards (built daily from the bootcamp pages).
+const BOOTCAMPS_FEED = "https://antoinesjc.github.io/Mandarin-Zest-Class-Calendar/bootcamps.json";
+const BOOTCAMPS_PAGE = "https://www.mandarinzest.com/bootcamps";
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, storageKey: "mz-club-auth" },
@@ -50,6 +53,7 @@ const state = {
   view: (() => { try { return localStorage.getItem("mz-view") || "list"; } catch { return "list"; } })(),
   calMonth: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
   calPick: null,         // session id selected in the calendar
+  bootcamps: null,       // null = not loaded, [] = none, "error"
 };
 const wide = () => matchMedia("(min-width: 900px)").matches;
 const VAPID_PUBLIC = "BDzM2jJc6wlM2C39lLVzvrPCdUgr45MEH_3zRZIxetGlzAeJqmyCl5YGsAc2QozO-ECD38lJWeyQJD3lvOzrNY4";
@@ -115,6 +119,7 @@ const ICON = {
   file: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3 H7 a2 2 0 0 0 -2 2 v14 a2 2 0 0 0 2 2 h10 a2 2 0 0 0 2 -2 V8z"/><path d="M14 3 v5 h5"/></svg>',
   download: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 v12 M7 10 l5 5 l5 -5 M5 21 h14"/></svg>',
   chat: '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12 a8 8 0 0 1 -11.6 7.1 L4 20.5 l1.4 -4.6 A8 8 0 1 1 21 12z"/><path d="M8.5 12 h.01 M12 12 h.01 M15.5 12 h.01"/></svg>',
+  star: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 l2.6 5.4 l5.9 .9 l-4.3 4.1 l1 5.9 l-5.2 -2.8 l-5.2 2.8 l1 -5.9 l-4.3 -4.1 l5.9 -.9z"/></svg>',
   bell: '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8 a6 6 0 0 1 12 0 c0 7 3 9 3 9 H3 s3 -2 3 -9"/><path d="M10.3 21 a1.94 1.94 0 0 0 3.4 0"/></svg>',
   phone: '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18 h2"/></svg>',
 };
@@ -342,7 +347,7 @@ function nav() {
   const item = (id, label, icon) => `<a href="#/${id}" ${r === id ? 'aria-current="page"' : ""}>${icon}<span>${label}</span></a>`;
   return `<nav class="nav" aria-label="Main">
     <div class="brand"><img src="icons/logo.png" alt=""><span>MANDARIN ZEST CLUB</span></div>
-    ${item("home", "Home", ICON.home)}${item("sessions", "My sessions", ICON.cal)}${item("members", "Members", ICON.people)}${item("me", "Me", ICON.me)}
+    ${item("home", "Home", ICON.home)}${item("sessions", "My sessions", ICON.cal)}${item("members", "Members", ICON.people)}${item("bootcamps", "Bootcamps", ICON.star).replace("<a ", '<a class="deskonly" ')}${item("me", "Me", ICON.me)}
     <a class="navchat" href="${DISCORD_CHAT}" target="_blank" rel="noopener">${ICON.chat}<span>Chat on Discord</span></a>
   </nav>`;
 }
@@ -351,7 +356,7 @@ function render() {
   if (!state.user) { app.innerHTML = loginView(); return; }
   if (!state.role) { app.innerHTML = notMemberView(); return; }
   if (!state.loaded) return;
-  const views = { home: homeView, sessions: mySessionsView, members: membersView, me: profileView, host: hostView, member: memberView };
+  const views = { home: homeView, sessions: mySessionsView, members: membersView, me: profileView, host: hostView, member: memberView, bootcamps: bootcampsView };
   const blocked = route() === "host" && !isHost();
   const view = blocked ? homeView : (views[route()] || homeView);
   app.innerHTML = `<div class="shell ${trad() ? "zh-trad" : ""}">${nav()}<main class="main" id="main">${view()}</main></div>`;
@@ -486,6 +491,86 @@ function xpCard() {
   </a>`;
 }
 
+// ---------- Bootcamps (from the website feed) ----------
+async function loadBootcamps(force = false) {
+  if (state.bootcamps && state.bootcamps !== "error" && !force) return;
+  try {
+    const res = await fetch(BOOTCAMPS_FEED, { cache: "no-cache" });
+    const data = await res.json();
+    state.bootcamps = Array.isArray(data?.bootcamps) ? data.bootcamps : [];
+  } catch {
+    state.bootcamps = "error";
+  }
+  if (route() === "bootcamps") render();
+}
+
+const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const MONTHS = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
+function bootSortKey(b) {
+  if (b.start) return b.start;
+  const m = MONTHS.indexOf(String(b.month || b.dates || "").trim().toLowerCase());
+  if (m < 0) return "9999";
+  const now = new Date(), y = m < now.getMonth() ? now.getFullYear() + 1 : now.getFullYear();
+  return `${y}-${String(m + 1).padStart(2, "0")}-15`;
+}
+function bootStatus(b) {
+  const today = ymd(new Date());
+  if (/closed|full/i.test(b.status || "")) return { label: b.status, open: false };
+  if (b.status) return { label: b.status, open: /open/i.test(b.status) };
+  if (b.signupBy && today <= b.signupBy) {
+    const d = new Date(b.signupBy + "T12:00:00");
+    return { label: `Sign-ups open until ${d.toLocaleDateString([], { day: "numeric", month: "short" })}`, open: true };
+  }
+  if (b.datesTbd || !b.start) return { label: `Coming ${b.month ? `in ${b.month}` : "soon"} · waitlist`, open: false };
+  if (b.start > today) return { label: "Sign-ups closed", open: false };
+  return null; // already running or over: not listed
+}
+
+function bootCard(b, st) {
+  const today = ymd(new Date());
+  const early = b.early && b.earlyEnds && today <= b.earlyEnds
+    ? `Early bird ${esc(b.early)} until ${esc(new Date(b.earlyEnds + "T12:00:00").toLocaleDateString([], { day: "numeric", month: "short" }))}` : "";
+  const facts = [["Dates", b.datesTbd ? `${b.month || "Dates"} (to be announced)` : b.dates], ["Time", b.time], ["Format", b.format],
+    ["Level", b.level], ["Group", b.group],
+    ["Sign up by", b.signupBy ? new Date(b.signupBy + "T12:00:00").toLocaleDateString([], { day: "numeric", month: "short" }) : ""]]
+    .filter(([, v]) => v);
+  const hosts = [...state.profiles.values()].filter((p) => ["host", "admin"].includes(state.roles.get(p.id))).map((p) => p.display_name).filter(Boolean);
+  return `<article class="bootcard">
+    <div class="bootpic"${b.image ? ` style="background-image:url('${esc(b.image)}')"` : ""}>
+      ${b.image ? "" : `<span class="bootglyph" aria-hidden="true">${/pronunc/i.test(b.title) ? "音" : /taiwan/i.test(b.title) ? "台" : /character|writ/i.test(b.title) ? "字" : "营"}</span>`}
+      <span class="bootstatus${st.open ? " open" : ""}">${esc(st.label)}</span>
+    </div>
+    <div class="bootbody">
+      <h2>${esc(b.title)}</h2>
+      ${b.summary ? `<p class="muted" style="margin:0;line-height:1.5;font-size:14.5px">${esc(b.summary)}</p>` : ""}
+      <div class="bootfacts">${facts.map(([k, v]) => `<div><span>${esc(k)}</span>${esc(v)}</div>`).join("")}</div>
+      ${b.club ? `<div class="bootprice"><div class="grow"><span>Your Club price</span><b>${esc(b.club)}</b></div>
+        <div class="small" style="text-align:right;line-height:1.5">${b.price ? `Standard <s>${esc(b.price)}</s>` : ""}${early ? `<br>${early}` : ""}</div></div>`
+        : `<div class="bootprice pending small">Club price announced soon.</div>`}
+      <div class="row" style="gap:10px;flex-wrap:wrap">
+        <a class="btn discord grow" href="${DISCORD_CHAT}" target="_blank" rel="noopener">${ICON.chat}${st.open ? "Ask a host to join" : "Tell a host you're interested"}</a>
+        ${b.url ? `<a class="btn ghost" href="${esc(b.url)}" target="_blank" rel="noopener">More info ↗</a>` : ""}
+      </div>
+      <div class="small muted">${hosts.length ? `Hosts: ${esc(hosts.join(", "))}. ` : ""}Tell them which bootcamp; they'll sign you up at the Club price.</div>
+    </div>
+  </article>`;
+}
+
+function bootcampsView() {
+  if (state.bootcamps === null) loadBootcamps();
+  const list = Array.isArray(state.bootcamps)
+    ? state.bootcamps.map((b) => ({ b, st: bootStatus(b) })).filter((x) => x.st).sort((x, y) => bootSortKey(x.b).localeCompare(bootSortKey(y.b)))
+    : [];
+  return `
+  <a class="linkbtn mobonly" href="#/home" style="text-decoration:none;font-weight:700;align-self:flex-start">← Home</a>
+  <header><div class="eyebrow">Mandarin Zest Club</div><h1>Bootcamps</h1>
+    <p class="muted" style="margin:6px 0 0;line-height:1.5;max-width:640px">Short, intensive courses run by our teachers. As a Club member you pay the Club price. To join, message one of the hosts and they'll sign you up.</p></header>
+  ${state.bootcamps === null ? `<p class="muted small">Loading bootcamps…</p>`
+    : state.bootcamps === "error" ? `<div class="card"><p class="small" style="margin:0">Couldn't load the bootcamps right now. <a href="${BOOTCAMPS_PAGE}" target="_blank" rel="noopener">See them on the website ↗</a></p></div>`
+    : list.length ? `<div class="bootgrid">${list.map(({ b, st }) => bootCard(b, st)).join("")}</div>`
+    : `<div class="card"><h2>No bootcamps planned right now</h2><p class="small muted" style="margin:0">New bootcamps will appear here as soon as they're on the website.</p></div>`}`;
+}
+
 // ---------- Month calendar (desktop) ----------
 function calendarView() {
   const m = state.calMonth, y = m.getFullYear(), mo = m.getMonth();
@@ -540,6 +625,7 @@ function homeView() {
   </header>
   ${isHost() ? "" : xpCard()}
   ${featuredCard(f)}
+  <a class="bootsquare" href="#/bootcamps">${ICON.star}<span class="grow"><b>Explore our bootcamps</b><br><span class="small">Short, intensive courses at the Club price</span></span><span aria-hidden="true" style="font-size:22px">›</span></a>
   ${installHint()}
   <div class="row between" style="align-items:center;flex-wrap:wrap;gap:8px">
     <h2>${wide() && state.view === "cal" ? "Calendar" : "Coming up"}</h2>
@@ -998,7 +1084,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=10");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=11");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -1386,4 +1472,4 @@ sb.auth.onAuthStateChange((event) => {
   if (event === "SIGNED_OUT" && state.user) { state.user = null; state.role = null; render(); }
 });
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=10").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=11").catch(() => {});
