@@ -1,7 +1,7 @@
-import { createClient } from "./vendor/supabase.js?v=13";
-import { FRUITS, HOST_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=13";
-import { COUNTRIES } from "./countries.js?v=13";
-import { STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=13";
+import { createClient } from "./vendor/supabase.js?v=14";
+import { FRUITS, HOST_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=14";
+import { COUNTRIES } from "./countries.js?v=14";
+import { STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=14";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -195,7 +195,8 @@ async function loadAll() {
     sb.from("sticker_awards").select("*").order("awarded_at", { ascending: false }),
     sb.rpc("board_stickers"),
     sb.from("bootcamp_rewards").select("*"),
-  ]).then((r) => { const rw = r.pop(); state.rewards = new Map(rw.error ? [] : rw.data.map((x) => [x.bootcamp, x])); worn = r.pop(); stk = r.pop(); stats = r.pop(); return r; });
+    sb.rpc("member_bootcamps"),
+  ]).then((r) => { const mb = r.pop(); state.bootcampsJoined = new Map(mb.error ? [] : mb.data.map((x) => [x.user_id, x.bootcamps])); const rw = r.pop(); state.rewards = new Map(rw.error ? [] : rw.data.map((x) => [x.bootcamp, x])); worn = r.pop(); stk = r.pop(); stats = r.pop(); return r; });
   for (const r of [att, notes, board, awards]) if (r.error) throw r.error;
   if (!stats.error) state.stats = new Map(stats.data.map((x) => [x.user_id, x.sessions]));
   state.board = board.data;
@@ -963,6 +964,7 @@ function memberView() {
   const facts = [
     host ? null : [`Level ${pr.level}`, `${xp.toLocaleString()} XP${r?.month ? ` · ${r.month.toLocaleString()} this month` : ""}`],
     [String(sessions), sessions === 1 ? "session attended" : "sessions attended"],
+    host ? null : (() => { const n = state.bootcampsJoined?.get(id) || 0; return [String(n), n === 1 ? "bootcamp joined" : "bootcamps joined"]; })(),
     full?.chinese_level ? [full.chinese_level, "Chinese level"] : null,
     full?.country ? [countryName(full.country), "Country"] : null,
   ].filter(Boolean);
@@ -1204,7 +1206,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=13");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=14");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -1617,4 +1619,4 @@ sb.auth.onAuthStateChange((event) => {
   if (event === "SIGNED_OUT" && state.user) { state.user = null; state.role = null; render(); }
 });
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=13").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=14").catch(() => {});

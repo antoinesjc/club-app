@@ -4,58 +4,49 @@
 export const STICKERS = [
   {
     key: "boba", zh: ["珍珠奶茶", "珍珠奶茶"], en: "Bubble tea", bootcamp: "taiwan",
-    svg: `<circle cx="32" cy="32" r="30" fill="#fde9d2"/>
-      <path d="M36 6 l-4 20" stroke="#e8505b" stroke-width="4" stroke-linecap="round"/>
-      <path d="M18 22 h28 l-3.5 32 a4 4 0 0 1 -4 3.5 h-13 a4 4 0 0 1 -4 -3.5z" fill="#fff" stroke="#6b4a2b" stroke-width="2.4" stroke-linejoin="round"/>
-      <path d="M19.3 31 h25.4 l-2.4 22.6 a3 3 0 0 1 -3 2.7 h-14.6 a3 3 0 0 1 -3 -2.7z" fill="#d9a777"/>
-      <path d="M16 22 h32" stroke="#6b4a2b" stroke-width="3.4" stroke-linecap="round"/>
-      <g fill="#3b2516"><circle cx="25" cy="50" r="2.8"/><circle cx="31.5" cy="51.5" r="2.8"/><circle cx="38" cy="50" r="2.8"/><circle cx="28" cy="45" r="2.8"/><circle cx="35" cy="45.5" r="2.8"/></g>
-      <circle cx="27" cy="37" r="1.5" fill="#3b2516"/><circle cx="37" cy="37" r="1.5" fill="#3b2516"/>
-      <path d="M29.5 40 q2.5 2 5 0" stroke="#3b2516" stroke-width="1.6" fill="none" stroke-linecap="round"/>`,
+    svg: `<path d="M37 3 l-4 19" stroke="#e8505b" stroke-width="4.5" stroke-linecap="round"/>
+      <path d="M15 19 h34 l-4.2 38 a5 5 0 0 1 -5 4.5 h-15.6 a5 5 0 0 1 -5 -4.5z" fill="#fff" stroke="#6b4a2b" stroke-width="2.6" stroke-linejoin="round"/>
+      <path d="M16.6 29 h30.8 l-2.9 27.4 a3.5 3.5 0 0 1 -3.5 3.1 h-18 a3.5 3.5 0 0 1 -3.5 -3.1z" fill="#d9a777"/>
+      <path d="M12.5 19 h39" stroke="#6b4a2b" stroke-width="4" stroke-linecap="round"/>
+      <g fill="#3b2516"><circle cx="24" cy="54" r="3.2"/><circle cx="32" cy="55.5" r="3.2"/><circle cx="40" cy="54" r="3.2"/><circle cx="27.5" cy="48" r="3.2"/><circle cx="36" cy="48.5" r="3.2"/></g>
+      <path d="M20 34 v12" stroke="#fff" stroke-width="2.4" stroke-linecap="round" opacity=".55"/>`,
   },
   {
     key: "tones", zh: ["四声", "四聲"], en: "Four tones", bootcamp: "pronunciation",
-    svg: `<circle cx="32" cy="32" r="30" fill="#efe3f7"/>
-      <path d="M12 18 a6 6 0 0 1 6 -6 h28 a6 6 0 0 1 6 6 v20 a6 6 0 0 1 -6 6 h-16 l-9 8 v-8 h-3 a6 6 0 0 1 -6 -6z" fill="#7d5a8c"/>
-      <g stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" fill="none">
-        <path d="M17 22 h6"/><path d="M27 32 l5 -10"/><path d="M36 24 l2.5 6 l3 -6"/><path d="M45 22 l3 10"/>
+    svg: `<path d="M6 13 a7 7 0 0 1 7 -7 h38 a7 7 0 0 1 7 7 v26 a7 7 0 0 1 -7 7 h-21 l-12 10 v-10 h-5 a7 7 0 0 1 -7 -7z" fill="#7d5a8c"/>
+      <g stroke="#fff" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+        <path d="M13 19 h8"/><path d="M25 32 l6 -13"/><path d="M35 21 l3 8 l4 -8"/><path d="M47 19 l4 13"/>
       </g>`,
   },
   {
     key: "lantern", zh: ["灯笼", "燈籠"], en: "Lantern", bootcamp: "festival",
-    svg: `<circle cx="32" cy="32" r="30" fill="#fde2dc"/>
-      <path d="M32 6 v6" stroke="#6b4a2b" stroke-width="2.4" stroke-linecap="round"/>
-      <rect x="24" y="11" width="16" height="5" rx="1.5" fill="#f2b631"/>
-      <ellipse cx="32" cy="32" rx="17" ry="16" fill="#d8352a"/>
-      <path d="M32 16 v32 M24 18 q-5 14 0 28 M40 18 q5 14 0 28" stroke="#a8241c" stroke-width="2" fill="none"/>
-      <rect x="24" y="47" width="16" height="5" rx="1.5" fill="#f2b631"/>
-      <path d="M29 52 v7 M32 52 v8 M35 52 v7" stroke="#f2b631" stroke-width="2" stroke-linecap="round"/>`,
+    svg: `<path d="M32 2 v6" stroke="#6b4a2b" stroke-width="2.6" stroke-linecap="round"/>
+      <rect x="22" y="7" width="20" height="6" rx="2" fill="#f2b631"/>
+      <ellipse cx="32" cy="31" rx="22" ry="19" fill="#d8352a"/>
+      <path d="M32 12 v38 M21 14 q-7 17 0 34 M43 14 q7 17 0 34" stroke="#a8241c" stroke-width="2.2" fill="none"/>
+      <rect x="22" y="49" width="20" height="6" rx="2" fill="#f2b631"/>
+      <path d="M27 55 v7 M32 55 v8 M37 55 v7" stroke="#f2b631" stroke-width="2.4" stroke-linecap="round"/>`,
   },
   {
     key: "dumpling", zh: ["饺子", "餃子"], en: "Dumpling", bootcamp: "food",
-    svg: `<circle cx="32" cy="32" r="30" fill="#e3f1e6"/>
-      <path d="M10 40 q22 -34 44 0 q-22 12 -44 0z" fill="#fffaf0" stroke="#c9b28a" stroke-width="2.4" stroke-linejoin="round"/>
-      <path d="M20 26 q2 4 0 7 M27 21 q2 4 0 8 M34 20 q2 4 0 8 M41 24 q2 4 0 7" stroke="#c9b28a" stroke-width="2" fill="none" stroke-linecap="round"/>
-      <circle cx="26" cy="38" r="1.6" fill="#2a2420"/><circle cx="38" cy="38" r="1.6" fill="#2a2420"/>
-      <path d="M29.5 41 q2.5 2 5 0" stroke="#2a2420" stroke-width="1.6" fill="none" stroke-linecap="round"/>
-      <circle cx="21" cy="41" r="2.4" fill="#f6a6a0" opacity=".7"/><circle cx="43" cy="41" r="2.4" fill="#f6a6a0" opacity=".7"/>`,
+    svg: `<path d="M4 44 q28 -44 56 0 q-28 15 -56 0z" fill="#fffaf0" stroke="#c9b28a" stroke-width="2.8" stroke-linejoin="round"/>
+      <path d="M15 27 q2.5 5 0 9 M24 20 q2.5 5 0 10 M33 18 q2.5 5 0 10 M42 21 q2.5 5 0 10 M50 28 q2 4 0 8" stroke="#c9b28a" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+      <path d="M12 46 q20 7 40 0" stroke="#efe3c8" stroke-width="3" fill="none" stroke-linecap="round"/>`,
   },
   {
     key: "brush", zh: ["毛笔", "毛筆"], en: "Brush", bootcamp: "character",
-    svg: `<circle cx="32" cy="32" r="30" fill="#e6eef3"/>
-      <path d="M44 10 l8 8 l-20 20 l-8 -8z" fill="#a8431a"/>
-      <path d="M44 10 l8 8" stroke="#2a2420" stroke-width="3" stroke-linecap="round"/>
-      <path d="M24 30 l8 8 l-4 4 q-8 6 -16 10 q4 -8 10 -16z" fill="#2a2420"/>
-      <path d="M12 52 q8 -2 14 2" stroke="#2a2420" stroke-width="2.6" fill="none" stroke-linecap="round"/>`,
+    svg: `<path d="M47 4 l13 13 l-24 24 l-13 -13z" fill="#a8431a"/>
+      <path d="M47 4 l13 13" stroke="#2a2420" stroke-width="3.5" stroke-linecap="round"/>
+      <path d="M38 30 l-4 -4" stroke="#f2b631" stroke-width="3" stroke-linecap="round"/>
+      <path d="M23 28 l13 13 l-5 5 q-11 8 -24 14 q6 -13 14 -24z" fill="#2a2420"/>`,
   },
   {
     key: "mooncake", zh: ["月饼", "月餅"], en: "Mooncake", bootcamp: "culture",
-    svg: `<circle cx="32" cy="32" r="30" fill="#fff1c9"/>
-      <circle cx="32" cy="33" r="20" fill="#d99a4e" stroke="#9a6326" stroke-width="2.4"/>
-      <circle cx="32" cy="33" r="12" fill="none" stroke="#9a6326" stroke-width="2"/>
-      <g fill="#9a6326"><circle cx="32" cy="15" r="2.4"/><circle cx="32" cy="51" r="2.4"/><circle cx="14" cy="33" r="2.4"/><circle cx="50" cy="33" r="2.4"/>
-      <circle cx="19.3" cy="20.3" r="2.4"/><circle cx="44.7" cy="20.3" r="2.4"/><circle cx="19.3" cy="45.7" r="2.4"/><circle cx="44.7" cy="45.7" r="2.4"/></g>
-      <text x="32" y="38.5" text-anchor="middle" font-family="'Noto Sans SC',sans-serif" font-size="14" font-weight="700" fill="#9a6326">月</text>`,
+    svg: `<circle cx="32" cy="32" r="27" fill="#d99a4e" stroke="#9a6326" stroke-width="2.8"/>
+      <circle cx="32" cy="32" r="16" fill="none" stroke="#9a6326" stroke-width="2.4"/>
+      <g fill="#9a6326"><circle cx="32" cy="9" r="3"/><circle cx="32" cy="55" r="3"/><circle cx="9" cy="32" r="3"/><circle cx="55" cy="32" r="3"/>
+      <circle cx="15.7" cy="15.7" r="3"/><circle cx="48.3" cy="15.7" r="3"/><circle cx="15.7" cy="48.3" r="3"/><circle cx="48.3" cy="48.3" r="3"/></g>
+      <text x="32" y="39" text-anchor="middle" font-family="'Noto Sans SC',sans-serif" font-size="19" font-weight="700" fill="#9a6326">月</text>`,
   },
 ];
 
