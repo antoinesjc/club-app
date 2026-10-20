@@ -1,7 +1,7 @@
-import { createClient } from "./vendor/supabase.js?v=16";
-import { FRUITS, HOST_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=16";
-import { COUNTRIES } from "./countries.js?v=16";
-import { STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=16";
+import { createClient } from "./vendor/supabase.js?v=17";
+import { FRUITS, HOST_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=17";
+import { COUNTRIES } from "./countries.js?v=17";
+import { STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=17";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -977,12 +977,12 @@ function directory() {
   const hosts = all.filter((p) => ["host", "admin"].includes(state.roles.get(p.id))).sort(byName);
   const members = all.filter((p) => !["host", "admin"].includes(state.roles.get(p.id))).sort(byName);
   const levelOf = (id) => state.board.find((r) => r.user_id === id)?.level || 1;
-  const sub = (p) => [`Lv ${levelOf(p.id)}`, p.chinese_level, p.discord ? `@${p.discord}` : ""].filter(Boolean).map(esc).join(" · ");
+  const sub = (p) => `<span class="mlv">Lv ${levelOf(p.id)}</span>${p.chinese_level ? `<span class="mcl">${esc(p.chinese_level)}</span>` : ""}`;
   return `
   ${hosts.length ? `<div class="daylabel">Hosts</div>
-  <div class="hostgrid">${hosts.map((p) => linkOrDiv(p.id, "hostcard", `${avatar(p, 44)}<div class="grow"><b style="display:block;overflow:hidden;text-overflow:ellipsis">${esc(p.display_name || "Host")}</b><div class="badge">HOST</div>${p.discord ? `<div class="small muted">@${esc(p.discord)}</div>` : ""}</div>`)).join("")}</div>` : ""}
+  <div class="hostgrid">${hosts.map((p) => linkOrDiv(p.id, "hostcard", `${avatar(p, 44)}<div class="grow"><b style="display:block;overflow:hidden;text-overflow:ellipsis">${esc(p.display_name || "Host")}</b><div class="badge">HOST</div></div>`)).join("")}</div>` : ""}
   <div class="daylabel">Members · ${members.length}</div>
-  ${members.length ? `<div class="mgrid">${members.map((p) => linkOrDiv(p.id, "mcard", `${avatar(p, 52)}<b>${esc(p.display_name || "Member")}${p.id === state.user.id ? " (you)" : ""}</b><span class="small muted">${sub(p) || "&nbsp;"}</span>`)).join("")}</div>`
+  ${members.length ? `<div class="mgrid">${members.map((p) => linkOrDiv(p.id, "mcard", `${avatar(p, 52)}<b>${esc(p.display_name || "Member")}${p.id === state.user.id ? " (you)" : ""}</b>${sub(p)}`)).join("")}</div>`
     : `<p class="muted small">Members appear here once they've logged in.</p>`}
   <p class="small muted">Tap someone to see their profile. Prefer not to be listed? Turn it off in <a href="#/me">Me</a>.${isAdmin() ? " As admin, you can give XP from a member's profile." : ""}</p>`;
 }
@@ -1265,7 +1265,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=16");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=17");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -1688,4 +1688,4 @@ sb.auth.onAuthStateChange((event) => {
   if (event === "SIGNED_OUT" && state.user) { state.user = null; state.role = null; render(); }
 });
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=16").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=17").catch(() => {});
