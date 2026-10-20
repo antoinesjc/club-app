@@ -1,7 +1,7 @@
-import { createClient } from "./vendor/supabase.js?v=17";
-import { FRUITS, HOST_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=17";
-import { COUNTRIES } from "./countries.js?v=17";
-import { STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=17";
+import { createClient } from "./vendor/supabase.js?v=18";
+import { FRUITS, HOST_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=18";
+import { COUNTRIES } from "./countries.js?v=18";
+import { STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=18";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -745,7 +745,10 @@ function notesBlock(s) {
   return `
     ${vocab.length ? `<div class="vocab" role="table" aria-label="Vocabulary">${vocab.map((v) => `<div class="vrow" role="row"><span class="vz" role="cell">${esc(v.hanzi)}</span><span class="vp" role="cell">${esc(v.pinyin)}</span><span class="vm" role="cell">${esc(v.meaning)}</span></div>`).join("")}</div>` : ""}
     ${n.body ? `<div class="notebody">${linkify(n.body)}</div>` : ""}
-    <button type="button" class="btn ghost" data-act="notes-pdf" data-id="${esc(s.id)}" style="align-self:flex-start">${ICON.download}Download PDF</button>`;
+    <div class="row" style="gap:8px;flex-wrap:wrap">
+      <button type="button" class="btn ghost" data-act="notes-pdf" data-id="${esc(s.id)}">${ICON.download}Download PDF</button>
+      ${isHost() ? `<a class="btn ghost" href="${hostLink(s)}">✎ Edit notes</a>` : ""}
+    </div>`;
 }
 
 
@@ -855,7 +858,7 @@ function hostView() {
 
   <section class="card">
     <div class="row between" style="align-items:baseline"><h2>2 · Session notes</h2>
-      <span class="small ${n?.published_at ? "" : "muted"}" style="${n?.published_at ? "color:var(--green);font-weight:700" : ""}">${n?.published_at ? "Published" : n ? "Draft: only hosts see it" : "Not started"}</span></div>
+      <span class="small ${n?.published_at ? "" : "muted"}" style="${n?.published_at ? "color:var(--green);font-weight:700" : ""}">${n?.published_at ? "Published · editable" : n ? "Draft: only hosts see it" : "Not started"}</span></div>
     <div class="vhead small muted"><span>汉字</span><span>Pinyin</span><span>Meaning</span><span></span></div>
     <div class="stack" style="gap:6px">${d.vocab.map((v, i) => `<div class="vedit">
       <input class="input" aria-label="Word ${i + 1}, characters" data-vocab="${i}" data-k="hanzi" value="${esc(v.hanzi)}" placeholder="汉字" lang="zh">
@@ -867,10 +870,10 @@ function hostView() {
       <textarea class="input" id="notebody" rows="7" style="padding:12px 14px;min-height:150px;resize:vertical" placeholder="我昨天去了超市。&#10;Correction: 我去超市了 → …&#10;Video: https://…">${esc(d.body)}</textarea>
     </label>
     <div class="row" style="gap:8px;flex-wrap:wrap">
-      <button type="button" class="btn ghost grow" data-act="note-save">Save draft</button>
-      <button type="button" class="btn grow" data-act="note-publish">${n?.published_at ? "Update notes" : "Publish notes"}</button>
+      ${n?.published_at ? "" : `<button type="button" class="btn ghost grow" data-act="note-save">Save draft</button>`}
+      <button type="button" class="btn grow" data-act="note-publish">${n?.published_at ? "Save changes" : "Publish notes"}</button>
     </div>
-    <div class="small muted" style="text-align:center">${n?.published_at ? "Members already got the \"Notes are up\" notification. Updates don't notify again." : "Publishing notifies everyone who came or said they'd come."}</div>
+    <div class="small muted" style="text-align:center">${n?.published_at ? "These notes are published, and you can keep editing them: members see your changes right away. They already got the \"Notes are up\" notification, so changes don't notify again." : "Publishing notifies everyone who came or said they'd come."}</div>
   </section>`;
 }
 
@@ -911,7 +914,7 @@ async function saveNotes(sid, publish) {
     const r = await sb.rpc("publish_notes", { p_session: sid });
     if (r.error) { toast("Saved, but couldn't publish. Try again."); return; }
     state.notes.set(sid, { ...data, published_at: data.published_at || new Date().toISOString() });
-    toast(r.data?.first ? "Published! Members will be notified." : "Notes updated");
+    toast(r.data?.first ? "Published! Members will be notified." : "Changes saved. Members see the updated notes.");
   } else toast("Draft saved");
   state.noteDraft.delete(sid);
   render();
@@ -1265,7 +1268,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=17");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=18");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -1688,4 +1691,4 @@ sb.auth.onAuthStateChange((event) => {
   if (event === "SIGNED_OUT" && state.user) { state.user = null; state.role = null; render(); }
 });
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=17").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=18").catch(() => {});

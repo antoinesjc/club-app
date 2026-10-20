@@ -7,7 +7,7 @@
   --line: #ecdcd2;
   --soft: #f6e9e1;
   --orange: #f37a48;
-  --orange-ink: #a8431a;
+  --orange-ink: #1b6f1b; /* accent text: brand green (was dark red #a8431a) */
   --green: #1b6f1b;
   --green-ink: #173f17;
   --mint: #e0f4e0;
@@ -22,7 +22,7 @@ html, body { margin: 0; background: var(--bg); color: var(--ink); font-family: v
 body { -webkit-tap-highlight-color: transparent; min-height: 100dvh; }
 button, input, select, textarea { font: inherit; color: inherit; }
 a { color: var(--orange-ink); }
-a:hover { color: #7a2f12; }
+a:hover { color: var(--green-ink); }
 :focus-visible { outline: 3px solid #4f7a94; outline-offset: 2px; border-radius: 8px; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .zh-trad { font-family: "Outfit", "Noto Sans TC", system-ui, sans-serif; }
@@ -103,7 +103,7 @@ h2 { margin: 0; font-size: 17px; font-weight: 800; }
 .linkbtn { border: 0; background: none; padding: 8px 0; color: var(--orange-ink); text-decoration: underline; cursor: pointer; font-size: 14px; }
 .toggle {
   min-height: 40px; padding: 0 14px; border-radius: 999px; cursor: pointer; white-space: nowrap;
-  font-weight: 800; font-size: 13.5px; border: 1.5px solid var(--orange); background: #fff; color: var(--orange-ink);
+  font-weight: 800; font-size: 13.5px; border: 1.5px solid var(--orange); background: #fff; color: var(--ink);
 }
 .toggle[aria-pressed="true"] { background: var(--mint); border-color: var(--green); color: var(--green-ink); }
 

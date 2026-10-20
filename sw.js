@@ -1,9 +1,9 @@
 // Keeps the app shell available offline, and shows Club notifications.
 // Data always comes from the network.
-const VERSION = "mz-club-v17";
+const VERSION = "mz-club-v18";
 const SHELL = [
-  "./", "index.html", "styles.css?v=17", "app.js?v=17", "fruits.js?v=17", "hosts-art.js?v=17", "countries.js?v=17", "stickers.js?v=17",
-  "vendor/supabase.js?v=17", "manifest.webmanifest", "icons/logo.png", "icons/icon-192.png",
+  "./", "index.html", "styles.css?v=18", "app.js?v=18", "fruits.js?v=18", "hosts-art.js?v=18", "countries.js?v=18", "stickers.js?v=18",
+  "vendor/supabase.js?v=18", "manifest.webmanifest", "icons/logo.png", "icons/icon-192.png",
 ];
 
 self.addEventListener("install", (e) => {
