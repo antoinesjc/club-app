@@ -1,4 +1,4 @@
-import { HOST_AVATARS, HOST_ART } from "./hosts-art.js?v=14";
+import { HOST_AVATARS, HOST_ART } from "./hosts-art.js?v=15";
 export { HOST_AVATARS };
 // Fruit avatars and the levels that unlock them (Antoine's table, 19 Oct 2026).
 // To change levels or XP later, edit LEVELS and the `level` of each fruit.

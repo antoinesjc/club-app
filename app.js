@@ -1,7 +1,7 @@
-import { createClient } from "./vendor/supabase.js?v=14";
-import { FRUITS, HOST_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=14";
-import { COUNTRIES } from "./countries.js?v=14";
-import { STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=14";
+import { createClient } from "./vendor/supabase.js?v=15";
+import { FRUITS, HOST_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=15";
+import { COUNTRIES } from "./countries.js?v=15";
+import { STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=15";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -26,7 +26,7 @@ const CATEGORIES = {
   character: { label: "Character focus", color: "#7d5a8c" },
   general: { label: "Open topic", color: "#6b6559" },
 };
-const LEVEL_OPTIONS = ["", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced"];
+const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
 const state = {
@@ -196,7 +196,9 @@ async function loadAll() {
     sb.rpc("board_stickers"),
     sb.from("bootcamp_rewards").select("*"),
     sb.rpc("member_bootcamps"),
-  ]).then((r) => { const mb = r.pop(); state.bootcampsJoined = new Map(mb.error ? [] : mb.data.map((x) => [x.user_id, x.bootcamps])); const rw = r.pop(); state.rewards = new Map(rw.error ? [] : rw.data.map((x) => [x.bootcamp, x])); worn = r.pop(); stk = r.pop(); stats = r.pop(); return r; });
+    sb.rpc("session_hosts"),
+    sb.from("host_meet_names").select("meet_name").eq("user_id", state.user.id).maybeSingle(),
+  ]).then((r) => { const mn = r.pop(), sh = r.pop(); state.meetName = mn.error ? "" : mn.data?.meet_name || ""; state.sessionHost = new Map(sh.error ? [] : sh.data.map((x) => [x.session_id, x.host_id])); const mb = r.pop(); state.bootcampsJoined = new Map(mb.error ? [] : mb.data.map((x) => [x.user_id, x.bootcamps])); const rw = r.pop(); state.rewards = new Map(rw.error ? [] : rw.data.map((x) => [x.bootcamp, x])); worn = r.pop(); stk = r.pop(); stats = r.pop(); return r; });
   for (const r of [att, notes, board, awards]) if (r.error) throw r.error;
   if (!stats.error) state.stats = new Map(stats.data.map((x) => [x.user_id, x.sessions]));
   state.board = board.data;
@@ -461,6 +463,25 @@ function featured() {
     || list[0];
 }
 
+// The host of a session: matched on their private Google Meet name, else on their display name.
+function sessionHost(s) {
+  const id = state.sessionHost?.get(String(s.id));
+  if (id && state.profiles.get(id)) return state.profiles.get(id);
+  const n = String(s.host_name || "").trim().toLowerCase();
+  if (!n) return null;
+  return [...state.profiles.values()].find((p) => ["host", "admin"].includes(state.roles.get(p.id))
+    && String(p.display_name || "").trim().toLowerCase() === n) || null;
+}
+function hostRow(s) {
+  if (!s.host_name && !state.sessionHost?.get(String(s.id))) return "";
+  const p = sessionHost(s);
+  const name = p?.display_name || s.host_name;
+  const pic = p ? avatar(p, 44, { flag: false })
+    : `<span class="av hostph" style="--s:44px" aria-hidden="true"><span class="disc"><svg viewBox="0 0 64 64"><circle cx="32" cy="25" r="10" fill="#d8c8bd"/><path d="M13 54 a19 17 0 0 1 38 0z" fill="#d8c8bd"/></svg></span></span>`;
+  const inner = `${pic}<span class="grow"><span class="small muted" style="display:block">Your host</span><b>${esc(name)}</b></span>`;
+  return p ? `<a class="hostrow" href="#/member/${p.id}">${inner}</a>` : `<div class="hostrow">${inner}</div>`;
+}
+
 function featuredCard(s) {
   if (!s) return `<div class="card"><h2>No sessions scheduled</h2><p class="muted small" style="margin:0">New sessions will show up here as soon as they're in the calendar.</p></div>`;
   const c = cat(s), a = new Date(s.starts_at), live = isLive(s);
@@ -472,7 +493,8 @@ function featuredCard(s) {
     </div>
     <div class="session-title">${esc(s.title)}</div>
     ${s.topic ? `<div class="muted" style="font-size:14.5px">${esc(s.topic)}</div>` : ""}
-    <div class="row">${goingAvatars(s)}<div class="small muted">${goingLine(s)}${s.host_name ? ` · host ${esc(s.host_name)}` : ""}${s.level ? ` · ${esc(s.level)}` : ""}</div></div>
+    ${hostRow(s)}
+    <div class="row">${goingAvatars(s)}<div class="small muted">${goingLine(s)}${s.level ? ` · ${esc(s.level)}` : ""}</div></div>
     <div class="row" style="flex-wrap:wrap;gap:8px">
       ${s.meet_url ? `<a class="btn grow" href="${esc(s.meet_url)}" target="_blank" rel="noopener">${ICON.video}Join on Google Meet</a>` : ""}
       ${iAmIn(s) ? "" : inButton(s)}
@@ -1088,7 +1110,8 @@ function profileView() {
   const d = draft(), info = fruitInfo(d.fruit), idx = trad() ? 1 : 0;
   const level = myLevel();
   const changed = ["display_name", "fruit", "bg", "country", "chinese_level", "discord", "show_in_directory", "script", "bio", "sticker"]
-    .some((k) => (d[k] ?? null) !== (state.me[k] ?? null));
+    .some((k) => (d[k] ?? null) !== (state.me[k] ?? null))
+    || (isHost() && d.meet_name !== undefined && d.meet_name.trim() !== (state.meetName || ""));
   const stickerKeys = isHost() ? STICKERS.map((t) => t.key) : myStickers();
   return `
   <header class="row" style="gap:16px">
@@ -1110,6 +1133,14 @@ function profileView() {
       <span class="small muted" id="biocount" style="font-weight:500;text-align:right">${(d.bio || "").length}/${BIO_MAX}</span>
     </label>
 
+    ${isHost() ? `<label class="field">Name you use on Google Meet
+      <input class="input" name="meet_name" maxlength="60" value="${esc(d.meet_name ?? state.meetName ?? "")}" placeholder="as written after “Host:” in the calendar" autocomplete="off">
+      <span class="small muted" style="font-weight:500">Only you see this. It puts your avatar on the sessions you host.</span>
+    </label>` : ""}
+
+    <details class="custom"${state.custOpen ? " open" : ""}>
+    <summary><span class="grow"><b>Avatar customization</b><span class="small muted">${isHost() ? "Character or fruit" : "Fruit"}, ${stickerKeys.length ? "sticker, " : ""}background colour</span></span><span class="chev" aria-hidden="true">›</span></summary>
+    <div class="custbody">
     ${isHost() ? `<div>
       <div class="row between" style="align-items:baseline;margin-bottom:8px"><h2>Host characters</h2><span class="small muted">Only hosts can use these</span></div>
       <div class="fruits">${HOST_AVATARS.map((h) => `<button type="button" class="fruitbtn" data-act="fruit" data-key="${h.key}" aria-pressed="${h.key === d.fruit}" aria-label="${esc(h.en)} ${esc(zh(h.zh))}">
@@ -1133,7 +1164,7 @@ function profileView() {
         ${stickerKeys.map((k) => { const t = stickerInfo(k); return `<button type="button" class="stkbtn" data-act="sticker" data-key="${k}" aria-pressed="${d.sticker === k}" aria-label="${esc(t.en)} ${esc(zh(t.zh))}">
           <span class="stkbig">${stickerSvg(k)}</span><span class="small">${esc(zh(t.zh))}</span></button>`; }).join("")}
       </div>
-      <p class="small muted" style="margin:8px 0 0">Your sticker shows at the bottom-left of your avatar.${isHost() ? " Members only see the stickers they've collected from bootcamps." : ""}</p>
+      <p class="small muted" style="margin:8px 0 0">Your sticker shows at the bottom-left of your avatar.${isHost() ? " Members only see the stickers they've collected from bootcamps and other initiatives." : ""}</p>
     </div>` : ""}
 
     <div>
@@ -1141,6 +1172,8 @@ function profileView() {
       <div class="swatches">${BACKGROUNDS.map(([hex, name]) =>
         `<button type="button" class="swatch" style="background:${hex}" data-act="bg" data-hex="${hex}" aria-label="${name}" aria-pressed="${hex === d.bg}"></button>`).join("")}</div>
     </div>
+    </div>
+    </details>
 
     <div class="grid2">
       <label class="field">Country
@@ -1191,6 +1224,14 @@ async function saveProfile() {
   patch.display_name = String(patch.display_name || "").trim().slice(0, 40);
   patch.discord = String(patch.discord || "").trim().replace(/^@/, "").slice(0, 40);
   patch.bio = String(patch.bio || "").replace(/\s+/g, " ").trim().slice(0, BIO_MAX);
+  if (isHost() && d.meet_name !== undefined && d.meet_name.trim() !== (state.meetName || "")) {
+    const meet = d.meet_name.trim().slice(0, 60);
+    const { error } = await sb.from("host_meet_names").upsert({ user_id: state.user.id, meet_name: meet, updated_at: new Date().toISOString() });
+    if (error) { toast("Couldn't save your Google Meet name."); return; }
+    state.meetName = meet;
+    const sh = await sb.rpc("session_hosts");
+    if (!sh.error) state.sessionHost = new Map(sh.data.map((x) => [x.session_id, x.host_id]));
+  }
   const { data, error } = await sb.from("profiles").update(patch).eq("id", state.user.id).select().single();
   if (error) { toast("Couldn't save. Please try again."); return; }
   state.me = data; state.profiles.set(data.id, data); state.draft = null;
@@ -1206,7 +1247,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=14");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=15");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -1546,6 +1587,10 @@ document.addEventListener("click", async (e) => {
   }
 });
 
+document.addEventListener("toggle", (e) => {
+  if (e.target.matches?.("details.custom")) state.custOpen = e.target.open;
+}, true);
+
 document.addEventListener("change", (e) => {
   const el = e.target;
   if (el.dataset.pref) savePref(el.dataset.pref, el.checked);
@@ -1619,4 +1664,4 @@ sb.auth.onAuthStateChange((event) => {
   if (event === "SIGNED_OUT" && state.user) { state.user = null; state.role = null; render(); }
 });
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=14").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=15").catch(() => {});
