@@ -1,7 +1,7 @@
-import { createClient } from "./vendor/supabase.js?v=15";
-import { FRUITS, HOST_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=15";
-import { COUNTRIES } from "./countries.js?v=15";
-import { STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=15";
+import { createClient } from "./vendor/supabase.js?v=16";
+import { FRUITS, HOST_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=16";
+import { COUNTRIES } from "./countries.js?v=16";
+import { STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=16";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -52,6 +52,7 @@ const state = {
   lbPeriod: "month",     // "month" | "all"
   stats: new Map(),      // user_id -> sessions attended
   view: (() => { try { return localStorage.getItem("mz-view") || "list"; } catch { return "list"; } })(),
+  catFilter: (() => { try { return localStorage.getItem("mz-cat") || ""; } catch { return ""; } })(),
   calMonth: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
   calPick: null,         // session id selected in the calendar
   bootcamps: null,       // null = not loaded, [] = none, "error"
@@ -479,7 +480,7 @@ function hostRow(s) {
   const pic = p ? avatar(p, 44, { flag: false })
     : `<span class="av hostph" style="--s:44px" aria-hidden="true"><span class="disc"><svg viewBox="0 0 64 64"><circle cx="32" cy="25" r="10" fill="#d8c8bd"/><path d="M13 54 a19 17 0 0 1 38 0z" fill="#d8c8bd"/></svg></span></span>`;
   const inner = `${pic}<span class="grow"><span class="small muted" style="display:block">Your host</span><b>${esc(name)}</b></span>`;
-  return p ? `<a class="hostrow" href="#/member/${p.id}">${inner}</a>` : `<div class="hostrow">${inner}</div>`;
+  return p ? `<a class="hostline" href="#/member/${p.id}">${inner}</a>` : `<div class="hostline">${inner}</div>`;
 }
 
 function featuredCard(s) {
@@ -659,8 +660,9 @@ function calendarView() {
   const m = state.calMonth, y = m.getFullYear(), mo = m.getMonth();
   const first = new Date(y, mo, 1), start = new Date(y, mo, 1 - ((first.getDay() + 6) % 7));
   const byDay = new Map();
+  const cf = CATEGORIES[state.catFilter] || null;
   for (const s of state.sessions) {
-    if (s.cancelled) continue;
+    if (s.cancelled || (cf && cat(s) !== cf)) continue;
     const k = dayKey(new Date(s.starts_at));
     if (!byDay.has(k)) byDay.set(k, []);
     byDay.get(k).push(s);
@@ -697,7 +699,8 @@ function calendarView() {
 
 function homeView() {
   const me = state.me, f = featured();
-  const rest = upcoming().filter((s) => s !== f).slice(0, 14);
+  const cf = CATEGORIES[state.catFilter] ? state.catFilter : "";
+  const rest = upcoming().filter((s) => s !== f && (!cf || cat(s) === CATEGORIES[cf])).slice(0, 14);
   return `
   <header class="row">
     <div class="grow">
@@ -720,8 +723,12 @@ function homeView() {
       </div>
     </div>
   </div>
+  <div class="catfilter" role="group" aria-label="Show only">
+    <button type="button" data-act="catf" data-v="" aria-pressed="${!cf}">All</button>
+    ${Object.entries(CATEGORIES).map(([k, c]) => `<button type="button" data-act="catf" data-v="${k}" aria-pressed="${cf === k}" style="--c:${c.color}"><i></i>${esc(c.label)}</button>`).join("")}
+  </div>
   ${wide() && state.view === "cal" ? calendarView()
-    : `<div class="slist">${rest.length ? grouped(rest) : `<p class="muted small">Nothing else planned yet.</p>`}</div>`}`;
+    : `<div class="slist">${rest.length ? grouped(rest) : `<p class="muted small">${cf ? `No upcoming ${esc(CATEGORIES[cf].label.toLowerCase())} sessions right now.` : "Nothing else planned yet."}</p>`}</div>`}`;
 }
 
 const attended = (s, uid = state.user.id) => (state.attendance.get(s.id) || new Set()).has(uid);
@@ -766,21 +773,32 @@ function mySessionsView() {
   const mine = state.sessions.filter((s) => iAmIn(s) || attended(s));
   const next = mine.filter((s) => !ended(s));
   const past = mine.filter((s) => ended(s)).reverse();
-  const hostRecent = isHost()
-    ? state.sessions.filter((s) => Date.parse(s.starts_at) <= Date.now() + 30 * 60e3 && Date.parse(s.starts_at) > Date.now() - 21 * 864e5).reverse()
+  // Host board: only the sessions this host runs (matched via their Google Meet name or display name).
+  const showAll = isAdmin() && state.hostAll;
+  const myHosted = isHost()
+    ? state.sessions.filter((s) => !s.cancelled && (showAll || sessionHost(s)?.id === state.user.id)
+        && Date.parse(s.starts_at) > Date.now() - 21 * 864e5)
     : [];
-  return `
-  <header><div class="eyebrow">Mandarin Zest Club</div><h1>My sessions</h1></header>
-  ${hostRecent.length ? `<h2>Hosting: attendance &amp; notes</h2>
-  <div class="slist">${hostRecent.map((s) => {
+  const hostNext = myHosted.filter((s) => Date.parse(s.starts_at) > Date.now() + 30 * 60e3);
+  const hostDone = myHosted.filter((s) => Date.parse(s.starts_at) <= Date.now() + 30 * 60e3).reverse();
+  const hostItem = (s, upcomingOne) => {
     const n = state.notes.get(s.id), count = (state.attendance.get(s.id) || new Set()).size;
-    const status = n?.published_at ? "Notes published" : n ? "Draft notes" : "No notes yet";
+    const status = upcomingOne ? (n ? "Notes drafted" : "You're hosting") : `${count} attended · ${n?.published_at ? "Notes published" : n ? "Draft notes" : "No notes yet"}`;
     const a = new Date(s.starts_at);
     return `<a class="sitem hostrow" href="${hostLink(s)}"><div class="top">
       <span class="grow"><div class="stitle">${esc(s.title)}</div>
-      <div class="smeta">${esc(dayName(a))} · ${fmtTime(a)} · ${count} attended · ${status}</div></span>
+      <div class="smeta">${esc(dayName(a))} · ${fmtTime(a)}${showAll && s.host_name ? ` · ${esc(s.host_name)}` : ""} · ${status}</div></span>
       <span class="toggle" style="display:inline-flex;align-items:center">Open</span></div></a>`;
-  }).join("")}</div>` : ""}
+  };
+  return `
+  <header><div class="eyebrow">Mandarin Zest Club</div><h1>My sessions</h1></header>
+  ${isHost() ? `<div class="row between" style="align-items:baseline;flex-wrap:wrap;gap:8px"><h2>Hosting: attendance &amp; notes</h2>
+    ${isAdmin() ? `<div class="seg" role="group" aria-label="Sessions shown" style="max-width:260px">
+      <button type="button" data-act="host-all" data-v="" aria-pressed="${!showAll}">Mine</button>
+      <button type="button" data-act="host-all" data-v="1" aria-pressed="${showAll}">All hosts</button></div>` : ""}</div>
+  ${hostNext.length ? `<div class="daylabel">Coming up to host</div><div class="slist">${hostNext.slice(0, 8).map((s) => hostItem(s, true)).join("")}</div>` : ""}
+  ${hostDone.length ? `<div class="daylabel">Hosted · last 3 weeks</div><div class="slist">${hostDone.map((s) => hostItem(s, false)).join("")}</div>` : ""}
+  ${!myHosted.length ? `<div class="card"><p class="small muted" style="margin:0">${state.meetName || showAll ? "No sessions with you as host in the calendar right now." : `Your sessions appear here once the app knows they're yours. Add the <b>name you use on Google Meet</b> in <a href="#/me">Me</a> (as written after “Host:” in the calendar).`}</p></div>` : ""}` : ""}
   <h2>Coming up</h2>
   <div class="slist">${next.length ? grouped(next) : `<div class="card"><p class="muted small" style="margin:0">Tap <b>I'm in</b> on a session and it shows up here.</p></div>`}</div>
   <h2>Past sessions</h2>
@@ -1247,7 +1265,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=15");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=16");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -1546,6 +1564,12 @@ document.addEventListener("click", async (e) => {
     if (state.calPick) state.open.add(state.calPick);
     render();
     if (state.calPick) document.querySelector(".cal + .slist")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  } else if (act === "host-all") {
+    state.hostAll = !!el.dataset.v; render();
+  } else if (act === "catf") {
+    state.catFilter = el.dataset.v;
+    try { localStorage.setItem("mz-cat", state.catFilter); } catch { /* storage off */ }
+    render();
   } else if (act === "mtab") {
     state.membersTab = el.dataset.v; render();
   } else if (act === "lbp") {
@@ -1664,4 +1688,4 @@ sb.auth.onAuthStateChange((event) => {
   if (event === "SIGNED_OUT" && state.user) { state.user = null; state.role = null; render(); }
 });
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=15").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=16").catch(() => {});
