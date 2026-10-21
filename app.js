@@ -1,8 +1,8 @@
-import { createClient } from "./vendor/supabase.js?v=21";
-import { FRUITS, HOST_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=21";
-import { COUNTRIES } from "./countries.js?v=21";
+import { createClient } from "./vendor/supabase.js?v=22";
+import { FRUITS, HOST_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=22";
+import { COUNTRIES } from "./countries.js?v=22";
 const XP_HONGBAO = 30;
-import { STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=21";
+import { STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=22";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -388,6 +388,7 @@ function render() {
   const blocked = route() === "host" && !isHost();
   const view = blocked ? homeView : (views[route()] || homeView);
   app.innerHTML = `<div class="shell ${trad() ? "zh-trad" : ""}">${nav()}<main class="main" id="main">${view()}</main></div>${hongbaoOverlay()}`;
+  wireMap();
 }
 
 // ---------------------------------------------------------------------------
@@ -937,9 +938,10 @@ function membersView() {
     <span aria-hidden="true" style="font-size:20px">↗</span></a>
   <div class="tabs" role="tablist">
     <button type="button" role="tab" aria-selected="${lb}" data-act="mtab" data-v="lb">Leaderboard</button>
-    <button type="button" role="tab" aria-selected="${!lb}" data-act="mtab" data-v="all">Everyone</button>
+    <button type="button" role="tab" aria-selected="${state.membersTab === "all"}" data-act="mtab" data-v="all">Everyone</button>
+    <button type="button" role="tab" aria-selected="${state.membersTab === "map"}" data-act="mtab" data-v="map">Map</button>
   </div>
-  ${lb ? leaderboard() : directory()}`;
+  ${lb ? leaderboard() : state.membersTab === "map" ? mapView() : directory()}`;
 }
 
 const memberLink = (id) => `#/member/${id}`;
@@ -1071,6 +1073,141 @@ function unlocksView() {
       <div class="grow"><b>${esc(t.en)} <span style="font-weight:600;color:var(--orange-ink)">${esc(zh(t.zh))}</span></b><div class="small muted">${esc(t.how || "")}</div></div>
       ${myStickers().includes(t.key) ? `<span class="chip" style="background:var(--green)">Yours</span>` : ""}</div>`).join("")}</div>
   </section>`;
+}
+
+// ---------------------------------------------------------------------------
+// Members map: orange = countries with members; tap one to zoom in and see its members
+// ---------------------------------------------------------------------------
+const MAP_WORLD = [0, 0, 1000, 500];
+const mapAspect = () => (wide() ? 2 : Math.max(1, Math.min(window.innerWidth, 560) / 300));
+function mapDefault() {
+  if (wide()) return [...MAP_WORLD];
+  const h = 350, w = h * mapAspect();             // phone: start zoomed on the Americas–Europe–Africa band
+  return [Math.max(0, 350 - w / 2), 60, w, h];
+}
+async function loadMap() {
+  if (state.mapLoading) return;
+  state.mapLoading = true;
+  try {
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=22"), sb.rpc("country_counts")]);
+    state.world = m.WORLD;
+    state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
+  } catch { state.world = "error"; }
+  state.mapLoading = false;
+  if (route() === "members") render();
+}
+function zoomTo(a2) {
+  const row = state.world?.find?.((r) => r[0] === a2);
+  if (!row) return mapDefault();
+  const [x0, y0, x1, y1] = row[2];
+  let w = Math.max(x1 - x0, 40) * 1.5, h = Math.max(y1 - y0, 25) * 1.5;
+  const asp = mapAspect();
+  if (w / h > asp) h = w / asp; else w = h * asp;
+  return [(x0 + x1) / 2 - w / 2, (y0 + y1) / 2 - h / 2, w, h];
+}
+function pickCountry(a2) {
+  state.mapSel = a2 || "";
+  state.mapVB = a2 ? zoomTo(a2) : mapDefault();
+  render();
+}
+function mapView() {
+  if (!state.world && !state.mapLoading) loadMap();
+  if (!state.world || state.mapLoading) return `<p class="muted small">Loading the map…</p>`;
+  if (state.world === "error") return `<div class="card"><p class="small" style="margin:0">Couldn't load the map. Check your connection and try again.</p></div>`;
+  const counts = state.countryCounts, sel = state.mapSel || "";
+  const list = [...counts.entries()].map(([c, n]) => ({ c, n, name: countryName(c) || c.toUpperCase() }))
+    .sort((a, b) => b.n - a.n || a.name.localeCompare(b.name));
+  const total = list.reduce((t, x) => t + x.n, 0);
+  const vb = state.mapVB || (state.mapVB = mapDefault());
+  const paths = state.world.map(([c, d]) => `<path d="${d}" class="${counts.has(c) ? "has" : ""}${c && c === sel ? " sel" : ""}"${counts.has(c) ? ` data-a2="${c}"` : ""}></path>`).join("");
+  const svg = `<svg id="worldmap" class="wm${sel ? " focus" : ""}" viewBox="${vb.map((v) => v.toFixed(1)).join(" ")}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="World map: countries with Club members are orange">${paths}</svg>`;
+  const pick = `<label class="field">Jump to a country
+    <select class="input" data-act-change="map-pick"><option value="">All countries</option>
+    ${list.map((x) => `<option value="${esc(x.c)}" ${x.c === sel ? "selected" : ""}>${esc(x.name)} · ${x.n}</option>`).join("")}</select></label>`;
+  const rows = list.map((x) => `<button type="button" class="ctyrow${x.c === sel ? " on" : ""}" data-act="map-pick" data-v="${esc(x.c)}"><i aria-hidden="true"></i><span class="grow">${esc(x.name)}</span><span class="small muted">${x.n} member${x.n === 1 ? "" : "s"}</span></button>`).join("");
+  let panel = "";
+  if (sel) {
+    const n = counts.get(sel) || 0;
+    const shown = [...state.profiles.values()].filter((p) => p.country === sel && state.roles.get(p.id) === "member" && (p.show_in_directory || p.id === state.user.id))
+      .sort((a, b) => (a.display_name || "").localeCompare(b.display_name || ""));
+    const hidden = Math.max(0, n - shown.length);
+    const levelOf = (id) => state.board.find((r) => r.user_id === id)?.level || 1;
+    panel = `<section class="ctypanel">
+      <div class="row between" style="align-items:baseline"><h2>${esc(countryName(sel) || sel.toUpperCase())}</h2><span class="small muted">${n} member${n === 1 ? "" : "s"}</span></div>
+      ${shown.map((p) => linkOrDiv(p.id, "lbrow", `${avatar(p, 44)}<div class="grow"><b>${esc(p.display_name || "Member")}${p.id === state.user.id ? " (you)" : ""}</b><div class="small muted">Lv ${levelOf(p.id)}${p.chinese_level ? ` · ${esc(p.chinese_level)}` : ""}</div></div>`)).join("")}
+      ${hidden ? `<p class="small muted" style="margin:0">${shown.length ? "+" : ""}${hidden} member${hidden === 1 ? "" : "s"} who keep${hidden === 1 ? "s" : ""} their profile out of the directory.</p>` : ""}
+      ${state.world.some((r) => r[0] === sel) ? "" : `<p class="small muted" style="margin:0">This country is too small to show on the world map.</p>`}
+    </section>`;
+  }
+  const mapBox = `<div class="mapbox">
+    ${svg}
+    <div class="mapzoom"><button type="button" data-act="map-zoom" data-v="in" aria-label="Zoom in">+</button><button type="button" data-act="map-zoom" data-v="out" aria-label="Zoom out">−</button></div>
+    ${wide() ? "" : `<span class="maphint">Pinch or drag to explore</span>`}
+  </div>`;
+  const head = `<div class="row between" style="align-items:baseline;flex-wrap:wrap;gap:6px">
+    <b style="font-size:16px">${total ? `${total} member${total === 1 ? "" : "s"} in ${list.length} countr${list.length === 1 ? "y" : "ies"}` : "No countries yet"}</b>
+    ${sel ? `<button type="button" class="linkbtn" data-act="map-pick" data-v="">← World map</button>` : `<span class="small muted">${wide() ? "Click" : "Tap"} an orange country</span>`}</div>`;
+  if (!total) return `${head}<div class="card"><p class="small muted" style="margin:0">Members appear on the map once they've chosen their country in Me.</p></div>`;
+  return wide()
+    ? `${head}<div class="mapgrid"><div class="card" style="gap:10px">${mapBox}
+        <div class="maplegend"><span><i style="background:#f37a48"></i>Has members</span><span><i style="background:#e7e0da"></i>No members yet</span></div></div>
+        <div class="stack" style="gap:14px">${pick}${panel}<div class="ctylist">${rows}</div></div></div>`
+    : `${head}${mapBox}${pick}${panel}<div class="ctylist">${rows}</div>`;
+}
+
+// Drag to pan, pinch / wheel to zoom, tap an orange country to select it.
+function wireMap() {
+  const svg = document.getElementById("worldmap");
+  if (!svg || svg.dataset.wired) return;
+  svg.dataset.wired = "1";
+  const pts = new Map();
+  let moved = false, start = null;
+  const vb = () => state.mapVB;
+  const apply = () => svg.setAttribute("viewBox", vb().map((v) => v.toFixed(1)).join(" "));
+  const clamp = () => {
+    const v = vb();
+    v[2] = Math.min(Math.max(v[2], 30), 1000 * 1.2); v[3] = v[2] / (svg.clientWidth / svg.clientHeight || 2);
+    v[0] = Math.min(Math.max(v[0], -v[2] * 0.5), 1000 - v[2] * 0.5);
+    v[1] = Math.min(Math.max(v[1], -v[3] * 0.5), 500 - v[3] * 0.5);
+  };
+  const zoomAt = (f, cx, cy) => { // f > 1 zooms in; cx, cy in map units
+    const v = vb(); const nw = v[2] / f, nh = v[3] / f;
+    v[0] = cx - (cx - v[0]) * (nw / v[2]); v[1] = cy - (cy - v[1]) * (nh / v[3]); v[2] = nw; v[3] = nh;
+    clamp(); apply();
+  };
+  const toMap = (px, py) => { const r = svg.getBoundingClientRect(), v = vb(); const s = Math.max(v[2] / r.width, v[3] / r.height);
+    return [v[0] + (px - r.left - (r.width - v[2] / s) / 2) * s, v[1] + (py - r.top - (r.height - v[3] / s) / 2) * s]; };
+  svg.addEventListener("pointerdown", (e) => { svg.setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]); if (pts.size === 1) { moved = false; start = [e.clientX, e.clientY]; } });
+  svg.addEventListener("pointermove", (e) => {
+    if (!pts.has(e.pointerId)) return;
+    const prev = pts.get(e.pointerId), r = svg.getBoundingClientRect(), v = vb();
+    const s = Math.max(v[2] / r.width, v[3] / r.height);
+    if (pts.size === 1) {
+      if (Math.hypot(e.clientX - start[0], e.clientY - start[1]) > 6) moved = true;
+      v[0] -= (e.clientX - prev[0]) * s; v[1] -= (e.clientY - prev[1]) * s; clamp(); apply();
+    } else if (pts.size === 2) {
+      moved = true;
+      const [a, b] = [...pts.values()];
+      const other = a === prev ? b : a;
+      const d0 = Math.hypot(prev[0] - other[0], prev[1] - other[1]), d1 = Math.hypot(e.clientX - other[0], e.clientY - other[1]);
+      const [cx, cy] = toMap((e.clientX + other[0]) / 2, (e.clientY + other[1]) / 2);
+      if (d0 > 0) zoomAt(d1 / d0, cx, cy);
+    }
+    pts.set(e.pointerId, [e.clientX, e.clientY]);
+  });
+  const end = (e) => {
+    const single = pts.size === 1;
+    pts.delete(e.pointerId);
+    if (single && !moved && e.type === "pointerup") {
+      const hit = document.elementFromPoint(e.clientX, e.clientY);
+      const a2 = hit?.closest?.("path[data-a2]")?.dataset.a2;
+      if (a2) pickCountry(a2);
+    }
+  };
+  svg.addEventListener("pointerup", end);
+  svg.addEventListener("pointercancel", end);
+  svg.addEventListener("wheel", (e) => { e.preventDefault(); const [cx, cy] = toMap(e.clientX, e.clientY); zoomAt(e.deltaY < 0 ? 1.2 : 1 / 1.2, cx, cy); }, { passive: false });
+  svg._zoom = (f) => { const v = vb(); zoomAt(f, v[0] + v[2] / 2, v[1] + v[3] / 2); };
 }
 
 // ---------------------------------------------------------------------------
@@ -1368,7 +1505,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=21");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=22");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -1667,6 +1804,10 @@ document.addEventListener("click", async (e) => {
     if (state.calPick) state.open.add(state.calPick);
     render();
     if (state.calPick) document.querySelector(".cal + .slist")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  } else if (act === "map-pick") {
+    pickCountry(el.dataset.v);
+  } else if (act === "map-zoom") {
+    document.getElementById("worldmap")?._zoom?.(el.dataset.v === "in" ? 1.5 : 1 / 1.5);
   } else if (act === "hb-give") {
     el.disabled = true; await giveHongbao(el.dataset.id); el.disabled = false;
   } else if (act === "hb-seen") {
@@ -1730,6 +1871,7 @@ document.addEventListener("change", (e) => {
   const el = e.target;
   if (el.dataset.pref) savePref(el.dataset.pref, el.checked);
   else if (el.dataset.actChange === "attend-add" && el.value) setAttendance(routeArg(), el.value, true);
+  else if (el.dataset.actChange === "map-pick") pickCountry(el.value);
   else if (el.dataset.actChange === "award-camp") { state.awardCamp = el.value; state.awardSticker = undefined; render(); }
 });
 
@@ -1799,4 +1941,4 @@ sb.auth.onAuthStateChange((event) => {
   if (event === "SIGNED_OUT" && state.user) { state.user = null; state.role = null; render(); }
 });
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=21").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=22").catch(() => {});

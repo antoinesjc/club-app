@@ -251,8 +251,8 @@ div.filebtn { cursor: default; }
 .xpbar { height: 10px; border-radius: 999px; background: rgba(255,255,255,.22); overflow: hidden; }
 .xpbar span { display: block; height: 100%; border-radius: 999px; background: var(--orange); }
 .pill { background: rgba(255,255,255,.16); border-radius: 999px; padding: 4px 10px; }
-.tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); background: var(--soft); border-radius: 999px; padding: 4px; }
-.tabs button { min-height: 42px; border: 0; border-radius: 999px; background: transparent; font-weight: 800; font-size: 14.5px; cursor: pointer; }
+.tabs { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); grid-auto-flow: column; background: var(--soft); border-radius: 999px; padding: 4px; }
+.tabs button { min-height: 42px; border: 0; border-radius: 999px; background: transparent; font-weight: 800; font-size: 14.5px; color: var(--ink); padding: 0 6px; cursor: pointer; }
 .tabs button[aria-selected="true"] { background: #fff; box-shadow: 0 1px 3px rgba(42,36,32,.12); }
 .podium { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; gap: 8px; }
 .podium > div { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; }
@@ -413,3 +413,30 @@ a.hostline:hover { background: #f1dfd4; }
 .unlockrow { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-top: 1px solid var(--line); }
 .unlockrow:first-child { border-top: 0; }
 .bootsquare svg { width: 26px; height: 26px; }
+
+/* ---------- Members map ---------- */
+.mapbox { position: relative; margin: 0 -18px; height: 300px; background: #eef6f3; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); overflow: hidden; }
+.mapbox svg { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; }
+.mapbox svg:active { cursor: grabbing; }
+.wm path { fill: #e7e0da; stroke: #fff; stroke-width: .7px; vector-effect: non-scaling-stroke; }
+.wm path.has { fill: #f37a48; cursor: pointer; }
+.wm path.has:hover { fill: #e9692f; }
+.wm.focus path { fill: #f1ebe6; }
+.wm.focus path.has { fill: #f8c3a9; }
+.wm path.sel, .wm.focus path.sel { fill: #c9541f; }
+.mapzoom { position: absolute; right: 10px; top: 10px; display: flex; flex-direction: column; gap: 6px; }
+.mapzoom button { width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--line); background: #fff; font: inherit; font-size: 22px; font-weight: 700; color: var(--ink); cursor: pointer; }
+.maphint { position: absolute; left: 12px; bottom: 10px; font-size: 12.5px; font-weight: 600; color: var(--muted); background: rgba(255,255,255,.88); padding: 4px 10px; border-radius: 999px; pointer-events: none; }
+.maplegend { display: flex; gap: 16px; font-size: 13px; color: var(--muted); }
+.maplegend span { display: inline-flex; align-items: center; gap: 6px; }
+.maplegend i { width: 12px; height: 12px; border-radius: 3px; }
+.ctylist { display: flex; flex-direction: column; gap: 6px; }
+.ctyrow { display: flex; align-items: center; gap: 10px; min-height: 46px; padding: 0 12px; background: #fff; border: 1px solid var(--line); border-radius: 14px; font: inherit; font-weight: 700; font-size: 15px; color: var(--ink); text-align: left; cursor: pointer; }
+.ctyrow i { width: 10px; height: 10px; border-radius: 50%; background: #f37a48; flex: none; }
+.ctyrow.on { background: #fdeee6; border-color: #f3c2b0; }
+.ctyrow.on i { background: #c9541f; }
+.ctypanel { display: flex; flex-direction: column; gap: 8px; }
+.mapgrid { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 18px; align-items: start; }
+@media (min-width: 900px) {
+  .mapbox { margin: 0; height: auto; aspect-ratio: 2 / 1; border: 0; border-radius: 14px; }
+}
