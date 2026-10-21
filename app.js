@@ -1,7 +1,8 @@
-import { createClient } from "./vendor/supabase.js?v=18";
-import { FRUITS, HOST_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=18";
-import { COUNTRIES } from "./countries.js?v=18";
-import { STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=18";
+import { createClient } from "./vendor/supabase.js?v=19";
+import { FRUITS, HOST_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=19";
+import { COUNTRIES } from "./countries.js?v=19";
+const XP_HONGBAO = 30;
+import { STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=19";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -122,6 +123,7 @@ const ICON = {
   download: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 v12 M7 10 l5 5 l5 -5 M5 21 h14"/></svg>',
   chat: '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12 a8 8 0 0 1 -11.6 7.1 L4 20.5 l1.4 -4.6 A8 8 0 1 1 21 12z"/><path d="M8.5 12 h.01 M12 12 h.01 M15.5 12 h.01"/></svg>',
   star: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 l2.6 5.4 l5.9 .9 l-4.3 4.1 l1 5.9 l-5.2 -2.8 l-5.2 2.8 l1 -5.9 l-4.3 -4.1 l5.9 -.9z"/></svg>',
+  seedling: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21 v-9"/><path d="M12 12 C12 7.5 8.5 5 4 5 C4 9.5 7.5 12 12 12z"/><path d="M12 14 C12 10 15 7.5 20 7.5 C20 11.5 17 14 12 14z"/><path d="M8 21 h8"/></svg>',
   bell: '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8 a6 6 0 0 1 12 0 c0 7 3 9 3 9 H3 s3 -2 3 -9"/><path d="M10.3 21 a1.94 1.94 0 0 0 3.4 0"/></svg>',
   phone: '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18 h2"/></svg>',
 };
@@ -199,7 +201,9 @@ async function loadAll() {
     sb.rpc("member_bootcamps"),
     sb.rpc("session_hosts"),
     sb.from("host_meet_names").select("meet_name").eq("user_id", state.user.id).maybeSingle(),
-  ]).then((r) => { const mn = r.pop(), sh = r.pop(); state.meetName = mn.error ? "" : mn.data?.meet_name || ""; state.sessionHost = new Map(sh.error ? [] : sh.data.map((x) => [x.session_id, x.host_id])); const mb = r.pop(); state.bootcampsJoined = new Map(mb.error ? [] : mb.data.map((x) => [x.user_id, x.bootcamps])); const rw = r.pop(); state.rewards = new Map(rw.error ? [] : rw.data.map((x) => [x.bootcamp, x])); worn = r.pop(); stk = r.pop(); stats = r.pop(); return r; });
+    sb.rpc("hongbao_inbox"),
+    sb.from("hongbaos").select("*").eq("giver", state.user.id).order("created_at", { ascending: false }).limit(1),
+  ]).then((r) => { const hg = r.pop(), hi = r.pop(); state.hbIn = hi.error ? [] : hi.data; state.hbGiven = hg.error ? null : hg.data[0] || null; const mn = r.pop(), sh = r.pop(); state.meetName = mn.error ? "" : mn.data?.meet_name || ""; state.sessionHost = new Map(sh.error ? [] : sh.data.map((x) => [x.session_id, x.host_id])); const mb = r.pop(); state.bootcampsJoined = new Map(mb.error ? [] : mb.data.map((x) => [x.user_id, x.bootcamps])); const rw = r.pop(); state.rewards = new Map(rw.error ? [] : rw.data.map((x) => [x.bootcamp, x])); worn = r.pop(); stk = r.pop(); stats = r.pop(); return r; });
   for (const r of [att, notes, board, awards]) if (r.error) throw r.error;
   if (!stats.error) state.stats = new Map(stats.data.map((x) => [x.user_id, x.sessions]));
   state.board = board.data;
@@ -370,7 +374,7 @@ function nav() {
   const item = (id, label, icon) => `<a href="#/${id}" ${r === id ? 'aria-current="page"' : ""}>${icon}<span>${label}</span></a>`;
   return `<nav class="nav" aria-label="Main">
     <div class="brand"><img src="icons/logo.png" alt=""><span>MANDARIN ZEST CLUB</span></div>
-    ${item("home", "Home", ICON.home)}${item("sessions", "My sessions", ICON.cal)}${item("members", "Members", ICON.people)}${item("bootcamps", "Bootcamps", ICON.star).replace("<a ", '<a class="deskonly" ')}${item("me", "Me", ICON.me)}
+    ${item("home", "Home", ICON.home)}${item("sessions", "My sessions", ICON.cal)}${item("members", "Members", ICON.people)}${item("bootcamps", "Bootcamps", ICON.seedling).replace("<a ", '<a class="deskonly" ')}${item("me", "Me", ICON.me)}
     <a class="navchat" href="${DISCORD_CHAT}" target="_blank" rel="noopener">${ICON.chat}<span>Chat on Discord</span></a>
   </nav>`;
 }
@@ -379,10 +383,10 @@ function render() {
   if (!state.user) { app.innerHTML = loginView(); return; }
   if (!state.role) { app.innerHTML = notMemberView(); return; }
   if (!state.loaded) return;
-  const views = { home: homeView, sessions: mySessionsView, members: membersView, me: profileView, host: hostView, member: memberView, bootcamps: bootcampsView };
+  const views = { home: homeView, sessions: mySessionsView, members: membersView, me: profileView, host: hostView, member: memberView, bootcamps: bootcampsView, unlocks: unlocksView };
   const blocked = route() === "host" && !isHost();
   const view = blocked ? homeView : (views[route()] || homeView);
-  app.innerHTML = `<div class="shell ${trad() ? "zh-trad" : ""}">${nav()}<main class="main" id="main">${view()}</main></div>`;
+  app.innerHTML = `<div class="shell ${trad() ? "zh-trad" : ""}">${nav()}<main class="main" id="main">${view()}</main></div>${hongbaoOverlay()}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -711,7 +715,7 @@ function homeView() {
   </header>
   ${isHost() ? "" : xpCard()}
   ${featuredCard(f)}
-  <a class="bootsquare" href="#/bootcamps">${ICON.star}<span class="grow"><b>Explore our bootcamps</b><br><span class="small">Short, intensive courses at the Club price</span></span><span aria-hidden="true" style="font-size:22px">›</span></a>
+  <a class="bootsquare" href="#/bootcamps">${ICON.seedling}<span class="grow"><b>Explore our bootcamps</b><br><span class="small">Short, intensive courses at the Club price</span></span><span aria-hidden="true" style="font-size:22px">›</span></a>
   ${installHint()}
   <div class="row between" style="align-items:center;flex-wrap:wrap;gap:8px">
     <h2>${wide() && state.view === "cal" ? "Calendar" : "Coming up"}</h2>
@@ -944,12 +948,11 @@ const linkOrDiv = (id, cls, inner) => {
 };
 
 function leaderboard() {
-  const period = state.lbPeriod, k = period === "month" ? "month" : "total";
+  const period = "month", k = "month";
   const list = rankList(period);
   const month = new Date().toLocaleDateString([], { month: "long" });
-  const periods = `<div class="periods" role="group" aria-label="Period">
-    <button type="button" data-act="lbp" data-v="month" aria-pressed="${period === "month"}">${esc(month)}</button>
-    <button type="button" data-act="lbp" data-v="all" aria-pressed="${period === "all"}">All time</button></div>`;
+  const periods = `<div class="lbhead"><span class="stkbig" style="--z:40px">${stickerSvg("medal")}</span>
+    <div class="grow"><b>${esc(month)} leaderboard</b><div class="small muted">Finish #1 this month to unlock the medal sticker. It starts again on the 1st.</div></div></div>`;
   if (!list.length || !list.some((r) => r[k] > 0)) {
     return `${periods}<div class="card"><h2>No XP yet${period === "month" ? " this month" : ""}</h2>
       <p class="small muted" style="margin:0;line-height:1.5">Members get +${XP_SESSION} XP for every session they join (the host ticks who came), +${XP_STREAK} XP for every 4 weeks in a row, and +${XP_BOOTCAMP} XP per bootcamp.</p></div>`;
@@ -967,11 +970,10 @@ function leaderboard() {
       <b>${r[k]} XP</b>`)).join("");
   const mine = myRank(period);
   return `${periods}
-  <div class="small muted" style="text-align:center">${period === "month" ? `XP earned in ${esc(month)}` : "All XP ever earned"}</div>
   ${podium}
   <div class="stack" style="gap:6px">${rest}</div>
   ${!isHost() && mine && mine <= 3 ? `<p class="small" style="text-align:center;margin:0"><b>You're #${mine}!</b></p>` : ""}
-  <p class="small muted" style="margin:0">+${XP_SESSION} XP per session · +${XP_STREAK} XP every 4 weeks in a row · +${XP_BOOTCAMP} XP per bootcamp. Hosts don't take part.</p>`;
+  <p class="small muted" style="margin:0">+${XP_SESSION} XP per session · +${XP_STREAK} XP every 4 weeks in a row · XP for bootcamps · +${XP_HONGBAO} XP per hongbao received. Hosts don't take part.</p>`;
 }
 
 function directory() {
@@ -988,6 +990,85 @@ function directory() {
   ${members.length ? `<div class="mgrid">${members.map((p) => linkOrDiv(p.id, "mcard", `${avatar(p, 52)}<b>${esc(p.display_name || "Member")}${p.id === state.user.id ? " (you)" : ""}</b>${sub(p)}`)).join("")}</div>`
     : `<p class="muted small">Members appear here once they've logged in.</p>`}
   <p class="small muted">Tap someone to see their profile. Prefer not to be listed? Turn it off in <a href="#/me">Me</a>.${isAdmin() ? " As admin, you can give XP from a member's profile." : ""}</p>`;
+}
+
+// ---------------------------------------------------------------------------
+// Hongbao 红包: each member can give one a month (+30 XP) to another member
+// ---------------------------------------------------------------------------
+const monthKey = () => {
+  const d = new Date(new Date().toLocaleString("en-US", { timeZone: "Europe/Brussels" }));
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
+};
+const hbThisMonth = () => (state.hbGiven && state.hbGiven.month === monthKey() ? state.hbGiven : null);
+const nameOf = (id) => state.profiles.get(id)?.display_name || state.board.find((b) => b.user_id === id)?.name || "a member";
+const ENVELOPE = `<svg viewBox="0 0 64 64" aria-hidden="true"><rect x="12" y="6" width="40" height="54" rx="6" fill="#d8352a"/><path d="M12 12 a6 6 0 0 1 6 -6 h28 a6 6 0 0 1 6 6 v6 q-20 14 -40 0z" fill="#b8281f"/><circle cx="32" cy="24" r="8" fill="#f2b631"/><text x="32" y="28.5" text-anchor="middle" font-family="'Noto Sans SC',sans-serif" font-size="11" font-weight="700" fill="#b8281f">福</text></svg>`;
+
+function hongbaoGiveBlock(id) {
+  if (state.role !== "member" || id === state.user.id || state.roles.get(id) !== "member") return "";
+  const given = hbThisMonth();
+  const month = new Date().toLocaleDateString([], { month: "long" });
+  if (given) return `<div class="hbcard done"><span class="hbenv">${ENVELOPE}</span><div class="grow">
+    <b>${given.receiver === id ? `You gave ${esc(nameOf(id))} your ${esc(month)} hongbao` : `You gave your ${esc(month)} hongbao to ${esc(nameOf(given.receiver))}`}</b>
+    <div class="small muted">You get a new one to give on the 1st of next month.</div></div></div>`;
+  return `<div class="hbcard"><span class="hbenv">${ENVELOPE}</span><div class="grow">
+    <b>Send ${esc(nameOf(id))} a hongbao 红包</b>
+    <div class="small muted">One per month. They get +${XP_HONGBAO} XP and a notification saying it's from you.</div></div>
+    <button type="button" class="btn hbbtn" data-act="hb-give" data-id="${id}">Send</button></div>`;
+}
+
+function hongbaoMeCard() {
+  if (state.role !== "member") return "";
+  const given = hbThisMonth(), got = state.hbIn || [];
+  const month = new Date().toLocaleDateString([], { month: "long" });
+  return `<section class="hbcard me"><span class="hbenv">${ENVELOPE}</span><div class="grow">
+    <b>Your ${esc(month)} hongbao 红包</b>
+    <div class="small muted">${given ? `Given to ${esc(nameOf(given.receiver))}. A new one arrives on the 1st.` : `Not given yet. Open a member's card in <a href="#/members">Members</a> to send it (+${XP_HONGBAO} XP for them).`}
+    ${got.length ? `<br>You've received ${got.length} hongbao${got.length === 1 ? "" : "s"}: ${got.slice(0, 3).map((h) => esc(h.name || "a member")).join(", ")}${got.length > 3 ? "…" : ""}.` : ""}</div></div></section>`;
+}
+
+function hongbaoOverlay() {
+  const fresh = (state.hbIn || []).filter((h) => !h.seen_at);
+  if (!fresh.length || route() !== "me") return "";
+  const names = [...new Set(fresh.map((h) => h.name || "A member"))];
+  const who = names.length === 1 ? names[0] : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
+  return `<div class="hbover" role="dialog" aria-modal="true" aria-labelledby="hbtitle">
+    <div class="hbbox">
+      <div class="hbanim">${ENVELOPE}<span class="hbxp">+${XP_HONGBAO * fresh.length} XP</span></div>
+      <h2 id="hbtitle">You received ${fresh.length === 1 ? "a hongbao" : `${fresh.length} hongbaos`}!</h2>
+      <p class="muted" style="margin:0">From <b>${esc(who)}</b>. 恭喜！</p>
+      <button type="button" class="btn block" data-act="hb-seen">谢谢 Thank you!</button>
+    </div></div>`;
+}
+
+async function giveHongbao(id) {
+  if (!confirm(`Send your hongbao for this month to ${nameOf(id)}? They get +${XP_HONGBAO} XP. You can only give one per month.`)) return;
+  const { error } = await sb.rpc("give_hongbao", { p_to: id });
+  if (error) { toast(/already/i.test(error.message) ? "You already gave your hongbao this month." : "Couldn't send it. Try again."); return; }
+  state.hbGiven = { giver: state.user.id, receiver: id, month: monthKey(), created_at: new Date().toISOString() };
+  toast(`🧧 Hongbao sent to ${nameOf(id)}!`);
+  await refreshBoard();
+}
+
+// ---------------------------------------------------------------------------
+// How to unlock avatars and stickers
+// ---------------------------------------------------------------------------
+function unlocksView() {
+  const idx = trad() ? 1 : 0;
+  return `
+  <a class="linkbtn" href="#/me" data-act="back-custom" style="text-decoration:none;font-weight:700;align-self:flex-start">← Back to my profile</a>
+  <header><div class="eyebrow">Avatar customization</div><h1>How to unlock avatars &amp; stickers</h1></header>
+  <section class="card" style="gap:10px">
+    <h2>Fruit avatars: level up</h2>
+    <p class="small muted" style="margin:0;line-height:1.5">You start with three fruits. Each new level unlocks another one. You earn XP by joining sessions (+${XP_SESSION}), coming 4 weeks in a row (+${XP_STREAK}), bootcamps and hongbaos from other members (+${XP_HONGBAO}).</p>
+    <div class="unlockgrid">${FRUITS.map((f) => `<div class="unlockitem">${avatar({ bg: "#fdf1ea" }, 40, { flag: false, fruit: f.key, locked: !isHost() && f.level > myLevel() })}<span class="small"><b>Lv ${f.level}</b><br>${esc(zh(f.zh))}</span></div>`).join("")}</div>
+  </section>
+  <section class="card" style="gap:10px">
+    <h2>Special avatars and stickers</h2>
+    <p class="small muted" style="margin:0;line-height:1.5">These are given during special sessions, bootcamps and Club initiatives. Stickers are a small extra: you wear one at the bottom-left of your avatar. Here's how to get them:</p>
+    <div class="stack" style="gap:2px">${STICKERS.map((t) => `<div class="unlockrow"><span class="stkbig" style="--z:44px">${stickerSvg(t.key)}</span>
+      <div class="grow"><b>${esc(t.en)} <span style="font-weight:600;color:var(--orange-ink)">${esc(zh(t.zh))}</span></b><div class="small muted">${esc(t.how || "")}</div></div>
+      ${myStickers().includes(t.key) ? `<span class="chip" style="background:var(--green)">Yours</span>` : ""}</div>`).join("")}</div>
+  </section>`;
 }
 
 // ---------------------------------------------------------------------------
@@ -1026,7 +1107,22 @@ function memberView() {
     <div class="stkrow">${got.map((k) => `<div class="stkitem"><span class="stkbig">${stickerSvg(k)}</span><span class="small">${esc(stickerInfo(k).en)}</span></div>`).join("")}</div></section>` : ""; })()}
   ${full?.discord ? `<a class="chatcard" style="display:flex" href="${DISCORD_CHAT}" target="_blank" rel="noopener">${ICON.chat}<span class="grow"><b>@${esc(full.discord)}</b><br><span class="small">Say hi on the Club Discord</span></span><span aria-hidden="true" style="font-size:20px">↗</span></a>` : ""}
   ${!full && !me ? `<p class="small muted" style="margin:0">This member keeps their profile out of the directory.</p>` : ""}
-  ${isAdmin() ? adminXpBlock(id, r, awards) : ""}`;
+  ${hongbaoGiveBlock(id)}
+  ${isAdmin() ? adminXpBlock(id, r, awards) : isHost() && role === "member" ? hostStickerBlock(id) : ""}`;
+}
+
+// Hosts (not admins) can give stickers, e.g. the phone sticker for being active on Discord.
+function hostStickerBlock(id) {
+  const owned = new Set(myStickers(id));
+  const stk = state.awardSticker || "";
+  return `<form class="card" data-form="award" style="gap:12px">
+    <div class="row between" style="align-items:baseline"><h2>Give a sticker</h2><span class="small muted">Hosts</span></div>
+    <input type="hidden" name="points" value="0">
+    <div class="stkpick">${STICKERS.map((t) => `<button type="button" class="stkbtn" data-act="award-stk" data-key="${t.key}" aria-pressed="${stk === t.key}" ${owned.has(t.key) ? "disabled" : ""}>
+      <span class="stkbig">${stickerSvg(t.key)}</span><span class="small">${owned.has(t.key) ? "Has it" : esc(t.en)}</span></button>`).join("")}</div>
+    <label class="field">Reason (optional)<input class="input" name="reason" maxlength="120" placeholder="e.g. always helping others on Discord"></label>
+    <button class="btn green block" ${stk ? "" : "disabled"}>Give sticker</button>
+  </form>`;
 }
 
 function adminXpBlock(id, r, awards) {
@@ -1083,8 +1179,8 @@ function adminXpBlock(id, r, awards) {
 
 async function giveXp(form) {
   const id = routeArg();
-  const kind = state.awardKind || "bootcamp";
-  const points = parseInt(form.points.value || "0", 10) || 0;
+  const kind = isAdmin() ? state.awardKind || "bootcamp" : "bonus";
+  const points = isAdmin() ? parseInt(form.points.value || "0", 10) || 0 : 0;
   if (Math.abs(points) > 2000) { toast("XP must be between -2000 and 2000."); return; }
   const camp = kind === "bootcamp" ? (form.camp?.value || "") : "";
   const extra = form.reason.value.trim();
@@ -1162,6 +1258,7 @@ function profileView() {
     <details class="custom"${state.custOpen ? " open" : ""}>
     <summary><span class="grow"><b>Avatar customization</b><span class="small muted">${isHost() ? "Character or fruit" : "Fruit"}, ${stickerKeys.length ? "sticker, " : ""}background colour</span></span><span class="chev" aria-hidden="true">›</span></summary>
     <div class="custbody">
+    <a class="unlocklink" href="#/unlocks">${ICON.seedling}<span class="grow"><b>How to unlock avatars &amp; stickers</b><br><span class="small muted">Levels, bootcamps, special sessions and more</span></span><span aria-hidden="true">›</span></a>
     ${isHost() ? `<div>
       <div class="row between" style="align-items:baseline;margin-bottom:8px"><h2>Host characters</h2><span class="small muted">Only hosts can use these</span></div>
       <div class="fruits">${HOST_AVATARS.map((h) => `<button type="button" class="fruitbtn" data-act="fruit" data-key="${h.key}" aria-pressed="${h.key === d.fruit}" aria-label="${esc(h.en)} ${esc(zh(h.zh))}">
@@ -1230,6 +1327,7 @@ function profileView() {
     <button class="btn block" ${changed ? "" : "disabled"}>${changed ? "Save changes" : "Saved"}</button>
   </form>
 
+  ${hongbaoMeCard()}
   ${notificationsCard()}
   ${installHint(true)}
   <div class="row between">
@@ -1268,7 +1366,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=18");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=19");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -1567,6 +1665,14 @@ document.addEventListener("click", async (e) => {
     if (state.calPick) state.open.add(state.calPick);
     render();
     if (state.calPick) document.querySelector(".cal + .slist")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  } else if (act === "hb-give") {
+    el.disabled = true; await giveHongbao(el.dataset.id); el.disabled = false;
+  } else if (act === "hb-seen") {
+    for (const h of state.hbIn) h.seen_at = h.seen_at || new Date().toISOString();
+    render();
+    await sb.rpc("hongbao_seen");
+  } else if (act === "back-custom") {
+    state.custOpen = true;
   } else if (act === "host-all") {
     state.hostAll = !!el.dataset.v; render();
   } else if (act === "catf") {
@@ -1691,4 +1797,4 @@ sb.auth.onAuthStateChange((event) => {
   if (event === "SIGNED_OUT" && state.user) { state.user = null; state.role = null; render(); }
 });
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=18").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=19").catch(() => {});

@@ -3,7 +3,7 @@
 // "bootcamp" is a word that, when found in a bootcamp's title, suggests this sticker to the admin.
 export const STICKERS = [
   {
-    key: "boba", zh: ["珍珠奶茶", "珍珠奶茶"], en: "Bubble tea", bootcamp: "taiwan",
+    key: "boba", how: "Finish the Taiwanese Mini Bootcamp.", zh: ["珍珠奶茶", "珍珠奶茶"], en: "Bubble tea", bootcamp: "taiwan",
     svg: `<path d="M37 3 l-4 19" stroke="#e8505b" stroke-width="4.5" stroke-linecap="round"/>
       <path d="M15 19 h34 l-4.2 38 a5 5 0 0 1 -5 4.5 h-15.6 a5 5 0 0 1 -5 -4.5z" fill="#fff" stroke="#6b4a2b" stroke-width="2.6" stroke-linejoin="round"/>
       <path d="M16.6 29 h30.8 l-2.9 27.4 a3.5 3.5 0 0 1 -3.5 3.1 h-18 a3.5 3.5 0 0 1 -3.5 -3.1z" fill="#d9a777"/>
@@ -12,14 +12,14 @@ export const STICKERS = [
       <path d="M20 34 v12" stroke="#fff" stroke-width="2.4" stroke-linecap="round" opacity=".55"/>`,
   },
   {
-    key: "tones", zh: ["四声", "四聲"], en: "Four tones", bootcamp: "pronunciation",
+    key: "tones", how: "Finish the Chinese Pronunciation Bootcamp.", zh: ["四声", "四聲"], en: "Four tones", bootcamp: "pronunciation",
     svg: `<path d="M6 13 a7 7 0 0 1 7 -7 h38 a7 7 0 0 1 7 7 v26 a7 7 0 0 1 -7 7 h-21 l-12 10 v-10 h-5 a7 7 0 0 1 -7 -7z" fill="#7d5a8c"/>
       <g stroke="#fff" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round" fill="none">
         <path d="M13 19 h8"/><path d="M25 32 l6 -13"/><path d="M35 21 l3 8 l4 -8"/><path d="M47 19 l4 13"/>
       </g>`,
   },
   {
-    key: "lantern", zh: ["灯笼", "燈籠"], en: "Lantern", bootcamp: "festival",
+    key: "lantern", how: "Given during special sessions and initiatives.", zh: ["灯笼", "燈籠"], en: "Lantern", bootcamp: "festival",
     svg: `<path d="M32 2 v6" stroke="#6b4a2b" stroke-width="2.6" stroke-linecap="round"/>
       <rect x="22" y="7" width="20" height="6" rx="2" fill="#f2b631"/>
       <ellipse cx="32" cy="31" rx="22" ry="19" fill="#d8352a"/>
@@ -28,25 +28,49 @@ export const STICKERS = [
       <path d="M27 55 v7 M32 55 v8 M37 55 v7" stroke="#f2b631" stroke-width="2.4" stroke-linecap="round"/>`,
   },
   {
-    key: "dumpling", zh: ["饺子", "餃子"], en: "Dumpling", bootcamp: "food",
+    key: "dumpling", how: "Given during special sessions and initiatives.", zh: ["饺子", "餃子"], en: "Dumpling", bootcamp: "food",
     svg: `<path d="M4 44 q28 -44 56 0 q-28 15 -56 0z" fill="#fffaf0" stroke="#c9b28a" stroke-width="2.8" stroke-linejoin="round"/>
       <path d="M15 27 q2.5 5 0 9 M24 20 q2.5 5 0 10 M33 18 q2.5 5 0 10 M42 21 q2.5 5 0 10 M50 28 q2 4 0 8" stroke="#c9b28a" stroke-width="2.4" fill="none" stroke-linecap="round"/>
       <path d="M12 46 q20 7 40 0" stroke="#efe3c8" stroke-width="3" fill="none" stroke-linecap="round"/>`,
   },
   {
-    key: "brush", zh: ["毛笔", "毛筆"], en: "Brush", bootcamp: "character",
+    key: "brush", how: "Given during special sessions and initiatives.", zh: ["毛笔", "毛筆"], en: "Brush", bootcamp: "character",
     svg: `<path d="M47 4 l13 13 l-24 24 l-13 -13z" fill="#a8431a"/>
       <path d="M47 4 l13 13" stroke="#2a2420" stroke-width="3.5" stroke-linecap="round"/>
       <path d="M38 30 l-4 -4" stroke="#f2b631" stroke-width="3" stroke-linecap="round"/>
       <path d="M23 28 l13 13 l-5 5 q-11 8 -24 14 q6 -13 14 -24z" fill="#2a2420"/>`,
   },
   {
-    key: "mooncake", zh: ["月饼", "月餅"], en: "Mooncake", bootcamp: "culture",
+    key: "mooncake", how: "Given during special sessions and initiatives.", zh: ["月饼", "月餅"], en: "Mooncake", bootcamp: "culture",
     svg: `<circle cx="32" cy="32" r="27" fill="#d99a4e" stroke="#9a6326" stroke-width="2.8"/>
       <circle cx="32" cy="32" r="16" fill="none" stroke="#9a6326" stroke-width="2.4"/>
       <g fill="#9a6326"><circle cx="32" cy="9" r="3"/><circle cx="32" cy="55" r="3"/><circle cx="9" cy="32" r="3"/><circle cx="55" cy="32" r="3"/>
       <circle cx="15.7" cy="15.7" r="3"/><circle cx="48.3" cy="15.7" r="3"/><circle cx="15.7" cy="48.3" r="3"/><circle cx="48.3" cy="48.3" r="3"/></g>
       <text x="32" y="39" text-anchor="middle" font-family="'Noto Sans SC',sans-serif" font-size="19" font-weight="700" fill="#9a6326">月</text>`,
+  },
+  {
+    key: "phone", how: "Be active on the Club Discord: ask questions, help other students, share what you're learning. A host gives it to you.",
+    zh: ["手机", "手機"], en: "Smartphone", bootcamp: "discord",
+    svg: `<rect x="17" y="3" width="30" height="58" rx="7" fill="#2a2420"/>
+      <rect x="20.5" y="10" width="23" height="42" rx="2.5" fill="#5865f2"/>
+      <path d="M28 5.5 h8" stroke="#6f625a" stroke-width="2" stroke-linecap="round"/>
+      <circle cx="32" cy="56.5" r="2" fill="#6f625a"/>
+      <path d="M25 20 h14 a2.5 2.5 0 0 1 2.5 2.5 v7 a2.5 2.5 0 0 1 -2.5 2.5 h-7 l-4 3.5 v-3.5 h-3 a2.5 2.5 0 0 1 -2.5 -2.5 v-7 a2.5 2.5 0 0 1 2.5 -2.5z" fill="#fff"/>
+      <path d="M26 40 h12 M26 45 h8" stroke="#fff" stroke-width="2.4" stroke-linecap="round" opacity=".8"/>`,
+  },
+  {
+    key: "heart", how: "Bring a friend into the Club.",
+    zh: ["爱心", "愛心"], en: "Orange heart", bootcamp: "friend",
+    svg: `<path d="M32 57 C 12 43 4 32 4 21 C 4 12 11 6 19 6 C 25 6 29.5 9.5 32 14 C 34.5 9.5 39 6 45 6 C 53 6 60 12 60 21 C 60 32 52 43 32 57 Z" fill="#f37a48" stroke="#d9612f" stroke-width="2.4" stroke-linejoin="round"/>
+      <path d="M14 18 q2 -6 8 -6" stroke="#fff" stroke-width="3.2" fill="none" stroke-linecap="round" opacity=".7"/>`,
+  },
+  {
+    key: "medal", how: "Finish first on a monthly leaderboard. Given automatically on the 1st of the next month.",
+    zh: ["奖牌", "獎牌"], en: "Medal", bootcamp: "leaderboard",
+    svg: `<path d="M19 3 h10 l7 20 h-10z" fill="#d8352a"/><path d="M45 3 h-10 l-7 20 h10z" fill="#1b6f1b"/>
+      <circle cx="32" cy="40" r="19" fill="#f2b631" stroke="#c98d12" stroke-width="2.8"/>
+      <circle cx="32" cy="40" r="12.5" fill="none" stroke="#c98d12" stroke-width="2"/>
+      <text x="32" y="46.5" text-anchor="middle" font-family="'Noto Sans SC',sans-serif" font-size="18" font-weight="800" fill="#9a6a08">1</text>`,
   },
 ];
 
