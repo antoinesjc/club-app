@@ -31,7 +31,7 @@ Backend: Supabase project `mandarin-zest-club` (ref `eypehvhcqzhwssydvrhn`, EU).
 3. Stripe: monthly subscription active (+3 days grace), or yearly payment less than 12 months old
    (renewals stack; full refunds don't count) → member.
 
-Payment links: monthly `plink_1UR8dsFSITwJ0tdScr66iqQh`, yearly `plink_1UR8h6FSITwJ0tdSyzBTSsLY`
+Payment links (US$25/month, US$250/year since 21 Oct 2026): monthly `plink_1USwvpFSITwJ0tdSclfdQxwj`, yearly `plink_1USwunFSITwJ0tdSjeNvHqIS`. Old links still count: monthly `plink_1UR8dsFSITwJ0tdScr66iqQh`, yearly `plink_1UR8h6FSITwJ0tdSyzBTSsLY` (lists in `supabase/functions/_shared/stripe.ts`)
 (in `supabase/functions/_shared/stripe.ts`).
 
 ## Secrets (Supabase → Edge Functions → Secrets, set by Antoine)

@@ -4,8 +4,17 @@
 //                paying again early adds a year on top of the remaining time.
 // Fully refunded payments don't count.
 
-export const PLINK_MONTHLY = "plink_1UR8dsFSITwJ0tdScr66iqQh";
-export const PLINK_YEARLY = "plink_1UR8h6FSITwJ0tdSyzBTSsLY";
+// Old links (US$20 / US$200) stay listed so people who paid with them keep access.
+export const PLINKS_MONTHLY = [
+  "plink_1USwvpFSITwJ0tdSclfdQxwj", // US$25/month (from 21 Oct 2026)
+  "plink_1UR8dsFSITwJ0tdScr66iqQh", // US$20/month (old)
+];
+export const PLINKS_YEARLY = [
+  "plink_1USwunFSITwJ0tdSjeNvHqIS", // US$250/year (from 21 Oct 2026)
+  "plink_1UR8h6FSITwJ0tdSyzBTSsLY", // US$200/year (old)
+];
+const isMonthly = (l: unknown) => PLINKS_MONTHLY.includes(String(l));
+const isYearly = (l: unknown) => PLINKS_YEARLY.includes(String(l));
 
 const GRACE_MS = 3 * 24 * 3600 * 1000;
 
@@ -64,7 +73,7 @@ function periodEnd(sub: Obj): number | null {
 export async function membersFromCheckouts(sessions: Obj[]): Promise<Map<string, StripeMember>> {
   const now = Date.now();
   const club = sessions
-    .filter((s) => s.status === "complete" && (s.payment_link === PLINK_MONTHLY || s.payment_link === PLINK_YEARLY))
+    .filter((s) => s.status === "complete" && (isMonthly(s.payment_link) || isYearly(s.payment_link)))
     .filter((s) => s.customer_details?.email)
     .sort((a, b) => a.created - b.created);
 
@@ -77,7 +86,7 @@ export async function membersFromCheckouts(sessions: Obj[]): Promise<Map<string,
     const customer = typeof s.customer === "string" ? s.customer : s.customer?.id ?? null;
     let rec: StripeMember | undefined;
 
-    if (s.payment_link === PLINK_YEARLY) {
+    if (isYearly(s.payment_link)) {
       if (s.payment_status !== "paid" || await fullyRefunded(s)) continue;
       const paid = s.created * 1000;
       const prev = yearlyUntil.get(email) ?? 0;
@@ -104,10 +113,10 @@ export async function membersFromCheckouts(sessions: Obj[]): Promise<Map<string,
 }
 
 export async function allClubMembers(): Promise<Map<string, StripeMember>> {
-  const sessions = [
-    ...(await listAll("checkout/sessions", { payment_link: PLINK_MONTHLY, status: "complete" })),
-    ...(await listAll("checkout/sessions", { payment_link: PLINK_YEARLY, status: "complete" })),
-  ];
+  const sessions: Obj[] = [];
+  for (const link of [...PLINKS_MONTHLY, ...PLINKS_YEARLY]) {
+    sessions.push(...(await listAll("checkout/sessions", { payment_link: link, status: "complete" })));
+  }
   return membersFromCheckouts(sessions);
 }
 
