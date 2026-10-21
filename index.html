@@ -15,19 +15,19 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@500;700&family=Noto+Sans+TC:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=20">
+<link rel="stylesheet" href="styles.css?v=21">
 </head>
 <body>
 <div id="app" aria-live="polite">
-  <div class="splash"><img src="icons/logo.png" alt="Mandarin Zest" width="120"></div>
+  <div class="splash"><img src="icons/mascot.svg" alt="Mandarin Zest" width="200" height="200"></div>
 </div>
 <div id="toast" role="status" aria-live="polite"></div>
-<script type="module" src="app.js?v=20"></script>
+<script type="module" src="app.js?v=21"></script>
 <script>
   // Safety net: if the app hasn't started after 10 s (e.g. an old file stuck in the browser), offer a clean reload.
   setTimeout(function () {
     if (!document.querySelector(".splash")) return;
-    document.getElementById("app").innerHTML = '<main class="login"><div class="hero"><img src="icons/logo.png" alt="" width="132"><h1>Almost there</h1><p class="muted">The app needs a quick refresh.</p></div><button class="btn block" id="hardreload">Refresh the app</button></main>';
+    document.getElementById("app").innerHTML = '<main class="login"><div class="hero"><img class="mascot" src="icons/mascot.svg" alt="" width="150" height="150"><h1>Almost there</h1><p class="muted">The app needs a quick refresh.</p></div><button class="btn block" id="hardreload">Refresh the app</button></main>';
     document.getElementById("hardreload").onclick = async function () {
       try {
         if (window.caches) { var keys = await caches.keys(); await Promise.all(keys.map(function (k) { return caches.delete(k); })); }

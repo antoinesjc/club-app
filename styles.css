@@ -28,7 +28,8 @@ a:hover { color: var(--green-ink); }
 .zh-trad { font-family: "Outfit", "Noto Sans TC", system-ui, sans-serif; }
 
 .splash { min-height: 100dvh; display: grid; place-items: center; }
-.splash img { animation: bob 1.4s ease-in-out infinite; }
+.splash img, img.mascot { animation: bob 1.4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .splash img, img.mascot { animation: none; } }
 @keyframes bob { 50% { transform: translateY(-8px); } }
 
 /* ---------- Layout ---------- */

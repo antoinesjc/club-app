@@ -1,8 +1,8 @@
-import { createClient } from "./vendor/supabase.js?v=20";
-import { FRUITS, HOST_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=20";
-import { COUNTRIES } from "./countries.js?v=20";
+import { createClient } from "./vendor/supabase.js?v=21";
+import { FRUITS, HOST_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=21";
+import { COUNTRIES } from "./countries.js?v=21";
 const XP_HONGBAO = 30;
-import { STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=20";
+import { STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=21";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -284,7 +284,7 @@ function loginView() {
   const code = L.step === "code";
   return `<main class="login">
     <div class="hero">
-      <img src="icons/logo.png" alt="Mandarin Zest logo" width="132" height="101">
+      <img class="mascot" src="icons/mascot.svg" alt="Mandarin Zest mascot" width="190" height="190">
       <div class="eyebrow">Mandarin Zest Club</div>
       <h1>${code ? "Check your inbox" : "Welcome to the Club"}</h1>
       <p class="muted">${code
@@ -353,7 +353,7 @@ async function verifyCode(token) {
 function notMemberView() {
   return `<main class="login">
     <div class="hero">
-      <img src="icons/logo.png" alt="Mandarin Zest logo" width="132" height="101">
+      <img class="mascot" src="icons/mascot.svg" alt="Mandarin Zest mascot" width="190" height="190">
       <h1>Your membership isn't active</h1>
       <p class="muted">${esc(state.user?.email)} isn't on the Club list right now. If you just renewed, wait a minute and try again, or contact us and we'll sort it out.</p>
     </div>
@@ -1368,7 +1368,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=20");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=21");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -1791,7 +1791,7 @@ addEventListener("resize", () => { if (wide() !== wasWide) { wasWide = wide(); i
     else render();
   } catch (e) {
     console.error(e);
-    app.innerHTML = `<main class="login"><div class="hero"><img src="icons/logo.png" alt="" width="132"><h1>Can't reach the Club</h1><p class="muted">Check your internet connection and try again.</p></div><button class="btn block" onclick="location.reload()">Try again</button></main>`;
+    app.innerHTML = `<main class="login"><div class="hero"><img class="mascot" src="icons/mascot.svg" alt="" width="150" height="150"><h1>Can't reach the Club</h1><p class="muted">Check your internet connection and try again.</p></div><button class="btn block" onclick="location.reload()">Try again</button></main>`;
   }
 })();
 
@@ -1799,4 +1799,4 @@ sb.auth.onAuthStateChange((event) => {
   if (event === "SIGNED_OUT" && state.user) { state.user = null; state.role = null; render(); }
 });
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=20").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=21").catch(() => {});
