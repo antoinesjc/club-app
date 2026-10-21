@@ -1,8 +1,8 @@
-import { createClient } from "./vendor/supabase.js?v=22";
-import { FRUITS, HOST_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=22";
-import { COUNTRIES } from "./countries.js?v=22";
+import { createClient } from "./vendor/supabase.js?v=23";
+import { FRUITS, HOST_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=23";
+import { COUNTRIES } from "./countries.js?v=23";
 const XP_HONGBAO = 30;
-import { STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=22";
+import { STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=23";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -1089,7 +1089,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=22"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=23"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1128,14 +1128,15 @@ function mapView() {
   let panel = "";
   if (sel) {
     const n = counts.get(sel) || 0;
-    const shown = [...state.profiles.values()].filter((p) => p.country === sel && state.roles.get(p.id) === "member" && (p.show_in_directory || p.id === state.user.id))
-      .sort((a, b) => (a.display_name || "").localeCompare(b.display_name || ""));
+    const isH = (p) => ["host", "admin"].includes(state.roles.get(p.id));
+    const shown = [...state.profiles.values()].filter((p) => p.country === sel && state.roles.has(p.id) && (p.show_in_directory || p.id === state.user.id))
+      .sort((a, b) => isH(b) - isH(a) || (a.display_name || "").localeCompare(b.display_name || ""));
     const hidden = Math.max(0, n - shown.length);
     const levelOf = (id) => state.board.find((r) => r.user_id === id)?.level || 1;
     panel = `<section class="ctypanel">
       <div class="row between" style="align-items:baseline"><h2>${esc(countryName(sel) || sel.toUpperCase())}</h2><span class="small muted">${n} member${n === 1 ? "" : "s"}</span></div>
-      ${shown.map((p) => linkOrDiv(p.id, "lbrow", `${avatar(p, 44)}<div class="grow"><b>${esc(p.display_name || "Member")}${p.id === state.user.id ? " (you)" : ""}</b><div class="small muted">Lv ${levelOf(p.id)}${p.chinese_level ? ` · ${esc(p.chinese_level)}` : ""}</div></div>`)).join("")}
-      ${hidden ? `<p class="small muted" style="margin:0">${shown.length ? "+" : ""}${hidden} member${hidden === 1 ? "" : "s"} who keep${hidden === 1 ? "s" : ""} their profile out of the directory.</p>` : ""}
+      ${shown.map((p) => linkOrDiv(p.id, "lbrow", `${avatar(p, 44)}<div class="grow"><b>${esc(p.display_name || "Member")}${isH(p) ? ` <span class="hosttag">(host)</span>` : ""}${p.id === state.user.id ? " (you)" : ""}</b><div class="small muted">${isH(p) ? "Club host" : `Lv ${levelOf(p.id)}`}${p.chinese_level ? ` · ${esc(p.chinese_level)}` : ""}</div></div>`)).join("")}
+      ${hidden ? `<p class="small muted" style="margin:0">${shown.length ? "+" : ""}${hidden} ${hidden === 1 ? "person who keeps their" : "people who keep their"} profile out of the directory.</p>` : ""}
       ${state.world.some((r) => r[0] === sel) ? "" : `<p class="small muted" style="margin:0">This country is too small to show on the world map.</p>`}
     </section>`;
   }
@@ -1505,7 +1506,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=22");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=23");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -1941,4 +1942,4 @@ sb.auth.onAuthStateChange((event) => {
   if (event === "SIGNED_OUT" && state.user) { state.user = null; state.role = null; render(); }
 });
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=22").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=23").catch(() => {});
