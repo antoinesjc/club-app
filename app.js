@@ -1,8 +1,8 @@
-import { createClient } from "./vendor/supabase.js?v=23";
-import { FRUITS, HOST_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=23";
-import { COUNTRIES } from "./countries.js?v=23";
+import { createClient } from "./vendor/supabase.js?v=24";
+import { FRUITS, HOST_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=24";
+import { COUNTRIES } from "./countries.js?v=24";
 const XP_HONGBAO = 30;
-import { STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=23";
+import { STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=24";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -129,14 +129,27 @@ const ICON = {
   phone: '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18 h2"/></svg>',
 };
 
+// Tap (phone) or hover (desktop) explanations for stickers and special avatars.
+const tipAttrs = (title, body) => ` data-tip="${esc(title)}" data-tip-body="${esc(body || "")}" tabindex="0" role="button" aria-label="${esc(title)}"`;
+function stickerTip(key, uid) {
+  const t = stickerInfo(key);
+  if (!t) return "";
+  const award = (state.stickerAwards || []).find((a) => a.user_id === uid && a.sticker === key);
+  const isHostUser = uid && ["host", "admin"].includes(state.roles?.get(uid));
+  const body = award?.reason ? `Given for: ${award.reason}.` : isHostUser ? "Hosts can wear every sticker." : t.how || "";
+  return tipAttrs(`${t.en} ${zh(t.zh)}`, body);
+}
+
 function avatar(p, size, { locked = false, flag = true, fruit, bg, sticker } = {}) {
   const f = fruit || p?.fruit || "orange";
   const c = flag && !locked ? p?.country : "";
   const st = sticker !== undefined ? sticker : flag && !locked ? p?.sticker : "";
+  const uid = p?.id || p?.user_id;
+  const hostTip = flag && !locked && size >= 64 && f.startsWith("host-") ? fruitInfo(f) : null;
   return `<span class="av${locked ? " locked" : ""}" style="--s:${size}px;--bg-av:${esc(bg || p?.bg || "#fdf1ea")}">` +
-    `<span class="disc">${fruitSvg(f)}</span>` +
+    `<span class="disc"${hostTip ? tipAttrs(`${hostTip.en} ${zh(hostTip.zh)}`, "A special character only Club hosts can use.") : ""}>${fruitSvg(f)}</span>` +
     (c ? `<img class="flag" src="flags/${esc(c)}.svg" alt="${esc(countryName(c))}" loading="lazy">` : "") +
-    (st && stickerInfo(st) ? `<span class="stk" title="${esc(stickerInfo(st).en)}">${stickerSvg(st)}</span>` : "") +
+    (st && stickerInfo(st) ? `<span class="stk"${stickerTip(st, uid)}>${stickerSvg(st)}</span>` : "") +
     (locked ? `<span class="lock">${ICON.lock}</span>` : "") + `</span>`;
 }
 
@@ -1089,7 +1102,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=23"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=24"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1244,7 +1257,7 @@ function memberView() {
   ${full?.bio ? `<p class="bio">${esc(full.bio)}</p>` : me ? `<p class="small muted" style="margin:0">Add a short bio in <a href="#/me">Me</a> so others know a bit about you.</p>` : ""}
   <div class="facts">${facts.map(([v, l]) => `<div class="fact"><b>${esc(v)}</b><span>${esc(l)}</span></div>`).join("")}</div>
   ${(() => { const got = myStickers(id); return got.length ? `<section class="card" style="gap:10px"><h2>Stickers collected · ${got.length}</h2>
-    <div class="stkrow">${got.map((k) => `<div class="stkitem"><span class="stkbig">${stickerSvg(k)}</span><span class="small">${esc(stickerInfo(k).en)}</span></div>`).join("")}</div></section>` : ""; })()}
+    <div class="stkrow">${got.map((k) => `<div class="stkitem"><span class="stkbig"${stickerTip(k, id)}>${stickerSvg(k)}</span><span class="small">${esc(stickerInfo(k).en)}</span></div>`).join("")}</div></section>` : ""; })()}
   ${full?.discord ? `<a class="chatcard" style="display:flex" href="${DISCORD_CHAT}" target="_blank" rel="noopener">${ICON.chat}<span class="grow"><b>@${esc(full.discord)}</b><br><span class="small">Say hi on the Club Discord</span></span><span aria-hidden="true" style="font-size:20px">↗</span></a>` : ""}
   ${!full && !me ? `<p class="small muted" style="margin:0">This member keeps their profile out of the directory.</p>` : ""}
   ${hongbaoGiveBlock(id)}
@@ -1506,7 +1519,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=23");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=24");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -1942,4 +1955,32 @@ sb.auth.onAuthStateChange((event) => {
   if (event === "SIGNED_OUT" && state.user) { state.user = null; state.role = null; render(); }
 });
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=23").catch(() => {});
+// ---------- Tooltip for [data-tip] (stickers, special avatars) ----------
+const tipEl = document.createElement("div");
+tipEl.className = "tip"; tipEl.setAttribute("role", "tooltip"); tipEl.hidden = true;
+document.body.appendChild(tipEl);
+let tipFor = null;
+function showTip(el) {
+  tipFor = el;
+  tipEl.innerHTML = `<b>${esc(el.dataset.tip)}</b>${el.dataset.tipBody ? `<span>${esc(el.dataset.tipBody)}</span>` : ""}`;
+  tipEl.hidden = false;
+  const r = el.getBoundingClientRect(), w = tipEl.offsetWidth, h = tipEl.offsetHeight;
+  let x = r.left + r.width / 2 - w / 2, y = r.top - h - 8;
+  if (y < 8) y = r.bottom + 8;
+  x = Math.max(8, Math.min(x, innerWidth - w - 8));
+  tipEl.style.left = `${x}px`; tipEl.style.top = `${y}px`;
+}
+function hideTip() { tipFor = null; tipEl.hidden = true; }
+document.addEventListener("pointerover", (e) => { if (e.pointerType !== "mouse") return; const el = e.target.closest?.("[data-tip]"); if (el) showTip(el); });
+document.addEventListener("pointerout", (e) => { if (e.pointerType !== "mouse") return; const el = e.target.closest?.("[data-tip]"); if (el && !el.contains(e.relatedTarget)) hideTip(); });
+document.addEventListener("click", (e) => {
+  const el = e.target.closest?.("[data-tip]");
+  if (el) { e.preventDefault(); e.stopPropagation(); tipFor === el && !tipEl.hidden && e.pointerType !== "mouse" ? hideTip() : showTip(el); return; }
+  hideTip();
+}, true);
+document.addEventListener("focusin", (e) => { const el = e.target.closest?.("[data-tip]"); if (el) showTip(el); });
+document.addEventListener("focusout", hideTip);
+addEventListener("scroll", hideTip, { passive: true });
+addEventListener("hashchange", hideTip);
+
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=24").catch(() => {});

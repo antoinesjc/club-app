@@ -441,3 +441,10 @@ a.hostline:hover { background: #f1dfd4; }
   .mapbox { margin: 0; height: auto; aspect-ratio: 2 / 1; border: 0; border-radius: 14px; }
 }
 .hosttag { font-weight: 700; color: var(--green); }
+
+/* ---------- Sticker / special avatar explanations ---------- */
+.tip { position: fixed; z-index: 60; max-width: 240px; background: var(--ink); color: #fff; border-radius: 12px; padding: 9px 12px; font-size: 13px; line-height: 1.4; box-shadow: 0 6px 20px rgba(0,0,0,.2); pointer-events: none; }
+.tip b { display: block; font-size: 13.5px; }
+.tip span { display: block; opacity: .85; margin-top: 2px; }
+[data-tip] { cursor: help; }
+.av .stk[data-tip], .av .disc[data-tip] { outline-offset: 2px; }
