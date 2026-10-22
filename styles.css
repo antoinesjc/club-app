@@ -347,15 +347,16 @@ a.hostcard:hover, .podium a:hover b { border-color: var(--orange); color: inheri
 .stkbig { display: inline-grid; place-items: center; width: var(--z, 52px); height: var(--z, 52px); flex: none; }
 .stkbig svg { width: 100%; height: 100%; display: block; }
 .stkbig.none { border-radius: 50%; transform: scale(.8); background: var(--line, #ecdcd2); color: var(--muted, #6f625a); font-weight: 800; font-size: 18px; }
-.stkpick { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 8px; }
+.stkpick, .stkrow { display: grid; grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); gap: 8px 4px; }
+.stkpick .stkbig, .stkrow .stkbig { --z: 46px; }
+.stkbtn .small, .stkitem .small { font-size: 12px; line-height: 1.25; text-align: center; overflow-wrap: anywhere; }
 .stkbtn {
-  display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 4px; min-height: 44px;
+  display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 2px; min-height: 44px; min-width: 0;
   border: 2px solid transparent; border-radius: 16px; background: none; font: inherit; color: inherit; cursor: pointer;
 }
 .stkbtn[aria-pressed="true"] { border-color: var(--orange, #f37a48); background: #fff4ee; }
 .stkbtn:disabled { opacity: .45; cursor: default; }
-.stkrow { display: flex; flex-wrap: wrap; gap: 14px; }
-.stkitem { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 72px; text-align: center; }
+.stkitem { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; text-align: center; }
 .bootreward { display: flex; align-items: center; gap: 12px; border: 1.5px dashed #f2b631; background: #fffaf0; border-radius: 16px; padding: 10px 14px; }
 .bootreward .lbl { display: block; font-size: 12px; font-weight: 800; text-transform: uppercase; color: #8a6400; }
 .bootreward b { display: block; font-size: 16px; }
