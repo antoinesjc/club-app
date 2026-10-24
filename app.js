@@ -1,8 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=25";
-import { FRUITS, HOST_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=25";
-import { COUNTRIES } from "./countries.js?v=25";
+import { createClient } from "./vendor/supabase.js?v=26";
+import { FRUITS, HOST_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=26";
+import { COUNTRIES } from "./countries.js?v=26";
 const XP_HONGBAO = 30;
-import { STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=25";
+const MEMBER_CODE = "MZCLUB_8634D";                    // 50% off materials in the shop (Antoine, 24 Oct 2026)
+const SHOP_URL = "https://www.mandarinzest.com/shop";
+import { STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=26";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -1102,7 +1104,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=25"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=26"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1481,6 +1483,14 @@ function profileView() {
   </form>
 
   ${hongbaoMeCard()}
+  <section class="stack" style="gap:8px" aria-label="My personal discount code">
+    <h2>My personal discount code</h2>
+    <div class="row" style="gap:10px;flex-wrap:wrap;align-items:center">
+      <button type="button" class="codechip" data-act="copy-code" aria-label="Copy discount code ${MEMBER_CODE}"><code>${MEMBER_CODE}</code><span aria-hidden="true">⧉</span></button>
+      <a href="${SHOP_URL}" target="_blank" rel="noopener" style="font-weight:700;font-size:14.5px">Mandarin Zest shop ↗</a>
+    </div>
+    <span class="small muted">50% off all Mandarin Zest materials. Enter the code at checkout.</span>
+  </section>
   ${notificationsCard()}
   ${installHint(true)}
   <div class="row between">
@@ -1519,7 +1529,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=25");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=26");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -1818,6 +1828,9 @@ document.addEventListener("click", async (e) => {
     if (state.calPick) state.open.add(state.calPick);
     render();
     if (state.calPick) document.querySelector(".cal + .slist")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  } else if (act === "copy-code") {
+    try { await navigator.clipboard.writeText(MEMBER_CODE); toast("Code copied"); }
+    catch { toast(`Your code: ${MEMBER_CODE}`); }
   } else if (act === "map-pick") {
     pickCountry(el.dataset.v);
   } else if (act === "map-zoom") {
@@ -1983,4 +1996,4 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=25").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=26").catch(() => {});
