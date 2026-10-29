@@ -68,3 +68,10 @@ Same as the website calendar: the title gives the level (`HSK 2-4`) and category
 - Members wear one sticker (`profiles.sticker`) at the bottom-left of their avatar; the Stickers section in Me only appears once they have one. Hosts and admins see and can wear all of them.
 - To add a sticker: add it to `stickers.js` and to `sticker_ok()`.
 - Bootcamp rewards (table `bootcamp_rewards`, keyed by the bootcamp's page URL): admins tap "Edit" on a bootcamp card to set the XP and sticker; members see "Finish it and earn …" on the card, and the Give XP form fills in from it.
+
+## Session levels and categories (30 Oct 2026)
+- Same structure as the website calendar: hosts write `Level:`, `Category:` and `Host:` lines in the Google Calendar description.
+- Edge function `session-meta` (every 15 min, pg_cron via `private.call_fn`) reads them with the website's rules and writes `sessions.skill_level` and `sessions.cats`. The old `sessions.category` column is no longer used by the app.
+- Labels and colours in `app.js` (`SESSION_LEVELS`, `CATEGORIES`) mirror `categories.js` on the website: change both.
+- Home filters: one level (sessions for "All levels" always match) + any number of categories, remembered per device.
+- Desktop "My notes" page (`#/notes`): every attended session, most recent first, with notes and a search box (hosts: every session with notes).

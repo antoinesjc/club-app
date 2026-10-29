@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=26";
-import { FRUITS, HOST_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=26";
-import { COUNTRIES } from "./countries.js?v=26";
+import { createClient } from "./vendor/supabase.js?v=27";
+import { FRUITS, HOST_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=27";
+import { COUNTRIES } from "./countries.js?v=27";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 50% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=26";
+import { STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=27";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -21,13 +21,20 @@ const sb = createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, storageKey: "mz-club-auth" },
 });
 
+// Session levels and categories: same as the website calendar (categories.js in Mandarin-Zest-Class-Calendar).
+// Hosts set them per session in the Google Calendar description ("Level: Beginner", "Category: Conversation, Culture",
+// "Host: Dorota"); the session-meta function writes them to sessions.skill_level and sessions.cats.
+const SESSION_LEVELS = ["Beginner", "Intermediate", "Advanced", "All levels"];
 const CATEGORIES = {
-  advanced: { label: "Advanced", color: "#3f6d5e" },
-  intermediate: { label: "Intermediate", color: "#4f7a94" },
-  beginner: { label: "Beginner", color: "#a8741f" },
-  native: { label: "Native teacher", color: "#a63d2f" },
-  character: { label: "Character focus", color: "#7d5a8c" },
-  general: { label: "Open topic", color: "#6b6559" },
+  conversation: { label: "Conversation", color: "#b4512a" },
+  culture:      { label: "Culture",      color: "#a63d6b" },
+  grammar:      { label: "Grammar",      color: "#3f63a3" },
+  characters:   { label: "Characters",   color: "#7d5a8c" },
+  bookclub:     { label: "Book club",    color: "#8a5a2b" },
+  listening:    { label: "Listening",    color: "#2a7480" },
+  reading:      { label: "Reading",      color: "#3f6d5e" },
+  vocabulary:   { label: "Vocabulary",   color: "#8f6418" },
+  noagenda:     { label: "No agenda",    color: "#6b6559" },
 };
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
@@ -55,7 +62,8 @@ const state = {
   lbPeriod: "month",     // "month" | "all"
   stats: new Map(),      // user_id -> sessions attended
   view: (() => { try { return localStorage.getItem("mz-view") || "list"; } catch { return "list"; } })(),
-  catFilter: (() => { try { return localStorage.getItem("mz-cat") || ""; } catch { return ""; } })(),
+  lvFilter: (() => { try { return localStorage.getItem("mz-lv") || ""; } catch { return ""; } })(),
+  catFilters: (() => { try { return JSON.parse(localStorage.getItem("mz-cats") || "[]").filter((k) => typeof k === "string"); } catch { return []; } })(),
   calMonth: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
   calPick: null,         // session id selected in the calendar
   bootcamps: null,       // null = not loaded, [] = none, "error"
@@ -76,7 +84,17 @@ const tint = (hex, a) => {
   const m = (c) => Math.round(c * a + 255 * (1 - a));
   return `rgb(${m(r)},${m(g)},${m(b)})`;
 };
-const cat = (s) => CATEGORIES[s.category] || CATEGORIES.general;
+const catsOf = (s) => { const k = (s.cats || []).filter((x) => CATEGORIES[x]); return k.length ? k : ["noagenda"]; };
+const cat = (s) => CATEGORIES[catsOf(s)[0]];
+const catBadges = (s) => catsOf(s).map((k) => `<span class="chip" style="background:${CATEGORIES[k].color}">${esc(CATEGORIES[k].label)}</span>`).join("");
+const levelBadge = (s) => (s.skill_level ? `<span class="chip lv">${esc(s.skill_level)}</span>` : "");
+// Filters, like the website: one level ("All levels" sessions always match) + any number of categories.
+function matchesFilter(s) {
+  const lv = state.lvFilter, cs = state.catFilters;
+  if (lv && s.skill_level && s.skill_level !== lv && s.skill_level !== "All levels") return false;
+  if (cs.length && !catsOf(s).some((c) => cs.includes(c))) return false;
+  return true;
+}
 const isHost = () => state.role === "host" || state.role === "admin";
 const isAdmin = () => state.role === "admin";
 
@@ -125,6 +143,7 @@ const ICON = {
   download: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 v12 M7 10 l5 5 l5 -5 M5 21 h14"/></svg>',
   chat: '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12 a8 8 0 0 1 -11.6 7.1 L4 20.5 l1.4 -4.6 A8 8 0 1 1 21 12z"/><path d="M8.5 12 h.01 M12 12 h.01 M15.5 12 h.01"/></svg>',
   star: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 l2.6 5.4 l5.9 .9 l-4.3 4.1 l1 5.9 l-5.2 -2.8 l-5.2 2.8 l1 -5.9 l-4.3 -4.1 l5.9 -.9z"/></svg>',
+  notebook: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3 h11 a2 2 0 0 1 2 2 v14 a2 2 0 0 1 -2 2 h-11z"/><path d="M6 3 v18 M4 7 h4 M4 12 h4 M4 17 h4"/><path d="M10 8 h6 M10 12 h6"/></svg>',
   unlock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11 V7 a4 4 0 0 1 7.6 -1.7"/><path d="M12 15 v2"/></svg>',
   seedling: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21 v-9"/><path d="M12 12 C12 7.5 8.5 5 4 5 C4 9.5 7.5 12 12 12z"/><path d="M12 14 C12 10 15 7.5 20 7.5 C20 11.5 17 14 12 14z"/><path d="M8 21 h8"/></svg>',
   bell: '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8 a6 6 0 0 1 12 0 c0 7 3 9 3 9 H3 s3 -2 3 -9"/><path d="M10.3 21 a1.94 1.94 0 0 0 3.4 0"/></svg>',
@@ -390,7 +409,7 @@ function nav() {
   const item = (id, label, icon) => `<a href="#/${id}" ${r === id ? 'aria-current="page"' : ""}>${icon}<span>${label}</span></a>`;
   return `<nav class="nav" aria-label="Main">
     <div class="brand"><img src="icons/logo.png" alt=""><span>MANDARIN ZEST CLUB</span></div>
-    ${item("home", "Home", ICON.home)}${item("sessions", "My sessions", ICON.cal)}${item("members", "Members", ICON.people)}${item("bootcamps", "Bootcamps", ICON.seedling).replace("<a ", '<a class="deskonly" ')}${item("me", "Me", ICON.me)}
+    ${item("home", "Home", ICON.home)}${item("sessions", "My sessions", ICON.cal)}${item("notes", "My notes", ICON.notebook).replace("<a ", '<a class="deskonly" ')}${item("members", "Members", ICON.people)}${item("bootcamps", "Bootcamps", ICON.seedling).replace("<a ", '<a class="deskonly" ')}${item("me", "Me", ICON.me)}
     <a class="navchat" href="${DISCORD_CHAT}" target="_blank" rel="noopener">${ICON.chat}<span>Chat on Discord</span></a>
   </nav>`;
 }
@@ -399,7 +418,7 @@ function render() {
   if (!state.user) { app.innerHTML = loginView(); return; }
   if (!state.role) { app.innerHTML = notMemberView(); return; }
   if (!state.loaded) return;
-  const views = { home: homeView, sessions: mySessionsView, members: membersView, me: profileView, host: hostView, member: memberView, bootcamps: bootcampsView, unlocks: unlocksView };
+  const views = { home: homeView, sessions: mySessionsView, members: membersView, me: profileView, host: hostView, member: memberView, bootcamps: bootcampsView, unlocks: unlocksView, notes: notesView };
   const blocked = route() === "host" && !isHost();
   const view = blocked ? homeView : (views[route()] || homeView);
   app.innerHTML = `<div class="shell ${trad() ? "zh-trad" : ""}">${nav()}<main class="main" id="main">${view()}</main></div>${hongbaoOverlay()}`;
@@ -447,9 +466,10 @@ function details(s) {
   const lines = [];
   if (s.topic) lines.push(`<div><b>Topic:</b> ${esc(s.topic)}</div>`);
   if (s.about) lines.push(`<div>${esc(s.about)}</div>`);
+  lines.push(`<div class="row" style="gap:6px;flex-wrap:wrap">${catBadges(s)}${levelBadge(s)}</div>`);
   if (s.host_name) lines.push(`<div><b>Host:</b> ${esc(s.host_name)}</div>`);
   const a = new Date(s.starts_at), b = s.ends_at ? new Date(s.ends_at) : null;
-  lines.push(`<div class="muted">${esc(dayName(a))} · ${fmtTime(a)}${b ? `–${fmtTime(b)}` : ""}${s.level ? ` · ${esc(s.level)}` : ""}</div>`);
+  lines.push(`<div class="muted">${esc(dayName(a))} · ${fmtTime(a)}${b ? `–${fmtTime(b)}` : ""}</div>`);
   if (isHost()) lines.push(whoList(s));
   else if (going(s).size) lines.push(`<div class="row">${goingAvatars(s, 8)}<span class="small muted">${goingLine(s)}</span></div>`);
   if (s.meet_url && !ended(s)) lines.push(`<a class="btn" href="${esc(s.meet_url)}" target="_blank" rel="noopener">${ICON.video}Join on Google Meet</a>`);
@@ -468,7 +488,7 @@ function sessionItem(s) {
         </span>
         <span class="grow">
           <div class="stitle">${esc(s.title)}</div>
-          <div class="smeta">${fmtTime(a)}${s.level ? ` · ${esc(s.level)}` : ""} · ${goingLine(s)}</div>
+          <div class="smeta">${fmtTime(a)}${s.skill_level ? ` · ${esc(s.skill_level)}` : ""}${s.host_name ? ` · with ${esc(s.host_name)}` : ""} · ${goingLine(s)}</div>
         </span>
       </button>
       ${inButton(s)}
@@ -510,13 +530,13 @@ function featuredCard(s) {
   const rel = relative(a);
   return `<section class="card" aria-label="Next session">
     <div class="row" style="gap:8px;flex-wrap:wrap">
-      <span class="chip" style="background:${c.color}">${esc(c.label)}</span>
+      ${catBadges(s)}${levelBadge(s)}
       ${live ? `<span class="live">Live now</span>` : `<span class="when">${esc(dayName(a))} · ${fmtTime(a)}${rel ? ` · ${rel}` : ""}</span>`}
     </div>
     <div class="session-title">${esc(s.title)}</div>
     ${s.topic ? `<div class="muted" style="font-size:14.5px">${esc(s.topic)}</div>` : ""}
     ${hostRow(s)}
-    <div class="row">${goingAvatars(s)}<div class="small muted">${goingLine(s)}${s.level ? ` · ${esc(s.level)}` : ""}</div></div>
+    <div class="row">${goingAvatars(s)}<div class="small muted">${goingLine(s)}</div></div>
     <div class="row" style="flex-wrap:wrap;gap:8px">
       ${s.meet_url ? `<a class="btn grow" href="${esc(s.meet_url)}" target="_blank" rel="noopener">${ICON.video}Join on Google Meet</a>` : ""}
       ${iAmIn(s) ? "" : inButton(s)}
@@ -681,9 +701,8 @@ function calendarView() {
   const m = state.calMonth, y = m.getFullYear(), mo = m.getMonth();
   const first = new Date(y, mo, 1), start = new Date(y, mo, 1 - ((first.getDay() + 6) % 7));
   const byDay = new Map();
-  const cf = CATEGORIES[state.catFilter] || null;
   for (const s of state.sessions) {
-    if (s.cancelled || (cf && cat(s) !== cf)) continue;
+    if (s.cancelled || !matchesFilter(s)) continue;
     const k = dayKey(new Date(s.starts_at));
     if (!byDay.has(k)) byDay.set(k, []);
     byDay.get(k).push(s);
@@ -720,8 +739,8 @@ function calendarView() {
 
 function homeView() {
   const me = state.me, f = featured();
-  const cf = CATEGORIES[state.catFilter] ? state.catFilter : "";
-  const rest = upcoming().filter((s) => s !== f && (!cf || cat(s) === CATEGORIES[cf])).slice(0, 14);
+  const filtered = !!(state.lvFilter || state.catFilters.length);
+  const rest = upcoming().filter((s) => s !== f && matchesFilter(s)).slice(0, 14);
   return `
   <header class="row">
     <div class="grow">
@@ -744,12 +763,19 @@ function homeView() {
       </div>
     </div>
   </div>
-  <div class="catfilter" role="group" aria-label="Show only">
-    <button type="button" data-act="catf" data-v="" aria-pressed="${!cf}">All</button>
-    ${Object.entries(CATEGORIES).map(([k, c]) => `<button type="button" data-act="catf" data-v="${k}" aria-pressed="${cf === k}" style="--c:${c.color}"><i></i>${esc(c.label)}</button>`).join("")}
+  <div class="filters" role="group" aria-label="Filter sessions">
+    <div class="frow"><span class="flabel">Level</span><div class="catfilter">
+      <button type="button" data-act="lvf" data-v="" aria-pressed="${!state.lvFilter}">Any level</button>
+      ${SESSION_LEVELS.filter((l) => l !== "All levels").map((l) => `<button type="button" data-act="lvf" data-v="${l}" aria-pressed="${state.lvFilter === l}">${l}</button>`).join("")}
+    </div></div>
+    <div class="frow"><span class="flabel">Category</span><div class="catfilter">
+      <button type="button" data-act="catf" data-v="" aria-pressed="${!state.catFilters.length}">All</button>
+      ${Object.entries(CATEGORIES).map(([k, c]) => `<button type="button" data-act="catf" data-v="${k}" aria-pressed="${state.catFilters.includes(k)}" style="--c:${c.color}"><i></i>${esc(c.label)}</button>`).join("")}
+    </div></div>
+    ${filtered ? `<button type="button" class="linkbtn" data-act="clearf" style="align-self:flex-start;padding:2px 0">Clear filters</button>` : ""}
   </div>
   ${wide() && state.view === "cal" ? calendarView()
-    : `<div class="slist">${rest.length ? grouped(rest) : `<p class="muted small">${cf ? `No upcoming ${esc(CATEGORIES[cf].label.toLowerCase())} sessions right now.` : "Nothing else planned yet."}</p>`}</div>`}`;
+    : `<div class="slist">${rest.length ? grouped(rest) : `<p class="muted small">${filtered ? "No upcoming sessions match these filters. Try another level or category." : "Nothing else planned yet."}</p>`}</div>`}`;
 }
 
 const attended = (s, uid = state.user.id) => (state.attendance.get(s.id) || new Set()).has(uid);
@@ -772,6 +798,64 @@ function notesBlock(s) {
     </div>`;
 }
 
+
+// ---------------------------------------------------------------------------
+// My notes (desktop): every session you attended, most recent first, with its notes and a search box
+// ---------------------------------------------------------------------------
+async function loadNoteSessions() {
+  if (state.notesLoading || state.notesLoaded) return;
+  state.notesLoading = true;
+  await Promise.resolve(); // let the current render finish first
+  const have = new Set(state.sessions.map((x) => x.id));
+  const want = isHost()
+    ? [...state.notes.keys()]
+    : [...state.attendance.entries()].filter(([, set]) => set.has(state.user.id)).map(([sid]) => sid);
+  const missing = want.filter((id) => !have.has(id));
+  state.extraSessions = [];
+  for (let i = 0; i < missing.length; i += 100) {
+    const { data } = await sb.from("sessions").select("*").in("id", missing.slice(i, i + 100));
+    if (data) state.extraSessions.push(...data);
+  }
+  state.notesLoading = false; state.notesLoaded = true;
+  if (route() === "notes") render();
+}
+function noteSearchText(s) {
+  const n = state.notes.get(s.id);
+  return [s.title, s.host_name, ...catsOf(s).map((k) => CATEGORIES[k].label),
+    ...(n?.published_at || isHost() ? [(n?.vocab || []).map((v) => `${v.hanzi} ${v.pinyin} ${v.meaning}`).join(" "), n?.body || ""] : [])]
+    .join(" ").toLowerCase();
+}
+function notesView() {
+  if (!state.notesLoaded) { loadNoteSessions(); return `<header><div class="eyebrow">Mandarin Zest Club</div><h1>My notes</h1></header><p class="muted small">Loading your sessions…</p>`; }
+  const all = [...state.sessions, ...(state.extraSessions || [])];
+  const seen = new Set();
+  const list = all.filter((s) => !seen.has(s.id) && seen.add(s.id))
+    .filter((s) => ended(s) && (isHost() ? state.notes.has(s.id) : attended(s)))
+    .sort((a, b) => Date.parse(b.starts_at) - Date.parse(a.starts_at));
+  const withNotes = list.filter(published).length;
+  const item = (s) => {
+    const a = new Date(s.starts_at), n = state.notes.get(s.id), open = state.open.has("n:" + s.id);
+    const words = (n?.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning).length;
+    return `<article class="noteitem" data-text="${esc(noteSearchText(s))}">
+      <button type="button" class="notehead" data-act="note-open" data-id="${esc(s.id)}" aria-expanded="${open}">
+        <span class="notedate"><b>${a.getDate()}</b><span>${esc(a.toLocaleDateString([], { month: "short", year: "numeric" }))}</span></span>
+        <span class="grow"><span class="stitle">${esc(s.title)}</span>
+          <span class="row" style="gap:6px;flex-wrap:wrap;margin-top:4px">${catBadges(s)}${levelBadge(s)}${s.host_name ? `<span class="small muted">with ${esc(s.host_name)}</span>` : ""}</span></span>
+        <span class="small ${published(s) ? "" : "muted"}" style="white-space:nowrap;${published(s) ? "color:var(--green);font-weight:700" : ""}">${published(s) ? (words ? `${words} word${words === 1 ? "" : "s"}` : "Notes") : isHost() && n ? "Draft" : "No notes"}</span>
+        <span class="chev" aria-hidden="true">›</span>
+      </button>
+      ${open ? `<div class="notebody-wrap">${notesBlock(s)}</div>` : ""}
+    </article>`;
+  };
+  return `
+  <header><div class="eyebrow">Mandarin Zest Club</div><h1>My notes</h1>
+    <p class="muted" style="margin:6px 0 0">${isHost() ? "Every session with notes, most recent first." : "Every session you attended, most recent first."} ${withNotes} with notes.</p></header>
+  ${list.length ? `<label class="field" style="max-width:520px">Search your notes
+      <input class="input" type="search" id="notesearch" placeholder="A word, a character, a session…" autocomplete="off"></label>
+    <div class="notelist" id="notelist">${list.map(item).join("")}</div>
+    <p class="muted small" id="notesempty" hidden>Nothing matches your search.</p>`
+    : `<div class="card"><p class="small muted" style="margin:0">${isHost() ? "No session notes yet." : "Sessions you attend show up here with your host's notes (vocabulary, corrections and links)."}</p></div>`}`;
+}
 
 function pastItem(s) {
   const c = cat(s), a = new Date(s.starts_at), open = state.open.has(s.id);
@@ -1104,7 +1188,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=26"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=27"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1529,7 +1613,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=26");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=27");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -1540,7 +1624,7 @@ async function downloadNotesPdf(sid) {
     page.innerHTML = `
       <div class="pdfhead pdfblock"><img src="icons/logo.png" alt="" width="64" height="49">
         <div><div class="eyebrow">Mandarin Zest Club · Session notes</div><h1>${esc(s.title)}</h1>
-        <div class="pdfmeta">${esc(date)} · ${fmtTime(a)}${s.host_name ? ` · host ${esc(s.host_name)}` : ""}${s.level ? ` · ${esc(s.level)}` : ""}</div></div></div>
+        <div class="pdfmeta">${esc(date)} · ${fmtTime(a)}${s.host_name ? ` · host ${esc(s.host_name)}` : ""}${s.skill_level ? ` · ${esc(s.skill_level)}` : ""}</div></div></div>
       ${s.topic ? `<p class="pdfblock pdftopic">${esc(s.topic)}</p>` : ""}
       ${vocab.length ? `<h2 class="pdfblock">Vocabulary</h2>
         <div class="vocab">${vocab.map((v) => `<div class="vrow pdfblock"><span class="vz">${esc(v.hanzi)}</span><span class="vp">${esc(v.pinyin)}</span><span class="vm">${esc(v.meaning)}</span></div>`).join("")}</div>` : ""}
@@ -1753,6 +1837,13 @@ document.addEventListener("submit", async (e) => {
 });
 
 document.addEventListener("input", (e) => {
+  if (e.target.id === "notesearch") {
+    const q = e.target.value.trim().toLowerCase();
+    let shown = 0;
+    for (const el of document.querySelectorAll("#notelist .noteitem")) { const hit = !q || el.dataset.text.includes(q); el.hidden = !hit; shown += hit; }
+    const empty = document.getElementById("notesempty"); if (empty) empty.hidden = shown > 0;
+    return;
+  }
   const form = e.target.closest('form[data-form="profile"]');
   if (!form || !e.target.name) return;
   const d = draft();
@@ -1828,6 +1919,12 @@ document.addEventListener("click", async (e) => {
     if (state.calPick) state.open.add(state.calPick);
     render();
     if (state.calPick) document.querySelector(".cal + .slist")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  } else if (act === "note-open") {
+    const k = "n:" + el.dataset.id, q = document.getElementById("notesearch")?.value || "";
+    state.open.has(k) ? state.open.delete(k) : state.open.add(k);
+    render();
+    const box = document.getElementById("notesearch");
+    if (box && q) { box.value = q; box.dispatchEvent(new Event("input", { bubbles: true })); }
   } else if (act === "copy-code") {
     try { await navigator.clipboard.writeText(MEMBER_CODE); toast("Code copied"); }
     catch { toast(`Your code: ${MEMBER_CODE}`); }
@@ -1845,9 +1942,12 @@ document.addEventListener("click", async (e) => {
     state.custOpen = true;
   } else if (act === "host-all") {
     state.hostAll = !!el.dataset.v; render();
-  } else if (act === "catf") {
-    state.catFilter = el.dataset.v;
-    try { localStorage.setItem("mz-cat", state.catFilter); } catch { /* storage off */ }
+  } else if (act === "catf" || act === "lvf" || act === "clearf") {
+    if (act === "clearf") { state.lvFilter = ""; state.catFilters = []; }
+    else if (act === "lvf") state.lvFilter = el.dataset.v;
+    else if (!el.dataset.v) state.catFilters = [];
+    else { const k = el.dataset.v; state.catFilters = state.catFilters.includes(k) ? state.catFilters.filter((x) => x !== k) : [...state.catFilters, k]; }
+    try { localStorage.setItem("mz-lv", state.lvFilter); localStorage.setItem("mz-cats", JSON.stringify(state.catFilters)); } catch { /* storage off */ }
     render();
   } else if (act === "mtab") {
     state.membersTab = el.dataset.v; render();
@@ -1996,4 +2096,4 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=26").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=27").catch(() => {});
