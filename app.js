@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=27";
-import { FRUITS, HOST_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=27";
-import { COUNTRIES } from "./countries.js?v=27";
+import { createClient } from "./vendor/supabase.js?v=28";
+import { FRUITS, HOST_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=28";
+import { COUNTRIES } from "./countries.js?v=28";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 50% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=27";
+import { STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=28";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -1079,7 +1079,7 @@ function leaderboard() {
 }
 
 function directory() {
-  const all = [...state.profiles.values()].filter((p) => state.roles.has(p.id) && (p.show_in_directory || p.id === state.user.id));
+  const all = [...state.profiles.values()].filter((p) => state.roles.has(p.id));
   const byName = (a, b) => (a.display_name || "").localeCompare(b.display_name || "");
   const hosts = all.filter((p) => ["host", "admin"].includes(state.roles.get(p.id))).sort(byName);
   const members = all.filter((p) => !["host", "admin"].includes(state.roles.get(p.id))).sort(byName);
@@ -1091,7 +1091,7 @@ function directory() {
   <div class="daylabel">Members · ${members.length}</div>
   ${members.length ? `<div class="mgrid">${members.map((p) => linkOrDiv(p.id, "mcard", `${avatar(p, 52)}<b>${esc(p.display_name || "Member")}${p.id === state.user.id ? " (you)" : ""}</b>${sub(p)}`)).join("")}</div>`
     : `<p class="muted small">Members appear here once they've logged in.</p>`}
-  <p class="small muted">Tap someone to see their profile. Prefer not to be listed? Turn it off in <a href="#/me">Me</a>.${isAdmin() ? " As admin, you can give XP from a member's profile." : ""}</p>`;
+  <p class="small muted">Tap someone to see their profile.${isAdmin() ? " As admin, you can give XP from a member's profile." : ""}</p>`;
 }
 
 // ---------------------------------------------------------------------------
@@ -1188,7 +1188,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=27"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=28"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1228,7 +1228,7 @@ function mapView() {
   if (sel) {
     const n = counts.get(sel) || 0;
     const isH = (p) => ["host", "admin"].includes(state.roles.get(p.id));
-    const shown = [...state.profiles.values()].filter((p) => p.country === sel && state.roles.has(p.id) && (p.show_in_directory || p.id === state.user.id))
+    const shown = [...state.profiles.values()].filter((p) => p.country === sel && state.roles.has(p.id))
       .sort((a, b) => isH(b) - isH(a) || (a.display_name || "").localeCompare(b.display_name || ""));
     const hidden = Math.max(0, n - shown.length);
     const levelOf = (id) => state.board.find((r) => r.user_id === id)?.level || 1;
@@ -1345,7 +1345,6 @@ function memberView() {
   ${(() => { const got = myStickers(id); return got.length ? `<section class="card" style="gap:10px"><h2>Stickers collected · ${got.length}</h2>
     <div class="stkrow">${got.map((k) => `<div class="stkitem"><span class="stkbig"${stickerTip(k, id)}>${stickerSvg(k)}</span><span class="small">${esc(stickerInfo(k).en)}</span></div>`).join("")}</div></section>` : ""; })()}
   ${full?.discord ? `<a class="chatcard" style="display:flex" href="${DISCORD_CHAT}" target="_blank" rel="noopener">${ICON.chat}<span class="grow"><b>@${esc(full.discord)}</b><br><span class="small">Say hi on the Club Discord</span></span><span aria-hidden="true" style="font-size:20px">↗</span></a>` : ""}
-  ${!full && !me ? `<p class="small muted" style="margin:0">This member keeps their profile out of the directory.</p>` : ""}
   ${hongbaoGiveBlock(id)}
   ${isAdmin() ? adminXpBlock(id, r, awards) : isHost() && role === "member" ? hostStickerBlock(id) : ""}`;
 }
@@ -1465,7 +1464,7 @@ function draft() {
 function profileView() {
   const d = draft(), info = fruitInfo(d.fruit), idx = trad() ? 1 : 0;
   const level = myLevel();
-  const changed = ["display_name", "fruit", "bg", "country", "chinese_level", "discord", "show_in_directory", "script", "bio", "sticker"]
+  const changed = ["display_name", "fruit", "bg", "country", "chinese_level", "discord", "script", "bio", "sticker"]
     .some((k) => (d[k] ?? null) !== (state.me[k] ?? null))
     || (isHost() && d.meet_name !== undefined && d.meet_name.trim() !== (state.meetName || ""));
   const stickerKeys = isHost() ? STICKERS.map((t) => t.key) : myStickers();
@@ -1558,11 +1557,6 @@ function profileView() {
       </div>
     </div>
 
-    <label class="check">
-      <input type="checkbox" name="show_in_directory" ${d.show_in_directory ? "checked" : ""}>
-      <span style="font-size:14.5px;line-height:1.35"><b>Show me in the member directory</b><br><span class="muted">You still appear on the leaderboard, and hosts can always see who's coming to their session.</span></span>
-    </label>
-
     <button class="btn block" ${changed ? "" : "disabled"}>${changed ? "Save changes" : "Saved"}</button>
   </form>
 
@@ -1586,7 +1580,7 @@ function profileView() {
 async function saveProfile() {
   const d = draft();
   const patch = {};
-  for (const k of ["display_name", "fruit", "bg", "country", "chinese_level", "discord", "show_in_directory", "script", "bio", "sticker"]) patch[k] = d[k] ?? null;
+  for (const k of ["display_name", "fruit", "bg", "country", "chinese_level", "discord", "script", "bio", "sticker"]) patch[k] = d[k] ?? null;
   patch.display_name = String(patch.display_name || "").trim().slice(0, 40);
   patch.discord = String(patch.discord || "").trim().replace(/^@/, "").slice(0, 40);
   patch.bio = String(patch.bio || "").replace(/\s+/g, " ").trim().slice(0, BIO_MAX);
@@ -1613,7 +1607,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=27");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=28");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2096,4 +2090,4 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=27").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=28").catch(() => {});
