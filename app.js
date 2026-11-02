@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=29";
-import { FRUITS, HOST_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=29";
-import { COUNTRIES } from "./countries.js?v=29";
+import { createClient } from "./vendor/supabase.js?v=30";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=30";
+import { COUNTRIES } from "./countries.js?v=30";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 50% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=29";
+import { STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=30";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -166,9 +166,12 @@ function avatar(p, size, { locked = false, flag = true, fruit, bg, sticker } = {
   const c = flag && !locked ? p?.country : "";
   const st = sticker !== undefined ? sticker : flag && !locked ? p?.sticker : "";
   const uid = p?.id || p?.user_id;
+  const special = SPECIAL_AVATARS.find((x) => x.key === f);
   const hostTip = flag && !locked && size >= 64 && f.startsWith("host-") ? fruitInfo(f) : null;
+  const specialTip = flag && !locked && size >= 64 && special ? special : null;
   return `<span class="av${locked ? " locked" : ""}" style="--s:${size}px;--bg-av:${esc(bg || p?.bg || "#fdf1ea")}">` +
-    `<span class="disc"${hostTip ? tipAttrs(`${hostTip.en} ${zh(hostTip.zh)}`, "A special character only Club hosts can use.") : ""}>${fruitSvg(f)}</span>` +
+    `<span class="disc"${hostTip ? tipAttrs(`${hostTip.en} ${zh(hostTip.zh)}`, "A special character only Club hosts can use.")
+      : specialTip ? tipAttrs(`${specialTip.en} ${zh(specialTip.zh)}`, (state.avatarAwards || []).find((a) => a.user_id === uid && a.avatar === f)?.reason ? `Given for: ${(state.avatarAwards || []).find((a) => a.user_id === uid && a.avatar === f).reason}.` : specialTip.how) : ""}>${fruitSvg(f)}</span>` +
     (c ? `<img class="flag" src="flags/${esc(c)}.svg" alt="${esc(countryName(c))}" loading="lazy">` : "") +
     (st && stickerInfo(st) ? `<span class="stk"${stickerTip(st, uid)}>${stickerSvg(st)}</span>` : "") +
     (locked ? `<span class="lock">${ICON.lock}</span>` : "") + `</span>`;
@@ -237,8 +240,9 @@ async function loadAll() {
     sb.rpc("session_hosts"),
     sb.from("host_meet_names").select("meet_name").eq("user_id", state.user.id).maybeSingle(),
     sb.rpc("hongbao_inbox"),
+    sb.from("avatar_awards").select("*"),
     sb.from("hongbaos").select("*").eq("giver", state.user.id).order("created_at", { ascending: false }).limit(1),
-  ]).then((r) => { const hg = r.pop(), hi = r.pop(); state.hbIn = hi.error ? [] : hi.data; state.hbGiven = hg.error ? null : hg.data[0] || null; const mn = r.pop(), sh = r.pop(); state.meetName = mn.error ? "" : mn.data?.meet_name || ""; state.sessionHost = new Map(sh.error ? [] : sh.data.map((x) => [x.session_id, x.host_id])); const mb = r.pop(); state.bootcampsJoined = new Map(mb.error ? [] : mb.data.map((x) => [x.user_id, x.bootcamps])); const rw = r.pop(); state.rewards = new Map(rw.error ? [] : rw.data.map((x) => [x.bootcamp, x])); worn = r.pop(); stk = r.pop(); stats = r.pop(); return r; });
+  ]).then((r) => { const hg = r.pop(), aa = r.pop(), hi = r.pop(); state.avatarAwards = aa.error ? [] : aa.data; state.hbIn = hi.error ? [] : hi.data; state.hbGiven = hg.error ? null : hg.data[0] || null; const mn = r.pop(), sh = r.pop(); state.meetName = mn.error ? "" : mn.data?.meet_name || ""; state.sessionHost = new Map(sh.error ? [] : sh.data.map((x) => [x.session_id, x.host_id])); const mb = r.pop(); state.bootcampsJoined = new Map(mb.error ? [] : mb.data.map((x) => [x.user_id, x.bootcamps])); const rw = r.pop(); state.rewards = new Map(rw.error ? [] : rw.data.map((x) => [x.bootcamp, x])); worn = r.pop(); stk = r.pop(); stats = r.pop(); return r; });
   for (const r of [att, notes, board, awards]) if (r.error) throw r.error;
   if (!stats.error) state.stats = new Map(stats.data.map((x) => [x.user_id, x.sessions]));
   state.board = board.data;
@@ -270,6 +274,7 @@ async function loadAll() {
   state.roles = new Map(roles.data.map((r) => [r.id, r.role]));
   state.me = state.profiles.get(state.user.id) || state.me;
   state.loaded = true;
+  claimSeasonal();
   if (!isHost()) {
     try {
       const lv = myLevel(), seen = +(localStorage.getItem("mz-level") || 0);
@@ -287,6 +292,30 @@ async function loadAll() {
       localStorage.setItem("mz-stickers", JSON.stringify(mine));
     } catch { /* storage off */ }
   }
+}
+
+// Seasonal unlocks (Thanksgiving: corn avatar + turkey sticker, 25-30 Nov, Taiwan time): the database decides.
+async function claimSeasonal() {
+  if (state.seasonalChecked) return;
+  state.seasonalChecked = true;
+  const { data, error } = await sb.rpc("claim_seasonal");
+  if (error || !data?.new) return;
+  const [st, av] = await Promise.all([sb.from("sticker_awards").select("*").order("awarded_at", { ascending: false }), sb.from("avatar_awards").select("*")]);
+  if (!st.error) state.stickerAwards = st.data;
+  if (!av.error) state.avatarAwards = av.data;
+  if (!isHost()) state.seasonalPopup = data.event;
+  render();
+}
+const myAvatars = (id = state.user?.id) => (state.avatarAwards || []).filter((a) => a.user_id === id).map((a) => a.avatar);
+function seasonalOverlay() {
+  if (state.seasonalPopup !== "thanksgiving") return "";
+  return `<div class="hbover" role="dialog" aria-modal="true" aria-labelledby="sztitle">
+    <div class="hbbox">
+      <div class="row" style="gap:12px;justify-content:center"><span class="av" style="--s:72px;--bg-av:#e0f4e0"><span class="disc">${fruitSvg("corn")}</span></span><span class="stkbig" style="--z:64px">${stickerSvg("turkey")}</span></div>
+      <h2 id="sztitle">Happy Thanksgiving!</h2>
+      <p class="muted" style="margin:0">You unlocked the <b>corn</b> character and the <b>turkey</b> sticker. Find them in Me → Avatar customization.</p>
+      <button type="button" class="btn block" data-act="seasonal-ok">Thanks!</button>
+    </div></div>`;
 }
 
 const myStickers = (id = state.user?.id) => (state.stickerAwards || []).filter((a) => a.user_id === id).map((a) => a.sticker).filter((k) => stickerInfo(k));
@@ -421,7 +450,7 @@ function render() {
   const views = { home: homeView, sessions: mySessionsView, members: membersView, me: profileView, host: hostView, member: memberView, bootcamps: bootcampsView, unlocks: unlocksView, notes: notesView };
   const blocked = route() === "host" && !isHost();
   const view = blocked ? homeView : (views[route()] || homeView);
-  app.innerHTML = `<div class="shell ${trad() ? "zh-trad" : ""}">${nav()}<main class="main" id="main">${view()}</main></div>${hongbaoOverlay()}`;
+  app.innerHTML = `<div class="shell ${trad() ? "zh-trad" : ""}">${nav()}<main class="main" id="main">${view()}</main></div>${hongbaoOverlay()}${seasonalOverlay()}`;
   wireMap();
 }
 
@@ -1188,7 +1217,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=29"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=30"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1503,6 +1532,12 @@ function profileView() {
           <span class="ring">${avatar(d, 48, { flag: false, fruit: h.key })}</span>
           <span class="cap">${esc(zh(h.zh))}</span></button>`).join("")}</div>
     </div>` : ""}
+    ${(() => { const keys = isHost() ? SPECIAL_AVATARS.map((x) => x.key) : myAvatars(); return keys.length ? `<div>
+      <div class="row between" style="align-items:baseline;margin-bottom:8px"><h2>Special avatars</h2><span class="small muted">${isHost() ? "Hosts have them all" : "From special events"}</span></div>
+      <div class="fruits">${keys.map((k) => { const x = SPECIAL_AVATARS.find((y) => y.key === k); return x ? `<button type="button" class="fruitbtn" data-act="fruit" data-key="${k}" aria-pressed="${k === d.fruit}" aria-label="${esc(x.en)} ${esc(zh(x.zh))}">
+          <span class="ring">${avatar(d, 48, { flag: false, fruit: k })}</span>
+          <span class="cap">${esc(zh(x.zh))}</span></button>` : ""; }).join("")}</div>
+    </div>` : ""; })()}
     <div>
       <div class="row between" style="align-items:baseline;margin-bottom:8px"><h2>${isHost() ? "Or a fruit" : "Your fruit"}</h2><span class="small muted">${isHost() ? "Hosts have them all" : level >= 18 ? "All unlocked!" : "Join sessions to unlock more"}</span></div>
       <div class="fruits">${FRUITS.map((f) => {
@@ -1607,7 +1642,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=29");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=30");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -1928,6 +1963,8 @@ document.addEventListener("click", async (e) => {
     document.getElementById("worldmap")?._zoom?.(el.dataset.v === "in" ? 1.5 : 1 / 1.5);
   } else if (act === "hb-give") {
     el.disabled = true; await giveHongbao(el.dataset.id); el.disabled = false;
+  } else if (act === "seasonal-ok") {
+    state.seasonalPopup = null; render();
   } else if (act === "hb-seen") {
     for (const h of state.hbIn) h.seen_at = h.seen_at || new Date().toISOString();
     render();
@@ -2090,4 +2127,4 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=29").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=30").catch(() => {});

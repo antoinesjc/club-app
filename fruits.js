@@ -1,4 +1,4 @@
-import { HOST_AVATARS, HOST_ART } from "./hosts-art.js?v=29";
+import { HOST_AVATARS, HOST_ART } from "./hosts-art.js?v=30";
 export { HOST_AVATARS };
 // Fruit avatars and the levels that unlock them (Antoine's table, 19 Oct 2026).
 // To change levels or XP later, edit LEVELS and the `level` of each fruit.
@@ -94,12 +94,18 @@ const ART = {
   durian: `<polygon points="32.0,16.0 36.1,21.5 42.5,18.8 43.3,25.7 50.2,26.5 47.5,32.9 53.0,37.0 47.5,41.1 50.2,47.5 43.3,48.3 42.5,55.2 36.1,52.5 32.0,58.0 27.9,52.5 21.5,55.2 20.7,48.3 13.8,47.5 16.5,41.1 11.0,37.0 16.5,32.9 13.8,26.5 20.7,25.7 21.5,18.8 27.9,21.5" fill="#8f9a2e"/><circle cx="32" cy="37" r="16" fill="#a9b43e"/><circle cx="27" cy="37" r="1.8" fill="#2a2420"/><circle cx="37" cy="37" r="1.8" fill="#2a2420"/><path d="M28.5 42.5 q3.5 -2.5 7 0" stroke="#2a2420" stroke-width="1.8" fill="none" stroke-linecap="round"/>`,
 };
 
+// Special avatars: given for events (e.g. Thanksgiving), not by level. Keys must match public.special_avatar_ok().
+export const SPECIAL_AVATARS = [
+  { key: "corn", en: "Corn", zh: ["玉米", "玉米"], py: ["yùmǐ", "yùmǐ"], how: "Opened the app for Thanksgiving (25 to 30 November)." },
+];
+ART.corn = `<path d="M32 12 q-2 -4 -5 -5 M32 12 q1 -5 4 -6 M32 12 q0 -5 0 -7" stroke="#c98d12" stroke-width="1.6" fill="none" stroke-linecap="round"/><ellipse cx="32" cy="35" rx="13" ry="22" fill="#f8cf4a"/><clipPath id="mzcornclip"><ellipse cx="32" cy="35" rx="12.5" ry="21.5"/></clipPath><g clip-path="url(#mzcornclip)"><ellipse cx="27" cy="17" rx="2" ry="1.6" fill="#efbe33"/><ellipse cx="32" cy="17" rx="2" ry="1.6" fill="#efbe33"/><ellipse cx="37" cy="17" rx="2" ry="1.6" fill="#efbe33"/><ellipse cx="27" cy="22" rx="2" ry="1.6" fill="#efbe33"/><ellipse cx="32" cy="22" rx="2" ry="1.6" fill="#efbe33"/><ellipse cx="37" cy="22" rx="2" ry="1.6" fill="#efbe33"/><ellipse cx="24" cy="27" rx="2" ry="1.6" fill="#efbe33"/><ellipse cx="29" cy="27" rx="2" ry="1.6" fill="#efbe33"/><ellipse cx="34" cy="27" rx="2" ry="1.6" fill="#efbe33"/><ellipse cx="39" cy="27" rx="2" ry="1.6" fill="#efbe33"/><ellipse cx="44" cy="27" rx="2" ry="1.6" fill="#efbe33"/><ellipse cx="44" cy="32" rx="2" ry="1.6" fill="#efbe33"/><ellipse cx="44" cy="37" rx="2" ry="1.6" fill="#efbe33"/><ellipse cx="44" cy="42" rx="2" ry="1.6" fill="#efbe33"/><ellipse cx="24" cy="47" rx="2" ry="1.6" fill="#efbe33"/><ellipse cx="29" cy="47" rx="2" ry="1.6" fill="#efbe33"/><ellipse cx="34" cy="47" rx="2" ry="1.6" fill="#efbe33"/><ellipse cx="39" cy="47" rx="2" ry="1.6" fill="#efbe33"/><ellipse cx="44" cy="47" rx="2" ry="1.6" fill="#efbe33"/><ellipse cx="24" cy="52" rx="2" ry="1.6" fill="#efbe33"/><ellipse cx="29" cy="52" rx="2" ry="1.6" fill="#efbe33"/><ellipse cx="34" cy="52" rx="2" ry="1.6" fill="#efbe33"/><ellipse cx="39" cy="52" rx="2" ry="1.6" fill="#efbe33"/><ellipse cx="44" cy="52" rx="2" ry="1.6" fill="#efbe33"/><ellipse cx="27" cy="57" rx="2" ry="1.6" fill="#efbe33"/><ellipse cx="32" cy="57" rx="2" ry="1.6" fill="#efbe33"/><ellipse cx="37" cy="57" rx="2" ry="1.6" fill="#efbe33"/></g><path d="M19.5 34 q-6 14 4 25 q4 -8 8.5 -10 q-8 -6 -12.5 -15z" fill="#4c9a3f"/><path d="M44.5 34 q6 14 -4 25 q-4 -8 -8.5 -10 q8 -6 12.5 -15z" fill="#3a8a33"/><path d="M23 46 q3 4 6 8 M41 46 q-3 4 -6 8" stroke="#2f6f28" stroke-width="1.2" fill="none"/><ellipse cx="24.5" cy="25" rx="2.2" ry="4" fill="#fde6a0"/><circle cx="27.5" cy="36" r="1.8" fill="#2a2420"/><circle cx="36.5" cy="36" r="1.8" fill="#2a2420"/><path d="M29 40.5 q3 2.6 6 0" stroke="#2a2420" stroke-width="1.8" fill="none" stroke-linecap="round"/>`;
+
 export function fruitSvg(key) {
   return `<svg viewBox="0 0 64 64" aria-hidden="true">${ART[key] || HOST_ART[key] || ART.orange}</svg>`;
 }
 
 export function fruitInfo(key) {
-  return FRUITS.find((f) => f.key === key) || HOST_AVATARS.find((h) => h.key === key) || FRUITS[0];
+  return FRUITS.find((f) => f.key === key) || HOST_AVATARS.find((h) => h.key === key) || SPECIAL_AVATARS.find((x) => x.key === key) || FRUITS[0];
 }
 
 export const STARTER_FRUITS = FRUITS.filter((f) => f.level === 1).map((f) => f.key);
