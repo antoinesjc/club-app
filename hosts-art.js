@@ -10,6 +10,8 @@ export const HOST_AVATARS = [
   { key: "host-opera", en: "Opera star", zh: ["京剧演员", "京劇演員"], py: ["jīngjù yǎnyuán", "jīngjù yǎnyuán"] },
   { key: "host-qipao", en: "Qipao lady", zh: ["旗袍女士", "旗袍女士"], py: ["qípáo nǚshì", "qípáo nǚshì"] },
   { key: "host-tang", en: "Tang lady", zh: ["唐朝仕女", "唐朝仕女"], py: ["Tángcháo shìnǚ", "Tángcháo shìnǚ"] },
+  { key: "host-mulan", en: "Mulan, woman warrior", zh: ["花木兰", "花木蘭"], py: ["Huā Mùlán", "Huā Mùlán"] },
+  { key: "host-qing", en: "Qing lady", zh: ["清朝格格", "清朝格格"], py: ["Qīngcháo gége", "Qīngcháo gége"] },
 ];
 
 const SKIN = "#f6d2b0", INK = "#2a2420";
@@ -123,4 +125,42 @@ export const HOST_ART = {
     `<path d="M25.5 31.6 q2 -1.4 4 0 M34.5 31.6 q2 -1.4 4 0" stroke="${INK}" stroke-width="1.3" fill="none" stroke-linecap="round"/>` +
     eyes(34) + `<circle cx="24" cy="37.5" r="2.6" fill="#f4a3a0" opacity=".85"/><circle cx="40" cy="37.5" r="2.6" fill="#f4a3a0" opacity=".85"/>` +
     `<circle cx="32" cy="39.8" r="1.3" fill="#c8102e"/>`,
+  // Mulan, the woman warrior of the old ballad: high ponytail with a red headband, steel scale armour over a red robe, sword on her back
+  "host-mulan":
+    `<path d="M47 13 L39 52" stroke="#8a5a2b" stroke-width="3.2" stroke-linecap="round"/><path d="M43 19.5 l8 2.4" stroke="#d6a23a" stroke-width="3" stroke-linecap="round"/>` +
+    `<path d="M8 64 C9 52 18 47 32 47 C46 47 55 52 56 64 Z" fill="#a63d2f"/>` +
+    `<path d="M17 53 q15 -8 30 0 v11 h-30z" fill="#8fa3b3"/>` +
+    `<path d="M19 56.5 h26 M19 60.5 h26 M25.5 53.5 v10.5 M32 52 v12 M38.5 53.5 v10.5" stroke="#6e8394" stroke-width="1.2"/>` +
+    `<path d="M10 58 q2 -8 9 -9 l2 6 q-6 1 -8 6z M54 58 q-2 -8 -9 -9 l-2 6 q6 1 8 6z" fill="#6e8394"/>` +
+    neck +
+    `<path d="M32 13 q9 0 10 8 q8 6 6 18 q-2 -9 -7 -12 z" fill="${INK}"/>` +
+    `<path d="M20.5 34 q-1 -13 11.5 -13.5 q12.5 0.5 11.5 13.5 q-3 -8 -11.5 -8.5 q-8.5 0.5 -11.5 8.5z" fill="${INK}"/>` +
+    face(34, 11) +
+    `<path d="M21.5 31 q3 -7 10.5 -7 q7.5 0 10.5 7 q-5 -3 -10.5 -3 q-5.5 0 -10.5 3z" fill="${INK}"/>` +
+    `<path d="M21 27.5 q11 -6 22 0" stroke="#d7263d" stroke-width="2.6" fill="none" stroke-linecap="round"/>` +
+    `<path d="M35 16 q8 -3 11 3 M35 17 q6 2 7 8" stroke="#d7263d" stroke-width="1.8" fill="none" stroke-linecap="round"/>` +
+    `<ellipse cx="32" cy="15" rx="4.5" ry="4" fill="${INK}"/><rect x="29" y="17" width="6" height="2.6" rx="1" fill="#d7263d"/>` +
+    `<path d="M25 30.8 l4.4 0.9 M39 30.8 l-4.4 0.9" stroke="${INK}" stroke-width="1.6" stroke-linecap="round"/>` +
+    eyes(34) + cheeks(37.5) + `<path d="M29.5 38.6 q2.5 1.8 5 0" stroke="${INK}" stroke-width="1.6" fill="none" stroke-linecap="round"/>`,
+
+  // Qing dynasty lady: wide black "liangbatou" headdress with flowers and a red tassel, high-collared blue robe with a trimmed border
+  "host-qing":
+    `<path d="M8 64 C9 52 18 47 32 47 C46 47 55 52 56 64 Z" fill="#6a8fc4"/>` +
+    `<path d="M24 47.6 q8 4 16 0 l3 2 q-11 7 -22 0z" fill="#f2b632"/>` +
+    `<path d="M32 51 q6 2 9 13" stroke="#f2b632" stroke-width="2.2" fill="none"/><path d="M32 51 q6 2 9 13" stroke="#fff" stroke-width="0.8" fill="none"/>` +
+    `<g fill="#f9b8c4"><circle cx="16" cy="59" r="2"/><circle cx="48" cy="58" r="2"/></g>` +
+    `<path d="M27 43.5 h10 v5 q-5 2.5 -10 0z" fill="#6a8fc4"/><path d="M27 45 h10" stroke="#f2b632" stroke-width="1.4"/>` +
+    `<path d="M20.5 36 q-1.5 -13 11.5 -13.5 q13 0.5 11.5 13.5 q-2.5 -9 -11.5 -9.5 q-9 0.5 -11.5 9.5z" fill="${INK}"/>` +
+    face(34, 10.8) +
+    `<path d="M21.5 31 q4 -5 10.5 -5 q6.5 0 10.5 5 q-4 -2.4 -10.5 -2.4 q-6.5 0 -10.5 2.4z" fill="${INK}"/>` +
+    `<path d="M24 26 L23.5 22 L40.5 22 L40 26z" fill="${INK}"/>` +
+    `<rect x="13" y="12.5" width="38" height="10" rx="3" fill="${INK}"/><rect x="13" y="20.5" width="38" height="2.4" rx="1" fill="#3a322d"/>` +
+    `<circle cx="32" cy="16.8" r="3.4" fill="#d7263d"/><circle cx="32" cy="16.8" r="1.3" fill="#f2b632"/>` +
+    `<circle cx="24" cy="16.5" r="2.4" fill="#f9b8c4"/><circle cx="40" cy="16.5" r="2.4" fill="#f9b8c4"/>` +
+    `<circle cx="18" cy="17.2" r="1.7" fill="#1f8a70"/><circle cx="46" cy="17.2" r="1.7" fill="#1f8a70"/>` +
+    `<path d="M48 23 v3" stroke="#f2b632" stroke-width="1.4"/><path d="M45.8 26 h4.4 l-0.9 12 h-2.6z" fill="#d7263d"/>` +
+    `<path d="M47 27 v10 M49 27 v10" stroke="#a8241c" stroke-width="0.8"/>` +
+    `<path d="M25.2 31.4 q2.2 -1.3 4.4 0 M34.4 31.4 q2.2 -1.3 4.4 0" stroke="${INK}" stroke-width="1.2" fill="none" stroke-linecap="round"/>` +
+    eyes(34) + cheeks(37.5) + `<path d="M30.4 39.2 q1.6 1.2 3.2 0" stroke="#c8102e" stroke-width="2" fill="none" stroke-linecap="round"/>` +
+    `<circle cx="21.4" cy="38.5" r="1.3" fill="#f2b632"/><circle cx="42.6" cy="38.5" r="1.3" fill="#f2b632"/>`,
 };
