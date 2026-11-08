@@ -34,7 +34,7 @@ export const STICKERS = [
       <path d="M12 46 q20 7 40 0" stroke="#efe3c8" stroke-width="3" fill="none" stroke-linecap="round"/>`,
   },
   {
-    key: "brush", how: "Given during special sessions and initiatives.", zh: ["毛笔", "毛筆"], en: "Brush", bootcamp: "character",
+    key: "brush", how: "Finish the Chinese Character Bootcamp.", zh: ["毛笔", "毛筆"], en: "Brush", bootcamp: "character",
     svg: `<path d="M47 4 l13 13 l-24 24 l-13 -13z" fill="#a8431a"/>
       <path d="M47 4 l13 13" stroke="#2a2420" stroke-width="3.5" stroke-linecap="round"/>
       <path d="M38 30 l-4 -4" stroke="#f2b631" stroke-width="3" stroke-linecap="round"/>

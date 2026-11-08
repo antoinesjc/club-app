@@ -2,8 +2,8 @@
 // Data always comes from the network.
 const VERSION = "mz-club-v30";
 const SHELL = [
-  "./", "index.html", "styles.css?v=30", "app.js?v=30", "fruits.js?v=30", "hosts-art.js?v=30", "countries.js?v=30", "stickers.js?v=30", "worldmap.js?v=30",
-  "vendor/supabase.js?v=30", "manifest.webmanifest", "icons/logo.png", "icons/mascot.svg", "icons/icon-192.png",
+  "./", "index.html", "styles.css?v=31", "app.js?v=31", "fruits.js?v=31", "hosts-art.js?v=31", "countries.js?v=31", "stickers.js?v=31", "worldmap.js?v=31",
+  "vendor/supabase.js?v=31", "manifest.webmanifest", "icons/logo.png", "icons/mascot.svg", "icons/icon-192.png",
 ];
 
 self.addEventListener("install", (e) => {
