@@ -291,9 +291,8 @@ a.hostcard:hover, .podium a:hover b { border-color: var(--orange); color: inheri
 .podium a { text-decoration: none; color: inherit; display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; width: 100%; }
 
 /* ---------- Month calendar (desktop only) ---------- */
-.viewswitch { display: none; min-width: 190px; }
+.viewswitch { display: grid; min-width: 170px; }
 .viewswitch button { min-height: 36px; font-size: 13.5px; }
-@media (min-width: 900px) { .viewswitch { display: grid; } }
 .cal { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; display: flex; flex-direction: column; gap: 10px; }
 .calhead h2 { margin: 0; }
 .calgrid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border-top: 1px solid var(--line); border-left: 1px solid var(--line); }
@@ -473,3 +472,16 @@ a.hostline:hover { background: #f1dfd4; }
 .notehead .chev { font-size: 22px; color: var(--faint); transition: transform .15s; }
 .notehead[aria-expanded="true"] .chev { transform: rotate(90deg); }
 .notebody-wrap { padding: 4px 16px 16px 94px; display: flex; flex-direction: column; gap: 10px; }
+
+/* ---------- Phone calendar ---------- */
+.pcgrid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; }
+.pcgrid .calwd { border: 0; background: none; text-align: center; padding: 4px 0; }
+.pcday { all: unset; box-sizing: border-box; cursor: pointer; min-height: 48px; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 4px; padding-top: 6px; }
+.pcday .n { font-size: 15px; font-weight: 700; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 50%; }
+.pcday.out .n { color: #b8aaa1; }
+.pcday.today .n { background: var(--orange); color: var(--ink); }
+.pcday.mine .n { box-shadow: 0 0 0 2px var(--green); }
+.pcday.sel { background: var(--soft); }
+.pcday:focus-visible { outline: 3px solid #4f7a94; }
+.pcday .dots { display: flex; gap: 3px; height: 6px; }
+.pcday .dots i { width: 6px; height: 6px; border-radius: 50%; }

@@ -488,7 +488,7 @@ function whoList(s) {
 function inButton(s) {
   if (ended(s)) return "";
   const on = iAmIn(s);
-  return `<button type="button" class="toggle" data-act="toggle-in" data-id="${esc(s.id)}" aria-pressed="${on}">${on ? "Going ✓" : "I'm in"}</button>`;
+  return `<button type="button" class="toggle" data-act="toggle-in" data-id="${esc(s.id)}" aria-pressed="${on}"${on ? ' title="Tap to say you can\'t make it" aria-label="Going. Tap to say you can\'t make it"' : ""}>${on ? "Going ✓" : "I'm in"}</button>`;
 }
 
 function details(s) {
@@ -568,7 +568,7 @@ function featuredCard(s) {
     <div class="row">${goingAvatars(s)}<div class="small muted">${goingLine(s)}</div></div>
     <div class="row" style="flex-wrap:wrap;gap:8px">
       ${s.meet_url ? `<a class="btn grow" href="${esc(s.meet_url)}" target="_blank" rel="noopener">${ICON.video}Join on Google Meet</a>` : ""}
-      ${iAmIn(s) ? "" : inButton(s)}
+      ${iAmIn(s) ? (ended(s) ? "" : `<button type="button" class="btn ghost" data-act="toggle-in" data-id="${esc(s.id)}">Can't make it</button>`) : inButton(s)}
     </div>
     ${isHost() ? whoList(s) : ""}
     ${isHost() && Date.parse(s.starts_at) <= Date.now() + 30 * 60e3 ? `<a class="btn ghost" href="${hostLink(s)}">Attendance &amp; notes</a>` : ""}
@@ -727,6 +727,7 @@ function bootcampsView() {
 
 // ---------- Month calendar (desktop) ----------
 function calendarView() {
+  if (!wide()) return phoneCalendar();
   const m = state.calMonth, y = m.getFullYear(), mo = m.getMonth();
   const first = new Date(y, mo, 1), start = new Date(y, mo, 1 - ((first.getDay() + 6) % 7));
   const byDay = new Map();
@@ -766,6 +767,47 @@ function calendarView() {
   ${pick ? `<div class="slist">${sessionItem(pick)}</div>` : `<p class="small muted" style="margin:0">Click a session to see the details, who's coming and the Meet link.</p>`}`;
 }
 
+// Phone calendar: a compact month with coloured dots; tap a day to see its sessions below.
+function phoneCalendar() {
+  const m = state.calMonth, y = m.getFullYear(), mo = m.getMonth();
+  const first = new Date(y, mo, 1), start = new Date(y, mo, 1 - ((first.getDay() + 6) % 7));
+  const byDay = new Map();
+  for (const s of state.sessions) {
+    if (s.cancelled || !matchesFilter(s)) continue;
+    const k = dayKey(new Date(s.starts_at));
+    if (!byDay.has(k)) byDay.set(k, []);
+    byDay.get(k).push(s);
+  }
+  const today = dayKey(new Date());
+  const sel = state.calDay || today;
+  const weekdays = [...Array(7)].map((_, i) => new Date(2024, 0, 1 + i).toLocaleDateString([], { weekday: "narrow" }));
+  let cells = "";
+  for (let i = 0; i < 42; i++) {
+    const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
+    if (i === 35 && d.getMonth() !== mo) break;
+    const k = dayKey(d), list = byDay.get(k) || [];
+    const mine = list.some(iAmIn);
+    const dots = list.slice(0, 3).map((s) => `<i style="background:${cat(s).color}"></i>`).join("");
+    cells += `<button type="button" class="pcday${d.getMonth() !== mo ? " out" : ""}${k === today ? " today" : ""}${k === sel ? " sel" : ""}${mine ? " mine" : ""}"
+      data-act="cal-day" data-v="${k}" aria-label="${esc(d.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long" }))}: ${list.length ? `${list.length} session${list.length === 1 ? "" : "s"}` : "no sessions"}${mine ? ", you're in" : ""}">
+      <span class="n">${d.getDate()}</span><span class="dots">${dots}</span></button>`;
+  }
+  const dayList = (byDay.get(sel) || []).sort((a, b) => Date.parse(a.starts_at) - Date.parse(b.starts_at));
+  const label = dayList.length ? dayName(new Date(dayList[0].starts_at)) : "";
+  return `<section class="cal pcal" aria-label="Sessions calendar">
+    <div class="row between calhead">
+      <button type="button" class="xbtn" data-act="cal-move" data-v="-1" aria-label="Previous month">‹</button>
+      <div class="row" style="gap:10px"><h2>${esc(first.toLocaleDateString([], { month: "long", year: "numeric" }))}</h2>
+        <button type="button" class="linkbtn" data-act="cal-move" data-v="0">Today</button></div>
+      <button type="button" class="xbtn" data-act="cal-move" data-v="1" aria-label="Next month">›</button>
+    </div>
+    <div class="pcgrid">${weekdays.map((w) => `<div class="calwd">${esc(w)}</div>`).join("")}${cells}</div>
+    <div class="small muted">Dots show sessions (colour = category). A green ring means you're in.</div>
+  </section>
+  ${dayList.length ? `<div class="daylabel">${esc(label)}</div><div class="slist">${dayList.map(sessionItem).join("")}</div>`
+    : `<p class="small muted" style="margin:0">No sessions on this day. Tap a day with dots.</p>`}`;
+}
+
 function homeView() {
   const me = state.me, f = featured();
   const filtered = !!(state.lvFilter || state.catFilters.length);
@@ -783,7 +825,7 @@ function homeView() {
   <a class="bootsquare" href="#/bootcamps">${ICON.seedling}<span class="grow"><b>Explore our bootcamps</b><br><span class="small">Short, intensive courses at the Club price</span></span><span aria-hidden="true" style="font-size:22px">›</span></a>
   ${installHint()}
   <div class="row between" style="align-items:center;flex-wrap:wrap;gap:8px">
-    <h2>${wide() && state.view === "cal" ? "Calendar" : "Coming up"}</h2>
+    <h2>${state.view === "cal" ? "Calendar" : "Coming up"}</h2>
     <div class="row" style="gap:10px">
       ${tzCity ? `<span class="small muted">Times in ${esc(tzCity)}</span>` : ""}
       <div class="seg viewswitch" role="group" aria-label="View">
@@ -803,7 +845,7 @@ function homeView() {
     </div></div>
     ${filtered ? `<button type="button" class="linkbtn" data-act="clearf" style="align-self:flex-start;padding:2px 0">Clear filters</button>` : ""}
   </div>
-  ${wide() && state.view === "cal" ? calendarView()
+  ${state.view === "cal" ? calendarView()
     : `<div class="slist">${rest.length ? grouped(rest) : `<p class="muted small">${filtered ? "No upcoming sessions match these filters. Try another level or category." : "Nothing else planned yet."}</p>`}</div>`}`;
 }
 
@@ -1890,6 +1932,8 @@ document.addEventListener("click", async (e) => {
     const id = el.dataset.id;
     state.open.has(id) ? state.open.delete(id) : state.open.add(id);
     render();
+  } else if (act === "cal-day") {
+    state.calDay = el.dataset.v; render();
   } else if (act === "toggle-in") {
     await toggleIn(el.dataset.id);
   } else if (act === "fruit" || act === "bg" || act === "script") {
@@ -1942,6 +1986,7 @@ document.addEventListener("click", async (e) => {
   } else if (act === "cal-move") {
     const v = +el.dataset.v, m = state.calMonth;
     state.calMonth = v === 0 ? new Date(new Date().getFullYear(), new Date().getMonth(), 1) : new Date(m.getFullYear(), m.getMonth() + v, 1);
+    if (v === 0) state.calDay = null;
     render();
   } else if (act === "cal-open") {
     state.calPick = state.calPick === el.dataset.id ? null : el.dataset.id;
@@ -2059,7 +2104,7 @@ async function toggleIn(id) {
     on ? set.add(state.user.id) : set.delete(state.user.id);
     render();
     toast("Couldn't save that. Check your connection.");
-  } else if (!on) toast("See you there!");
+  } else toast(on ? "Okay, you're no longer going. Tap I'm in if your plans change." : "See you there!");
 }
 
 addEventListener("hashchange", () => {
