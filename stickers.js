@@ -99,11 +99,12 @@ export function stickerForBootcamp(title) {
   return STICKERS.find((s) => t.includes(s.bootcamp))?.key || "";
 }
 
-// Sticker collection book (Me page): pages in this order. Every sticker key must be in exactly one page.
+// Sticker collection book (Me page): pages in this order. Every sticker key goes in exactly one page,
+// except "founder" (only the founding members can ever get it, so it stays out of the book and its count).
 // Stickers in MYSTERY_STICKERS show as a grey "?" until collected (no unlock info given).
 export const STICKER_PAGES = [
   { en: "Bootcamps", zh: ["训练营", "訓練營"], color: "#f37a48", keys: ["boba", "tones", "brush"] },
-  { en: "Club life", zh: ["社团生活", "社團生活"], color: "#1b6f1b", keys: ["founder", "phone", "heart"] },
+  { en: "Club life", zh: ["社团生活", "社團生活"], color: "#1b6f1b", keys: ["phone", "heart"] },
   { en: "Achievements", zh: ["成就", "成就"], color: "#c98d12", keys: ["medal"] },
   { en: "Festivals & events", zh: ["节日活动", "節日活動"], color: "#a63d6b", keys: ["turkey", "lantern", "mooncake", "dumpling"] },
 ];
