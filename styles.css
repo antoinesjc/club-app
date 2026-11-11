@@ -485,3 +485,10 @@ a.hostline:hover { background: #f1dfd4; }
 .pcday:focus-visible { outline: 3px solid #4f7a94; }
 .pcday .dots { display: flex; gap: 3px; height: 6px; }
 .pcday .dots i { width: 6px; height: 6px; border-radius: 50%; }
+
+/* Avatar customization: its own colour + a fruit-market icon */
+details.custom { background: #fff4e8; border-color: #f6cfa9; }
+details.custom > summary b { color: #8a3b14; }
+details.custom[open] { background: #fffaf3; }
+.custicon { width: 44px; height: 44px; flex: none; border-radius: 12px; background: #fff; display: grid; place-items: center; box-shadow: inset 0 0 0 1px #f6cfa9; }
+.custicon svg { width: 36px; height: 36px; display: block; }

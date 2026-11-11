@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=32";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=32";
-import { COUNTRIES } from "./countries.js?v=32";
+import { createClient } from "./vendor/supabase.js?v=33";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=33";
+import { COUNTRIES } from "./countries.js?v=33";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 50% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=32";
+import { STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=33";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -1259,7 +1259,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=32"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=33"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1565,7 +1565,7 @@ function profileView() {
     </label>` : ""}
 
     <details class="custom"${state.custOpen ? " open" : ""}>
-    <summary><span class="grow"><b>Avatar customization</b><span class="small muted">${isHost() ? "Character or fruit" : "Fruit"}, ${stickerKeys.length ? "sticker, " : ""}background colour</span></span><span class="chev" aria-hidden="true">›</span></summary>
+    <summary><span class="custicon" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M6 14 h36 l-3 -8 h-30z" fill="#f37a48"/><path d="M6 14 q4.5 5 9 0 q4.5 5 9 0 q4.5 5 9 0 q4.5 5 9 0" fill="#fff" stroke="#f37a48" stroke-width="2"/><path d="M15 6 l-2 8 M24 6 v8 M33 6 l2 8" stroke="#fff" stroke-width="2"/><rect x="9" y="18" width="2.4" height="22" fill="#8a5a2b"/><rect x="36.6" y="18" width="2.4" height="22" fill="#8a5a2b"/><rect x="6" y="32" width="36" height="9" rx="2" fill="#c98d5a"/><circle cx="15" cy="29" r="4" fill="#f7941d"/><circle cx="23" cy="29.5" r="3.6" fill="#e5484d"/><circle cx="31" cy="29" r="4" fill="#9ccc3c"/><circle cx="19" cy="25.5" r="3.4" fill="#f5d442"/><circle cx="27.5" cy="25.5" r="3.4" fill="#f9a8a0"/><path d="M15 25 v-2 M31 25 v-2" stroke="#1b6f1b" stroke-width="1.6" stroke-linecap="round"/></svg></span><span class="grow"><b>Avatar customization</b><span class="small muted">${isHost() ? "Character or fruit" : "Fruit"}, ${stickerKeys.length ? "sticker, " : ""}background colour</span></span><span class="chev" aria-hidden="true">›</span></summary>
     <div class="custbody">
     <a class="unlocklink" href="#/unlocks">${ICON.unlock}<span class="grow"><b>How to unlock avatars &amp; stickers</b><br><span class="small muted">Levels, bootcamps, special sessions and more</span></span><span aria-hidden="true">›</span></a>
     ${isHost() ? `<div>
@@ -1684,7 +1684,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=32");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=33");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2172,4 +2172,4 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=32").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=33").catch(() => {});
