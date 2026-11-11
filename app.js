@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=34";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=34";
-import { COUNTRIES } from "./countries.js?v=34";
+import { createClient } from "./vendor/supabase.js?v=35";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=35";
+import { COUNTRIES } from "./countries.js?v=35";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 50% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=34";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=35";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -1259,7 +1259,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=34"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=35"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1547,14 +1547,15 @@ function stickerBook() {
     <span class="sbcount" aria-label="${p.keys.filter((k) => got.has(k)).length} of ${p.keys.length} collected">${p.keys.filter((k) => got.has(k)).length}/${p.keys.length}</span>
     <div class="sbgrid">${p.keys.map(slot).join("")}</div></section>`;
   const half = Math.ceil(STICKER_PAGES.length / 2);
-  return `<section class="sbook" aria-label="My sticker collection">
-    <div class="sbhead"><span class="sbicon">${STICKER_ICON}</span>
-      <div><div class="sbeyebrow">My sticker collection · ${zh(["贴纸册", "貼紙冊"])}</div><div class="sbtotal">${n} of ${total} collected</div></div>
+  return `<details class="custom sbdet"${state.bookOpen ? " open" : ""}>
+    <summary><span class="custicon sbicon" aria-hidden="true">${STICKER_ICON}</span><span class="grow"><b>My sticker collection</b><span class="small muted">${n} of ${total} collected · ${zh(["贴纸册", "貼紙冊"])}</span></span><span class="chev" aria-hidden="true">›</span></summary>
+    <div class="custbody"><section class="sbook" aria-label="My sticker collection">
+    <div class="sbhead"><div class="sbtotal">${n} of ${total} collected</div>
       <div class="sbbar" role="progressbar" aria-valuemin="0" aria-valuemax="${total}" aria-valuenow="${n}" aria-label="Stickers collected"><i style="width:${pct}%"></i></div>
       <span class="sbpct">${pct}%</span></div>
     <div class="sbleaves"><div class="sbleaf">${STICKER_PAGES.slice(0, half).map(page).join("")}</div><div class="sbleaf">${STICKER_PAGES.slice(half).map(page).join("")}</div></div>
     <p class="sbnote">${wide() ? "Hover over" : "Tap"} a grey sticker to see how to get it. Question marks are surprises, given at special events.${isHost() ? " Hosts have them all; members see their own collection." : ""}</p>
-  </section>`;
+  </section></div></details>`;
 }
 
 function profileView() {
@@ -1711,7 +1712,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=34");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=35");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2094,7 +2095,8 @@ document.addEventListener("click", async (e) => {
 });
 
 document.addEventListener("toggle", (e) => {
-  if (e.target.matches?.("details.custom")) state.custOpen = e.target.open;
+  if (e.target.matches?.("details.sbdet")) state.bookOpen = e.target.open;
+  else if (e.target.matches?.("details.custom")) state.custOpen = e.target.open;
 }, true);
 
 document.addEventListener("change", (e) => {
@@ -2199,4 +2201,4 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=34").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=35").catch(() => {});
