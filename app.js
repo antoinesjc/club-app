@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=36";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=36";
-import { COUNTRIES } from "./countries.js?v=36";
+import { createClient } from "./vendor/supabase.js?v=37";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=37";
+import { COUNTRIES } from "./countries.js?v=37";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 50% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=36";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=37";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -607,6 +607,8 @@ function xpCard() {
 // ---------- Bootcamps (from the website feed) ----------
 async function loadBootcamps(force = false) {
   if (state.bootcamps && state.bootcamps !== "error" && !force) return;
+  if (!state.bootReq) sb.from("bootcamp_requests").select("bootcamp, created_at").eq("user_id", state.user.id)
+    .then(({ data }) => { state.bootReq = new Map((data || []).map((r) => [r.bootcamp, r.created_at])); if (route() === "bootcamps") render(); });
   try {
     const res = await fetch(BOOTCAMPS_FEED, { cache: "no-cache" });
     const data = await res.json();
@@ -679,6 +681,27 @@ async function saveReward(form) {
   render();
 }
 
+// "Request to join": two steps (button, then confirm), then a thank-you. Emailed to contact@ by bootcamp-notify.
+function bootRequest(b, st) {
+  const key = bootKey(b), k = esc(key), more = b.url ? `<a class="btn ghost" href="${esc(b.url)}" target="_blank" rel="noopener">More info ↗</a>` : "";
+  const sentAt = state.bootReq?.get(key);
+  if (sentAt) return `<div class="bootreq done" role="status">${state.bootJust === key
+      ? `<b>Thank you for your interest in the ${esc(b.title)}!</b> A host will be in touch with you by email soon to confirm your spot at the Club price.`
+      : `<b>Request sent</b> on ${esc(new Date(sentAt).toLocaleDateString([], { day: "numeric", month: "short" }))}. A host will be in touch with you by email soon.`}</div>
+    ${more ? `<div class="row">${more}</div>` : ""}`;
+  if (state.bootAsk === key) return `<div class="bootreq ask">
+      <p style="margin:0"><b>Send a request to join the ${esc(b.title)}?</b><br><span class="small">We'll email a host your name and email address, and they'll get back to you to sign you up at the Club price.</span></p>
+      <div class="row" style="gap:10px;flex-wrap:wrap">
+        <button type="button" class="btn green grow" data-act="boot-send" data-k="${k}" data-title="${esc(b.title)}" data-status="${esc(st.label)}">Yes, send my request</button>
+        <button type="button" class="btn ghost" data-act="boot-cancel">Cancel</button>
+      </div></div>`;
+  return `<div class="row" style="gap:10px;flex-wrap:wrap">
+      <button type="button" class="btn green grow" data-act="boot-ask" data-k="${k}"${state.bootReq ? "" : " disabled"}>Request to join</button>
+      ${more}
+    </div>
+    <div class="small muted">A host will email you to sign you up at the Club price.</div>`;
+}
+
 function bootCard(b, st) {
   const today = ymd(new Date());
   const early = b.early && b.earlyEnds && today <= b.earlyEnds
@@ -687,7 +710,6 @@ function bootCard(b, st) {
     ["Level", b.level], ["Group", b.group],
     ["Sign up by", b.signupBy ? new Date(b.signupBy + "T12:00:00").toLocaleDateString([], { day: "numeric", month: "short" }) : ""]]
     .filter(([, v]) => v);
-  const hosts = [...state.profiles.values()].filter((p) => ["host", "admin"].includes(state.roles.get(p.id))).map((p) => p.display_name).filter(Boolean);
   return `<article class="bootcard">
     <div class="bootpic"${b.image ? ` style="background-image:url('${esc(b.image)}')"` : ""}>
       ${b.image ? "" : `<span class="bootglyph" aria-hidden="true">${/pronunc/i.test(b.title) ? "音" : /taiwan/i.test(b.title) ? "台" : /character|writ/i.test(b.title) ? "字" : "营"}</span>`}
@@ -701,11 +723,7 @@ function bootCard(b, st) {
         <div class="small" style="text-align:right;line-height:1.5">${b.price ? `Standard <s>${esc(b.price)}</s>` : ""}${early ? `<br>${early}` : ""}</div></div>`
         : `<div class="bootprice pending small">Club price announced soon.</div>`}
       ${rewardBlock(b)}
-      <div class="row" style="gap:10px;flex-wrap:wrap">
-        <a class="btn discord grow" href="${DISCORD_CHAT}" target="_blank" rel="noopener">${ICON.chat}${st.open ? "Ask a host to join" : "Tell a host you're interested"}</a>
-        ${b.url ? `<a class="btn ghost" href="${esc(b.url)}" target="_blank" rel="noopener">More info ↗</a>` : ""}
-      </div>
-      <div class="small muted">${hosts.length ? `Hosts: ${esc(hosts.join(", "))}. ` : ""}Tell them which bootcamp; they'll sign you up at the Club price.</div>
+      ${bootRequest(b, st)}
     </div>
   </article>`;
 }
@@ -718,7 +736,7 @@ function bootcampsView() {
   return `
   <a class="linkbtn mobonly" href="#/home" style="text-decoration:none;font-weight:700;align-self:flex-start">← Home</a>
   <header><div class="eyebrow">Mandarin Zest Club</div><h1>Bootcamps</h1>
-    <p class="muted" style="margin:6px 0 0;line-height:1.5;max-width:640px">Short, intensive courses run by our teachers. As a Club member you pay the Club price. To join, message one of the hosts and they'll sign you up.</p></header>
+    <p class="muted" style="margin:6px 0 0;line-height:1.5;max-width:640px">Short, intensive courses run by our teachers. As a Club member you pay the Club price. To join, tap “Request to join” and a host will email you to sign you up.</p></header>
   ${state.bootcamps === null ? `<p class="muted small">Loading bootcamps…</p>`
     : state.bootcamps === "error" ? `<div class="card"><p class="small" style="margin:0">Couldn't load the bootcamps right now. <a href="${BOOTCAMPS_PAGE}" target="_blank" rel="noopener">See them on the website ↗</a></p></div>`
     : list.length ? `<div class="bootgrid">${list.map(({ b, st }) => bootCard(b, st)).join("")}</div>`
@@ -1259,7 +1277,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=36"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=37"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1713,7 +1731,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=36");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=37");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2035,6 +2053,16 @@ document.addEventListener("click", async (e) => {
     pickCountry(el.dataset.v);
   } else if (act === "map-zoom") {
     document.getElementById("worldmap")?._zoom?.(el.dataset.v === "in" ? 1.5 : 1 / 1.5);
+  } else if (act === "boot-ask") {
+    state.bootAsk = el.dataset.k; render();
+  } else if (act === "boot-cancel") {
+    state.bootAsk = null; render();
+  } else if (act === "boot-send") {
+    el.disabled = true;
+    const { data, error } = await sb.from("bootcamp_requests").insert({ bootcamp: el.dataset.k, title: el.dataset.title, status: el.dataset.status }).select("bootcamp, created_at").single();
+    if (error && error.code !== "23505") { el.disabled = false; toast("Couldn't send your request. Please try again."); return; }
+    state.bootReq.set(el.dataset.k, data?.created_at || new Date().toISOString());
+    state.bootAsk = null; state.bootJust = el.dataset.k; render();
   } else if (act === "hb-give") {
     el.disabled = true; await giveHongbao(el.dataset.id); el.disabled = false;
   } else if (act === "seasonal-ok") {
@@ -2202,4 +2230,4 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=36").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=37").catch(() => {});
