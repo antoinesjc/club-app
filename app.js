@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=33";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=33";
-import { COUNTRIES } from "./countries.js?v=33";
+import { createClient } from "./vendor/supabase.js?v=34";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=34";
+import { COUNTRIES } from "./countries.js?v=34";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 50% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=33";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=34";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -1259,7 +1259,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=33"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=34"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1532,6 +1532,31 @@ function draft() {
   return state.draft;
 }
 
+// ---------- Sticker collection book (Me page, under Avatar customization) ----------
+const STICKER_ICON = `<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M12 5H31L43 17V36A7 7 0 0 1 36 43H12A7 7 0 0 1 5 36V12A7 7 0 0 1 12 5Z" fill="#f37a48" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"/><path d="M31 5V13A4 4 0 0 0 35 17H43Z" fill="#ffd9c2" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><polygon points="22,17 24.4,22.8 30.6,23.2 25.8,27.2 27.3,33.3 22,30 16.7,33.3 18.2,27.2 13.4,23.2 19.6,22.8" fill="#fff"/></svg>`;
+function stickerBook() {
+  const got = new Set(isHost() ? STICKERS.map((t) => t.key) : myStickers());
+  const total = STICKERS.length, n = STICKERS.filter((t) => got.has(t.key)).length, pct = Math.round((n / total) * 100);
+  const slot = (k, i) => {
+    const t = stickerInfo(k), name = `${t.en} ${zh(t.zh)}`;
+    if (got.has(k)) return `<div class="sbslot got"${tipAttrs(name, t.how)}><span class="stkbig" style="--r:${[-4, 3, -2, 5, -3, 2][i % 6]}deg">${stickerSvg(k)}</span><b>${esc(t.en)}</b></div>`;
+    if (MYSTERY_STICKERS.has(k)) return `<div class="sbslot" role="img" aria-label="Surprise sticker"><span class="sbq" aria-hidden="true">?</span><span>???</span></div>`;
+    return `<div class="sbslot grey"${tipAttrs(name, t.how)}><span class="stkbig">${stickerSvg(k)}</span><span>${esc(t.en)}</span></div>`;
+  };
+  const page = (p) => `<section class="sbpage"><h3 class="sbtab" style="background:${p.color}">${esc(p.en)} <span>${zh(p.zh)}</span></h3>
+    <span class="sbcount" aria-label="${p.keys.filter((k) => got.has(k)).length} of ${p.keys.length} collected">${p.keys.filter((k) => got.has(k)).length}/${p.keys.length}</span>
+    <div class="sbgrid">${p.keys.map(slot).join("")}</div></section>`;
+  const half = Math.ceil(STICKER_PAGES.length / 2);
+  return `<section class="sbook" aria-label="My sticker collection">
+    <div class="sbhead"><span class="sbicon">${STICKER_ICON}</span>
+      <div><div class="sbeyebrow">My sticker collection · ${zh(["贴纸册", "貼紙冊"])}</div><div class="sbtotal">${n} of ${total} collected</div></div>
+      <div class="sbbar" role="progressbar" aria-valuemin="0" aria-valuemax="${total}" aria-valuenow="${n}" aria-label="Stickers collected"><i style="width:${pct}%"></i></div>
+      <span class="sbpct">${pct}%</span></div>
+    <div class="sbleaves"><div class="sbleaf">${STICKER_PAGES.slice(0, half).map(page).join("")}</div><div class="sbleaf">${STICKER_PAGES.slice(half).map(page).join("")}</div></div>
+    <p class="sbnote">${wide() ? "Hover over" : "Tap"} a grey sticker to see how to get it. Question marks are surprises, given at special events.${isHost() ? " Hosts have them all; members see their own collection." : ""}</p>
+  </section>`;
+}
+
 function profileView() {
   const d = draft(), info = fruitInfo(d.fruit), idx = trad() ? 1 : 0;
   const level = myLevel();
@@ -1607,6 +1632,8 @@ function profileView() {
     </div>
     </div>
     </details>
+
+    ${stickerBook()}
 
     <div class="grid2">
       <label class="field">Country
@@ -1684,7 +1711,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=33");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=34");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2172,4 +2199,4 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=33").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=34").catch(() => {});

@@ -492,3 +492,45 @@ details.custom > summary b { color: #8a3b14; }
 details.custom[open] { background: #fffaf3; }
 .custicon { width: 44px; height: 44px; flex: none; border-radius: 12px; background: #fff; display: grid; place-items: center; box-shadow: inset 0 0 0 1px #f6cfa9; }
 .custicon svg { width: 36px; height: 36px; display: block; }
+
+/* Sticker collection book (Me page) */
+.sbook { border-radius: 22px; background: #7a4a2a radial-gradient(circle at 20% 0%, rgba(255,255,255,.08), transparent 40%); padding: 14px 12px 16px; display: flex; flex-direction: column; gap: 16px; box-shadow: inset 0 0 0 3px #6a3e22, 0 6px 16px rgba(42,36,32,.18); color: #fff4e8; }
+.sbhead { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 4px 12px; padding: 4px 6px 0; }
+.sbicon { width: 46px; height: 46px; border-radius: 12px; background: #fff4e8; display: grid; place-items: center; }
+.sbicon svg { width: 34px; height: 34px; }
+.sbeyebrow { font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; opacity: .8; }
+.sbtotal { font-size: 21px; font-weight: 800; }
+.sbbar { grid-column: 1 / -1; height: 10px; border-radius: 999px; background: rgba(255,255,255,.18); overflow: hidden; margin-top: 8px; }
+.sbbar i { display: block; height: 100%; border-radius: 999px; background: #f2b632; }
+.sbpct { display: none; font-size: 15px; font-weight: 800; }
+.sbleaves, .sbleaf { display: flex; flex-direction: column; gap: 22px; }
+.sbleaves { padding-top: 8px; }
+.sbpage { position: relative; color: var(--ink, #2a2420); border-radius: 6px 18px 18px 6px; padding: 30px 12px 12px; border-left: 5px solid #e7d3bf; box-shadow: 0 1px 0 #eadfd3, 0 3px 0 #f4ece3, 0 4px 10px rgba(42,36,32,.08); background: #fffdf8 repeating-linear-gradient(0deg, transparent 0 27px, #f3ebe2 27px 28px); }
+.sbtab { position: absolute; top: -10px; left: 14px; margin: 0; color: #fff; padding: 5px 12px; border-radius: 8px; font-size: 13.5px; font-weight: 800; box-shadow: 0 2px 0 rgba(0,0,0,.12); }
+.sbtab span { font-weight: 500; opacity: .9; margin-left: 4px; }
+.sbcount { position: absolute; top: 6px; right: 12px; font-size: 13px; font-weight: 800; color: #5c4f47; }
+.sbgrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.sbslot { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 2px 8px; border-radius: 14px; border: 2px dashed #e3d6cb; min-height: 104px; box-sizing: border-box; text-align: center; font-size: 12px; color: #8a7d74; line-height: 1.25; }
+.sbslot .stkbig { --z: 58px; }
+.sbslot.got { border-color: transparent; color: var(--ink, #2a2420); }
+.sbslot.got .stkbig { transform: rotate(var(--r, 0deg)); filter: drop-shadow(2px 0 0 #fff) drop-shadow(-2px 0 0 #fff) drop-shadow(0 2px 0 #fff) drop-shadow(0 -2px 0 #fff) drop-shadow(0 2px 3px rgba(42,36,32,.25)); }
+.sbslot.grey .stkbig { filter: grayscale(1) brightness(1.15) opacity(.38); }
+.sbslot[data-tip]:focus-visible { outline: 3px solid var(--green, #1b6f1b); outline-offset: 2px; }
+.sbq { width: 54px; height: 54px; border-radius: 12px; background: #e9e2db; display: grid; place-items: center; font-size: 28px; font-weight: 800; color: #b3a69c; }
+.sbnote { margin: 0; font-size: 12px; color: #f4e3d3; text-align: center; padding: 0 10px; }
+@media (min-width: 900px) {
+  .sbook { padding: 18px 20px 20px; }
+  .sbhead { grid-template-columns: auto auto 1fr auto; gap: 14px; }
+  .sbbar { grid-column: auto; margin: 0 0 0 16px; height: 12px; }
+  .sbpct { display: block; }
+  .sbleaves { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border-radius: 10px; box-shadow: 0 1px 0 #eadfd3, 0 3px 0 #f4ece3, 0 5px 0 #eadfd3, 0 8px 14px rgba(0,0,0,.18); }
+  .sbleaf { padding: 22px 14px 18px; background: #fffdf8 repeating-linear-gradient(0deg, transparent 0 27px, #f3ebe2 27px 28px); }
+  .sbleaf:first-child { border-radius: 10px 0 0 10px; box-shadow: inset -18px 0 18px -14px rgba(90,60,30,.28); }
+  .sbleaf:last-child { border-radius: 0 10px 10px 0; box-shadow: inset 18px 0 18px -14px rgba(90,60,30,.28); }
+  .sbpage { background: none; box-shadow: none; border: 0; border-radius: 0; padding: 34px 2px 4px; }
+  .sbtab { top: 0; left: 2px; }
+  .sbcount { top: 4px; right: 4px; }
+  .sbgrid { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+  .sbslot .stkbig { --z: 64px; }
+  .sbnote { font-size: 13px; }
+}

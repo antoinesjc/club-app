@@ -98,3 +98,13 @@ export function stickerForBootcamp(title) {
   const t = String(title || "").toLowerCase();
   return STICKERS.find((s) => t.includes(s.bootcamp))?.key || "";
 }
+
+// Sticker collection book (Me page): pages in this order. Every sticker key must be in exactly one page.
+// Stickers in MYSTERY_STICKERS show as a grey "?" until collected (no unlock info given).
+export const STICKER_PAGES = [
+  { en: "Bootcamps", zh: ["训练营", "訓練營"], color: "#f37a48", keys: ["boba", "tones", "brush"] },
+  { en: "Club life", zh: ["社团生活", "社團生活"], color: "#1b6f1b", keys: ["founder", "phone", "heart"] },
+  { en: "Achievements", zh: ["成就", "成就"], color: "#c98d12", keys: ["medal"] },
+  { en: "Festivals & events", zh: ["节日活动", "節日活動"], color: "#a63d6b", keys: ["turkey", "lantern", "mooncake", "dumpling"] },
+];
+export const MYSTERY_STICKERS = new Set(["lantern", "mooncake", "dumpling"]);
