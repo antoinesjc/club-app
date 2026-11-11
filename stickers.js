@@ -49,7 +49,7 @@ export const STICKERS = [
       <text x="32" y="39" text-anchor="middle" font-family="'Noto Sans SC',sans-serif" font-size="19" font-weight="700" fill="#9a6326">月</text>`,
   },
   {
-    key: "phone", how: "Be active on the Club Discord: ask questions, help other students, share what you're learning. A host gives it to you.",
+    key: "phone", how: "Be active on the Club Discord: ask questions, help other students, share what you're learning. The Mandarin Zest team gives it to you.",
     zh: ["手机", "手機"], en: "Smartphone", bootcamp: "discord",
     svg: `<rect x="17" y="3" width="30" height="58" rx="7" fill="#2a2420"/>
       <rect x="20.5" y="10" width="23" height="42" rx="2.5" fill="#5865f2"/>
