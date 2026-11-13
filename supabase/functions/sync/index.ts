@@ -1,6 +1,6 @@
 // One endpoint for the background jobs:
 //   {action:"calendar"}            Google Calendar → sessions   (every 15 min, pg_cron)
-//   {action:"notify"}              reminders, new sessions, notes (every 5 min, pg_cron)
+//   {action:"notify"}              reminders, new sessions, notes, cancelled/moved sessions (every 5 min, pg_cron)
 //   {action:"stripe"}              Stripe → members_stripe      (daily, pg_cron)
 //   {action:"sheet", rows:[...]}   "Members" tab → members_manual, returns the Stripe list
 //                                  for the "From Stripe" tab    (Apps Script, on edit + hourly)
@@ -33,22 +33,72 @@ async function syncCalendar() {
   if (!res.ok) throw new Error(`Calendar feed: HTTP ${res.status}`);
   const from = new Date(Date.now() - 35 * 864e5);
   const to = new Date(Date.now() + 180 * 864e5);
-  const rows = parseIcs(ICAL, await res.text(), from, to).map((r: Record<string, unknown>) => ({
+  type Row = { id: string; starts_at: string; [k: string]: unknown };
+  const rows: Row[] = parseIcs(ICAL, await res.text(), from, to).map((r: Row) => ({
     ...r, cancelled: false, synced_at: new Date().toISOString(),
   }));
-  if (rows.length) {
-    const { error } = await db.from("sessions").upsert(rows);
+  // Safety: an empty feed is a broken feed, not "every session was cancelled".
+  if (!rows.length) throw new Error("Calendar feed has no sessions; nothing changed");
+  const nowMs = Date.now();
+  // What we knew about these sessions before this sync (to spot moved ones).
+  const before = new Map<string, { starts_at: string; cancelled: boolean }>();
+  const allIds = rows.map((r) => r.id);
+  for (let i = 0; i < allIds.length; i += 100) {
+    const { data, error } = await db.from("sessions").select("id, starts_at, cancelled").in("id", allIds.slice(i, i + 100));
     if (error) throw error;
+    for (const s of data ?? []) before.set(s.id, s);
   }
-  // Upcoming sessions that left the feed were cancelled or deleted.
-  const ids = new Set(rows.map((r: { id: string }) => r.id));
-  const { data: upcoming, error: e2 } = await db.from("sessions").select("id")
-    .gte("starts_at", new Date().toISOString()).eq("cancelled", false);
+  const { data: upcoming, error: e2 } = await db.from("sessions").select("id, starts_at")
+    .gte("starts_at", new Date(nowMs).toISOString()).eq("cancelled", false);
   if (e2) throw e2;
-  const gone = (upcoming ?? []).map((r) => r.id).filter((id) => !ids.has(id));
-  if (gone.length) await db.from("sessions").update({ cancelled: true }).in("id", gone);
+  const ids = new Set(allIds);
+  const gone = (upcoming ?? []).filter((r) => !ids.has(r.id)).sort((a, b) => a.starts_at.localeCompare(b.starts_at));
+  // Safety: a half-broken feed shouldn't cancel most of the calendar at once.
+  if (gone.length > 15 && gone.length > (upcoming ?? []).length / 2) throw new Error(`Feed lost ${gone.length} upcoming sessions; nothing changed`);
+
+  const { error } = await db.from("sessions").upsert(rows);
+  if (error) throw error;
+
+  // Changes for members who said "I'm in": moved (same id, new time) ...
+  const changes: { kind: string; session_id: string; old_starts_at: string | null }[] = [];
+  for (const r of rows as { id: string; starts_at: string }[]) {
+    const b = before.get(r.id);
+    if (b && !b.cancelled && Math.abs(Date.parse(b.starts_at) - Date.parse(r.starts_at)) >= 60e3
+        && Math.max(Date.parse(b.starts_at), Date.parse(r.starts_at)) > nowMs) {
+      changes.push({ kind: "rescheduled", session_id: r.id, old_starts_at: b.starts_at });
+    }
+  }
+  // ... or left the feed: a one-off event moved to another day comes back with a new id (same calendar
+  // event, new start), so pair it with the closest new session of that event within 30 days and carry
+  // the "I'm in"s over. Otherwise it was cancelled or deleted.
+  const fresh = rows.filter((r) => !before.has(r.id) && Date.parse(r.starts_at) > nowMs);
+  const used = new Set<string>();
+  for (const g of gone) {
+    const uid = g.id.split("|")[0];
+    const dist = (r: { starts_at: string }) => Math.abs(Date.parse(r.starts_at) - Date.parse(g.starts_at));
+    const match = fresh.filter((r) => !used.has(r.id) && r.id.split("|")[0] === uid && dist(r) <= 30 * 864e5)
+      .sort((x, y) => dist(x) - dist(y))[0];
+    if (match) {
+      used.add(match.id);
+      await db.from("interests").update({ session_id: match.id }).eq("session_id", g.id);
+      changes.push({ kind: "rescheduled", session_id: match.id, old_starts_at: g.starts_at });
+    } else {
+      changes.push({ kind: "cancelled", session_id: g.id, old_starts_at: null });
+    }
+  }
+  if (gone.length) await db.from("sessions").update({ cancelled: true }).in("id", gone.map((g) => g.id));
+  if (changes.length) {
+    await db.from("session_changes").insert(changes);
+    // A moved session gets a fresh 1-hour reminder at its new time.
+    const moved = changes.filter((c) => c.kind === "rescheduled").map((c) => c.session_id);
+    if (moved.length) await db.from("notify_log").delete().eq("kind", "reminder").in("session_id", moved);
+  }
   const announced = await queueNewSeries(db, rows);
-  return { sessions: rows.length, cancelled: gone.length, announced };
+  return {
+    sessions: rows.length, announced,
+    cancelled: changes.filter((c) => c.kind === "cancelled").length,
+    rescheduled: changes.filter((c) => c.kind === "rescheduled").length,
+  };
 }
 
 async function syncStripe() {

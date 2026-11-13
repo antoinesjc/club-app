@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=37";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=37";
-import { COUNTRIES } from "./countries.js?v=37";
+import { createClient } from "./vendor/supabase.js?v=38";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=38";
+import { COUNTRIES } from "./countries.js?v=38";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 50% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=37";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=38";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -1277,7 +1277,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=37"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=38"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1731,7 +1731,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=37");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=38");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -1826,7 +1826,7 @@ function notificationsCard() {
   return `<section class="stack" style="gap:10px" aria-label="Notifications">
     <h2>Notifications</h2>
     ${device}
-    ${tog("notify_reminders", "Session reminders", "1 hour before sessions you said you'd join")}
+    ${tog("notify_reminders", "Session reminders and changes", "1 hour before sessions you said you'd join, and if one is cancelled or moved")}
     ${tog("notify_new", "New sessions", "When a new session is added to the calendar")}
     ${tog("notify_notes", "Notes are up", "When your host shares the notes of a session you joined")}
     ${tog("notify_email", "Email me instead", "For reminders and notes, when this app can't notify you")}
@@ -2230,4 +2230,4 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=37").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=38").catch(() => {});

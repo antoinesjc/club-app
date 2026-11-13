@@ -3,6 +3,8 @@
 //   reminder     1 hour before a session, to members who said "I'm in"
 //   new_session  a new session (new calendar series) appears, to everyone who wants it (push only)
 //   notes        the host published the notes, to attendees and "I'm in" members
+//   cancelled    a session left the calendar, to "I'm in" members (setting: session reminders)
+//   rescheduled  a session moved to another time, to "I'm in" members (setting: session reminders)
 import webpush from "npm:web-push@3.6.7";
 // deno-lint-ignore no-explicit-any
 type DB = any;
@@ -11,7 +13,7 @@ const APP_URL = "https://app.mandarinzest.com";
 const FROM = "Mandarin Zest Club <club@mandarinzest.com>";
 
 type Target = { user_id: string; email: string; name: string; timezone: string; allow_email: boolean };
-type Session = { id: string; title: string; starts_at: string; meet_url: string; host_name: string };
+type Session = { id: string; title: string; starts_at: string; meet_url: string; host_name: string; old_starts_at?: string | null };
 
 function when(s: Session, tz: string) {
   const opts: Intl.DateTimeFormatOptions = { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" };
@@ -25,6 +27,18 @@ function message(kind: string, s: Session, t: Target) {
     body: `${when(s, t.timezone)}${s.host_name ? ` · host ${s.host_name}` : ""}. Tap to join.`,
     url: `${APP_URL}/#/home`,
     tag: `reminder-${s.id}`,
+  };
+  if (kind === "cancelled") return {
+    title: `Cancelled: ${s.title}`,
+    body: `The session on ${when(s, t.timezone)} has been cancelled. Sorry about that! Have a look at the other upcoming sessions in the app.`,
+    url: `${APP_URL}/#/home`,
+    tag: `cancelled-${s.id}`,
+  };
+  if (kind === "rescheduled") return {
+    title: `New time: ${s.title}`,
+    body: `${s.old_starts_at ? `Moved from ${when({ ...s, starts_at: s.old_starts_at }, t.timezone)} to` : "Now on"} ${when(s, t.timezone)}. You're still in. Can't make it anymore? You can change that in the app.`,
+    url: `${APP_URL}/#/home`,
+    tag: `moved-${s.id}`,
   };
   if (kind === "new_session") return {
     title: `New session: ${s.title}`,
@@ -101,6 +115,18 @@ async function deliver(db: DB, kind: string, s: Session) {
   return { push, email };
 }
 
+// Cancelled and moved sessions, recorded by the calendar sync.
+async function runChanges(db: DB, out: Record<string, unknown>) {
+  const { data: changes } = await db.from("session_changes").select("*").is("done_at", null).order("id").limit(20);
+  for (const c of changes ?? []) {
+    const { data: s } = await db.from("sessions").select("id, title, starts_at, meet_url, host_name, cancelled").eq("id", c.session_id).maybeSingle();
+    // Skip if it came back (cancelled) or was cancelled after all (moved), or is already over.
+    const skip = !s || (c.kind === "cancelled" ? !s.cancelled : s.cancelled) || Date.parse(s.starts_at) < Date.now() - 3600e3;
+    if (!skip) out[`${c.kind}:${s.title}`] = await deliver(db, c.kind, { ...s, old_starts_at: c.old_starts_at });
+    await db.from("session_changes").update({ done_at: new Date().toISOString() }).eq("id", c.id);
+  }
+}
+
 export async function runNotify(db: DB) {
   const { data: pub } = await db.rpc("app_secret", { p_name: "vapid_public" });
   const { data: priv } = await db.rpc("app_secret", { p_name: "vapid_private" });
@@ -115,7 +141,10 @@ export async function runNotify(db: DB) {
     .lte("starts_at", new Date(now + 75 * 60e3).toISOString());
   for (const s of soon ?? []) out[`reminder:${s.title}`] = await deliver(db, "reminder", s);
 
-  // 2. Queued work: new sessions and published notes.
+  // 2. Cancelled and moved sessions.
+  await runChanges(db, out);
+
+  // 3. Queued work: new sessions and published notes.
   const { data: queue } = await db.from("notify_outbox").select("*").is("done_at", null).order("id").limit(20);
   for (const q of queue ?? []) {
     const { data: s } = await db.from("sessions").select("id, title, starts_at, meet_url, host_name, cancelled").eq("id", q.session_id).single();
@@ -153,7 +182,7 @@ export async function sendTest(db: DB, userId: string) {
   webpush.setVapidDetails("mailto:club@mandarinzest.com", pub, priv);
   return pushTo(db, userId, JSON.stringify({
     title: "Notifications are on",
-    body: "You'll hear from the Club here: reminders, new sessions and notes.",
+    body: "You'll hear from the Club here: reminders, cancelled or moved sessions, new sessions and notes.",
     url: `${APP_URL}/#/me`, tag: "test",
   }));
 }
