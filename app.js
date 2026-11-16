@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=39";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=39";
-import { COUNTRIES } from "./countries.js?v=39";
+import { createClient } from "./vendor/supabase.js?v=40";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=40";
+import { COUNTRIES } from "./countries.js?v=40";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 50% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=39";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=40";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -133,6 +133,7 @@ function toast(msg) {
 }
 
 const ICON = {
+  gear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
   home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11 l9 -7 l9 7 v9 a1 1 0 0 1 -1 1 h-5 v-6 h-6 v6 h-5 a1 1 0 0 1 -1 -1z"/></svg>',
   cal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10 h18 M8 3 v4 M16 3 v4"/></svg>',
   people: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20 a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14 a5 5 0 0 1 6 5"/></svg>',
@@ -438,7 +439,7 @@ function nav() {
   const item = (id, label, icon) => `<a href="#/${id}" ${r === id ? 'aria-current="page"' : ""}>${icon}<span>${label}</span></a>`;
   return `<nav class="nav" aria-label="Main">
     <div class="brand"><img src="icons/logo.png" alt=""><span>MANDARIN ZEST CLUB</span></div>
-    ${item("home", "Home", ICON.home)}${item("sessions", "My sessions", ICON.cal)}${item("notes", "My notes", ICON.notebook).replace("<a ", '<a class="deskonly" ')}${item("members", "Members", ICON.people)}${item("bootcamps", "Bootcamps", ICON.seedling).replace("<a ", '<a class="deskonly" ')}${item("me", "Me", ICON.me)}
+    ${item("home", "Home", ICON.home)}${item("sessions", "My sessions", ICON.cal)}${item("notes", "My notes", ICON.notebook).replace("<a ", '<a class="deskonly" ')}${item("members", "Members", ICON.people)}${item("bootcamps", "Bootcamps", ICON.seedling).replace("<a ", '<a class="deskonly" ')}${item("me", "Me", ICON.me)}${item("settings", "Settings", ICON.gear).replace("<a ", '<a class="deskonly" ')}
     <a class="navchat" href="${DISCORD_CHAT}" target="_blank" rel="noopener">${ICON.chat}<span>Chat on Discord</span></a>
   </nav>`;
 }
@@ -447,7 +448,7 @@ function render() {
   if (!state.user) { app.innerHTML = loginView(); return; }
   if (!state.role) { app.innerHTML = notMemberView(); return; }
   if (!state.loaded) return;
-  const views = { home: homeView, sessions: mySessionsView, members: membersView, me: profileView, host: hostView, member: memberView, bootcamps: bootcampsView, unlocks: unlocksView, notes: notesView };
+  const views = { home: homeView, sessions: mySessionsView, members: membersView, me: profileView, host: hostView, member: memberView, bootcamps: bootcampsView, unlocks: unlocksView, notes: notesView, settings: settingsView };
   const blocked = route() === "host" && !isHost();
   const view = blocked ? homeView : (views[route()] || homeView);
   app.innerHTML = `<div class="shell ${trad() ? "zh-trad" : ""}">${nav()}<main class="main" id="main">${view()}</main></div>${hongbaoOverlay()}${seasonalOverlay()}`;
@@ -1277,7 +1278,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=39"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=40"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1714,8 +1715,6 @@ function profileView() {
     </div>
     </details>
 
-    ${stickerBook()}
-
     <div class="grid2">
       <label class="field">Country
         <select class="input" name="country">
@@ -1746,6 +1745,7 @@ function profileView() {
   </form>
 
   ${hongbaoMeCard()}
+  ${stickerBook()}
   <section class="stack" style="gap:8px" aria-label="My personal discount code">
     <h2>My personal discount code</h2>
     <div class="row" style="gap:10px;flex-wrap:wrap;align-items:center">
@@ -1754,7 +1754,7 @@ function profileView() {
     </div>
     <span class="small muted">50% off all Mandarin Zest materials. Enter the code at checkout.</span>
   </section>
-  ${notificationsCard()}
+  <div class="mobonly" style="display:contents">${notificationsCard()}</div>
   ${installHint(true)}
   <div class="row between">
     <span class="small muted">${esc(state.user.email)}</span>
@@ -1792,7 +1792,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=39");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=40");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -1866,6 +1866,12 @@ async function downloadNotesPdf(sid) {
 // ---------------------------------------------------------------------------
 // Notifications
 // ---------------------------------------------------------------------------
+// Desktop: settings get their own tab in the sidebar (on the phone they stay at the bottom of Me).
+function settingsView() {
+  return `<header><div class="eyebrow">Mandarin Zest Club</div><h1>Settings</h1></header>
+  ${notificationsCard()}`;
+}
+
 function notificationsCard() {
   const p = state.push, me = state.me;
   let device;
@@ -2295,4 +2301,4 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=39").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=40").catch(() => {});
