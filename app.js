@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=44";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=44";
-import { COUNTRIES } from "./countries.js?v=44";
+import { createClient } from "./vendor/supabase.js?v=45";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=45";
+import { COUNTRIES } from "./countries.js?v=45";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 50% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=44";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=45";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -1280,7 +1280,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=44"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=45"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1794,7 +1794,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=44");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=45");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -1883,6 +1883,7 @@ const BC_CHANNEL = [
   ["push", "App notification only", "Only people who turned on notifications in the app get it."],
   ["fallback", "App notification, or email if they can't get one", "Everyone gets it once: in the app if they can, otherwise by email."],
   ["both", "App notification and email", "Everyone gets an email too, even if they got the app notification."],
+  ["email", "Email only", "No app notification. Good for longer news or people who rarely open the app."],
 ];
 const bcState = () => (state.bc ??= { title: "", body: "", page: "home", audience: "all", channel: "push", ids: new Set(), q: "", confirm: false, busy: false });
 const firstName = (n) => String(n || "").trim().split(/\s+/)[0] || "there";
@@ -1906,6 +1907,7 @@ function bcReachText() {
   const { n, app } = bcReach(), b = bcState();
   if (!n) return "Nobody selected yet.";
   const who = `${n} ${n === 1 ? "person" : "people"}`;
+  if (b.channel === "email") return `${who} · by email`;
   if (app == null) return who;
   const noApp = n - app;
   return `${who} · ${app} with app notifications on${noApp ? ` · ${noApp} without${b.channel === "push" ? " (they won't get it)" : " (they'll get an email)"}` : ""}`;
@@ -1961,7 +1963,7 @@ function adminView() {
         </div>
         <div><div class="bclabel">How</div>
           <div class="stack" style="gap:8px">${BC_CHANNEL.map(([k, l, h]) => `<label class="bcradio"><input type="radio" name="bcchannel" data-act-change="bc-ch" value="${k}" ${b.channel === k ? "checked" : ""}><span><b>${l}</b><br><span class="small muted">${h}</span></span></label>`).join("")}</div>
-          <p class="small muted" style="margin:8px 0 0">People who turned off emails in their settings never get one.</p>
+          <p class="small muted" style="margin:8px 0 0">People who turned off emails in their settings never get one. Email limit on the free plan: 100 a day and 3,000 a month, shared with reminders and bootcamp requests.</p>
         </div>
       </div>
       <div class="stack bcside" style="gap:12px">
@@ -1993,7 +1995,9 @@ async function bcSend(test) {
     body: JSON.stringify({ title: b.title, body: b.body, page: b.page, audience: b.audience, ids: [...b.ids], channel: b.channel, test }),
   }).then((r) => r.json()).catch(() => ({ ok: false }));
   if (!res.ok) { toast(res.error || "Couldn't send it. Please try again."); return false; }
-  if (test) toast(res.push ? "Test sent to your devices." : res.email ? "Test sent to your email." : "No device of yours has app notifications on. Turn them on in Settings to see the test.");
+  if (test) toast(res.push && res.email ? "Test sent to your devices and your email." : res.push ? "Test sent to your devices." : res.email ? "Test sent to your email."
+    : b.channel === "email" ? (res.emailOff ? "Emails are off until the Resend key is set." : "Couldn't email you. Check that emails are on in your Settings.")
+    : "No device of yours has app notifications on. Turn them on in Settings to see the test.");
   else toast(`Sent: ${res.push} in the app, ${res.email} by email${res.unreached ? `. ${res.unreached} not reached (no app notifications${b.channel === "push" ? "" : " and no email"})` : ""}.${res.emailOff && b.channel !== "push" ? " Emails are off until the Resend key is set." : ""}`);
   return true;
 }
@@ -2483,4 +2487,4 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=44").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=45").catch(() => {});

@@ -1,9 +1,10 @@
 // Admin tab → "Send a notification". Admins only (checked here from the caller's login).
 // Body: { title, body, page, audience: "all"|"members"|"hosts"|"pick", ids?: string[],
-//         channel: "push"|"fallback"|"both", test?: boolean }
+//         channel: "push"|"fallback"|"both"|"email", test?: boolean }
 // {name} in the title or message becomes each person's first name.
 // channel: push = app notification only; fallback = app notification, or email if they can't get one;
-//          both = app notification and email. Nobody who turned emails off in Settings gets an email.
+//          both = app notification and email; email = email only.
+// Nobody who turned emails off in Settings gets an email. Emails go out in batches of 100 (one Resend call each).
 import { createClient } from "npm:@supabase/supabase-js@2";
 import webpush from "npm:web-push@3.6.7";
 
@@ -40,19 +41,28 @@ async function pushTo(userId: string, payload: string) {
   return ok;
 }
 
-async function sendEmail(key: string, to: string, name: string | null, title: string, body: string, url: string) {
-  const html = `<div style="font-family:Arial,sans-serif;color:#2a2420;max-width:480px">
+function emailHtml(name: string | null, title: string, body: string, url: string) {
+  return `<div style="font-family:Arial,sans-serif;color:#2a2420;max-width:480px">
     <p>Hi ${esc(first(name))},</p>
     <h2 style="margin:0 0 8px">${esc(title)}</h2>
     <p style="white-space:pre-line">${esc(body)}</p>
     <p><a href="${url}" style="display:inline-block;background:#1b6f1b;color:#fff;font-weight:bold;padding:12px 20px;border-radius:999px;text-decoration:none">Open the Club app</a></p>
     <p style="color:#6f625a;font-size:12px">From the Mandarin Zest Club team. You can turn off emails in the app under Settings → Notifications.</p></div>`;
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST", headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from: FROM, to: [to], subject: title, html }),
-  });
-  if (!res.ok) console.error("Resend:", res.status, await res.text());
-  return res.ok;
+}
+
+// Resend batch API: up to 100 emails per call. Returns which ones went out (by position).
+async function sendEmails(key: string, mails: { to: string; subject: string; html: string }[]) {
+  const ok = new Set<number>();
+  for (let i = 0; i < mails.length; i += 100) {
+    const chunk = mails.slice(i, i + 100);
+    const res = await fetch("https://api.resend.com/emails/batch", {
+      method: "POST", headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify(chunk.map((m) => ({ from: FROM, to: [m.to], subject: m.subject, html: m.html }))),
+    });
+    if (res.ok) chunk.forEach((_, j) => ok.add(i + j));
+    else console.error("Resend:", res.status, await res.text());
+  }
+  return ok;
 }
 
 Deno.serve(async (req) => {
@@ -68,7 +78,7 @@ Deno.serve(async (req) => {
     const b = await req.json().catch(() => ({}));
     const title = String(b.title ?? "").trim().slice(0, 80), body = String(b.body ?? "").trim().slice(0, 300);
     if (!title || !body) return json({ ok: false, error: "Add a title and a message." }, 400);
-    const channel = ["push", "fallback", "both"].includes(b.channel) ? b.channel : "push";
+    const channel = ["push", "fallback", "both", "email"].includes(b.channel) ? b.channel : "push";
     const page = PAGES.has(b.page) ? b.page : "home";
     const url = `${APP_URL}/#/${page}`;
     const audience = ["all", "members", "hosts", "pick"].includes(b.audience) ? b.audience : "all";
@@ -87,19 +97,22 @@ Deno.serve(async (req) => {
     webpush.setVapidDetails("mailto:club@mandarinzest.com", pub, priv);
     const key = Deno.env.get("RESEND_API_KEY") ?? "";
 
-    let sentPush = 0, sentEmail = 0, unreached = 0;
     const tag = `admin-${Date.now()}`;
+    const reached = new Map<string, boolean>();
+    const mails: { to: string; subject: string; html: string; user: string }[] = [];
+    let sentPush = 0;
     for (const r of list) {
       const t = fill(title, r.name), m = fill(body, r.name);
-      const pushed = await pushTo(r.user_id, JSON.stringify({ title: t, body: m, url, tag }));
-      let emailed = false;
-      if (key && r.email && r.allow_email && (channel === "both" || (channel === "fallback" && !pushed))) {
-        emailed = await sendEmail(key, r.email, r.name, t, m, url);
-      }
+      const pushed = channel === "email" ? 0 : await pushTo(r.user_id, JSON.stringify({ title: t, body: m, url, tag }));
       if (pushed) sentPush++;
-      if (emailed) sentEmail++;
-      if (!pushed && !emailed) unreached++;
+      reached.set(r.user_id, pushed > 0);
+      const wantEmail = channel === "both" || channel === "email" || (channel === "fallback" && !pushed);
+      if (key && r.email && r.allow_email && wantEmail) mails.push({ to: r.email, subject: t, html: emailHtml(r.name, t, m, url), user: r.user_id });
     }
+    const okIdx = mails.length ? await sendEmails(key, mails) : new Set<number>();
+    for (const i of okIdx) reached.set(mails[i].user, true);
+    const sentEmail = okIdx.size;
+    const unreached = [...reached.values()].filter((v) => !v).length;
     if (!b.test) {
       await db.from("admin_broadcasts").insert({
         title, body, url, audience: audience === "pick" ? `${list.length} chosen` : audience, channel,
