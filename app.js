@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=42";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=42";
-import { COUNTRIES } from "./countries.js?v=42";
+import { createClient } from "./vendor/supabase.js?v=43";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=43";
+import { COUNTRIES } from "./countries.js?v=43";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 50% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=42";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=43";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -453,6 +453,7 @@ function render() {
   const blocked = route() === "host" && !isHost();
   const view = blocked ? homeView : (views[route()] || homeView);
   app.innerHTML = `<div class="shell ${trad() ? "zh-trad" : ""}">${nav()}<main class="main" id="main">${view()}</main></div>${hongbaoOverlay()}${seasonalOverlay()}`;
+  if (state.pushAsk && !app.querySelector(".hbover")) app.insertAdjacentHTML("beforeend", pushOverlay());
   wireMap();
 }
 
@@ -1279,7 +1280,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=42"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=43"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1793,7 +1794,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=42");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=43");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2035,8 +2036,30 @@ async function checkPush() {
     const sub = await reg.pushManager.getSubscription();
     state.push.subscribed = !!sub && Notification.permission === "granted";
     if (sub && state.push.subscribed) await saveSubscription(sub); // keep it attached to this account
+    // On by default: permission already given but no subscription (e.g. new phone, cleared data) → turn it back on quietly,
+    // unless they turned notifications off themselves.
+    if (!state.push.subscribed && Notification.permission === "granted" && !lsGet("mz-push-off")) await enablePush(true);
   } catch { /* ignore */ }
-  if (route() === "me") keepForm(() => render());
+  // Never asked on this device: offer it right away (browsers only allow it after a tap). "Not now" asks again in a week.
+  const later = Number(lsGet("mz-push-later") || 0);
+  if (state.push.permission === "default" && !state.push.subscribed && !lsGet("mz-push-off") && Date.now() - later > 7 * 864e5) state.pushAsk = true;
+  keepForm(() => render());
+}
+
+function lsGet(k) { try { return localStorage.getItem(k); } catch { return null; } }
+function lsSet(k, v) { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch { /* private mode */ } }
+
+function pushOverlay() {
+  if (!state.pushAsk || state.seasonalPopup || document.querySelector(".hbover")) return "";
+  return `<div class="hbover" role="dialog" aria-modal="true" aria-labelledby="pushasktitle">
+    <div class="hbbox">
+      <img src="icons/icon-192.png" alt="" style="width:72px;height:72px;border-radius:18px;align-self:center">
+      <h2 id="pushasktitle">Stay in the loop</h2>
+      <p class="muted" style="margin:0">Get a reminder 1 hour before the sessions you join, a heads-up if one is moved or cancelled, and news from the Club team.</p>
+      <button type="button" class="btn green block" data-act="push-ask-yes">${ICON.bell}Turn on notifications</button>
+      <button type="button" class="linkbtn" data-act="push-ask-no" style="align-self:center">Not now</button>
+      <p class="small muted" style="margin:0">You can turn them off anytime in ${wide() ? "Settings" : "Me"}.</p>
+    </div></div>`;
 }
 
 function b64ToBytes(b64) {
@@ -2052,22 +2075,24 @@ async function saveSubscription(sub) {
   return !error;
 }
 
-async function enablePush() {
+async function enablePush(quiet = false) {
   try {
     const perm = await Notification.requestPermission();
     state.push.permission = perm;
     if (perm !== "granted") { keepForm(() => render()); return; }
+    lsSet("mz-push-off", null);
     const reg = await navigator.serviceWorker.ready;
     const sub = (await reg.pushManager.getSubscription())
       || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToBytes(VAPID_PUBLIC) });
     if (!(await saveSubscription(sub))) throw new Error("save");
     state.push.subscribed = true;
+    if (quiet) return;
     toast("Notifications are on");
     keepForm(() => render());
     testPush(true);
   } catch (e) {
     console.error(e);
-    toast("Couldn't turn on notifications. Try again.");
+    if (!quiet) toast("Couldn't turn on notifications. Try again.");
   }
 }
 
@@ -2080,6 +2105,7 @@ async function disablePush() {
       await sub.unsubscribe();
     }
   } catch { /* ignore */ }
+  lsSet("mz-push-off", "1");
   state.push.subscribed = false;
   keepForm(() => render());
 }
@@ -2205,6 +2231,10 @@ document.addEventListener("click", async (e) => {
     state.installPrompt = null; render();
   } else if (act === "hide-install") {
     localStorage.setItem("mz-hide-install", "1"); render();
+  } else if (act === "push-ask-yes") {
+    state.pushAsk = false; render(); enablePush();
+  } else if (act === "push-ask-no") {
+    state.pushAsk = false; lsSet("mz-push-later", String(Date.now())); render();
   } else if (act === "push-on") {
     enablePush();
   } else if (act === "push-off") {
@@ -2453,4 +2483,4 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=42").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=43").catch(() => {});
