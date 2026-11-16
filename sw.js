@@ -1,9 +1,9 @@
 // Keeps the app shell available offline, and shows Club notifications.
 // Data always comes from the network.
-const VERSION = "mz-club-v43";
+const VERSION = "mz-club-v44";
 const SHELL = [
-  "./", "index.html", "styles.css?v=43", "app.js?v=43", "fruits.js?v=43", "hosts-art.js?v=43", "countries.js?v=43", "stickers.js?v=43", "worldmap.js?v=43",
-  "vendor/supabase.js?v=43", "manifest.webmanifest", "icons/logo.png", "icons/mascot.svg", "icons/icon-192.png",
+  "./", "index.html", "styles.css?v=44", "app.js?v=44", "fruits.js?v=44", "hosts-art.js?v=44", "countries.js?v=44", "stickers.js?v=44", "worldmap.js?v=44",
+  "vendor/supabase.js?v=44", "manifest.webmanifest", "icons/logo.png", "icons/mascot.svg", "icons/icon-192.png", "icons/badge-96.png",
 ];
 
 self.addEventListener("install", (e) => {
@@ -41,7 +41,7 @@ self.addEventListener("push", (e) => {
   e.waitUntil(self.registration.showNotification(m.title || "Mandarin Zest Club", {
     body: m.body || "",
     icon: "icons/icon-192.png",
-    badge: "icons/icon-192.png",
+    badge: "icons/badge-96.png", // white-on-transparent: Android paints this shape in the status bar
     tag: m.tag,
     data: { url: m.url || "./#/home" },
   }));
