@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=38";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=38";
-import { COUNTRIES } from "./countries.js?v=38";
+import { createClient } from "./vendor/supabase.js?v=39";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=39";
+import { COUNTRIES } from "./countries.js?v=39";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 50% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=38";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=39";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -1277,7 +1277,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=38"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=39"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1435,7 +1435,67 @@ function memberView() {
     <div class="stkrow">${got.map((k) => `<div class="stkitem"><span class="stkbig"${stickerTip(k, id)}>${stickerSvg(k)}</span><span class="small">${esc(stickerInfo(k).en)}</span></div>`).join("")}</div></section>` : ""; })()}
   ${full?.discord ? `<a class="chatcard" style="display:flex" href="${DISCORD_CHAT}" target="_blank" rel="noopener">${ICON.chat}<span class="grow"><b>@${esc(full.discord)}</b><br><span class="small">Say hi on the Club Discord</span></span><span aria-hidden="true" style="font-size:20px">↗</span></a>` : ""}
   ${hongbaoGiveBlock(id)}
+  ${isAdmin() ? activityBlock(id) : ""}
   ${isAdmin() ? adminXpBlock(id, r, awards) : ""}`;
+}
+
+// Admin: a member's activity (sessions attended, XP gained, stickers and avatars received).
+const ACT_FILTERS = [["all", "All"], ["session", "Sessions"], ["xp", "XP"], ["stickers", "Stickers"]];
+function activityBlock(id) {
+  state.activity ??= new Map();
+  const rows = state.activity.get(id);
+  if (rows === undefined) {
+    state.activity.set(id, "loading");
+    sb.rpc("member_activity", { p_user: id }).then(({ data, error }) => {
+      state.activity.set(id, error ? "error" : data || []);
+      if (route() === "member" && routeArg() === id) render();
+    });
+  }
+  const head = `<div class="row between" style="align-items:baseline"><h2>Activity</h2><span class="small muted">Admin only</span></div>`;
+  if (!Array.isArray(rows)) return `<section class="card actcard">${head}<p class="small muted" style="margin:0">${rows === "error" ? "Couldn't load the activity." : "Loading…"}</p></section>`;
+  const sessions = rows.filter((r) => r.kind === "session");
+  const xp = rows.reduce((t, r) => t + (r.points || 0), 0);
+  const month = new Date(); month.setDate(1); month.setHours(0, 0, 0, 0);
+  const xpMonth = rows.filter((r) => new Date(r.at) >= month).reduce((t, r) => t + (r.points || 0), 0);
+  const last = sessions[0] ? new Date(sessions[0].at) : null;
+  const filt = state.actFilter || "all";
+  const shown = rows.filter((r) => filt === "all" || (filt === "session" ? r.kind === "session" : filt === "xp" ? r.points : r.kind === "sticker" || r.kind === "avatar"));
+  const limit = state.actLimit || 25;
+  const dfmt = (d) => d.toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" });
+  const icon = (r) => r.kind === "sticker" && stickerInfo(r.title) ? `<span class="stkbig" style="--z:34px">${stickerSvg(r.title)}</span>`
+    : r.kind === "avatar" ? `<span class="acticon" style="background:#e0f4e0">${fruitSvg(r.title)}</span>`
+    : `<span class="acticon k-${r.kind}" aria-hidden="true">${{ session: "课", streak: "4", bootcamp: "营", bonus: "+", hongbao: "红" }[r.kind] || "+"}</span>`;
+  const label = (r) => r.kind === "session" ? esc(r.title)
+    : r.kind === "sticker" ? `Sticker · ${esc(stickerInfo(r.title)?.en || r.title)}`
+    : r.kind === "avatar" ? `Special avatar · ${esc(fruitInfo(r.title).en || r.title)}`
+    : r.kind === "streak" ? "Streak bonus · 4 weeks in a row"
+    : r.kind === "hongbao" ? "Hongbao 红包" : esc(r.title);
+  const sub = (r) => [dfmt(new Date(r.at)),
+    r.kind === "session" && r.detail ? `host ${esc(r.detail)}` : r.kind === "hongbao" && r.detail ? `from ${esc(r.detail)}` : r.detail ? esc(r.detail) : "",
+    r.by_name && r.kind !== "hongbao" ? `by ${esc(r.by_name)}` : ""].filter(Boolean).join(" · ");
+  let lastMonth = "", out = "";
+  for (const r of shown.slice(0, limit)) {
+    const d = new Date(r.at), m = d.toLocaleDateString([], { month: "long", year: "numeric" });
+    if (m !== lastMonth) {
+      lastMonth = m;
+      const inM = shown.filter((x) => new Date(x.at).toLocaleDateString([], { month: "long", year: "numeric" }) === m);
+      const pts = inM.reduce((t, x) => t + (x.points || 0), 0), ns = inM.filter((x) => x.kind === "session").length;
+      out += `<div class="actmonth"><b>${esc(m)}</b><span class="small muted">${[ns ? `${ns} session${ns === 1 ? "" : "s"}` : "", pts ? `${pts > 0 ? "+" : ""}${pts} XP` : ""].filter(Boolean).join(" · ")}</span></div>`;
+    }
+    out += `<div class="actrow">${icon(r)}<span class="grow"><b>${label(r)}</b><br><span class="small muted">${sub(r)}</span></span>
+      ${r.points ? `<span class="actpts${r.points < 0 ? " neg" : ""}">${r.points > 0 ? "+" : ""}${r.points} XP</span>` : ""}</div>`;
+  }
+  return `<section class="card actcard">${head}
+    <div class="actsum">
+      <div><b>${sessions.length}</b><span>sessions attended</span></div>
+      <div><b>${xp.toLocaleString()}</b><span>XP in total${xpMonth ? ` · ${xpMonth > 0 ? "+" : ""}${xpMonth} this month` : ""}</span></div>
+      <div><b>${rows.filter((r) => r.kind === "sticker").length}</b><span>stickers received</span></div>
+      <div><b>${last ? esc(last.toLocaleDateString([], { day: "numeric", month: "short" })) : "—"}</b><span>last session</span></div>
+    </div>
+    <div class="periods" style="justify-content:flex-start" role="group" aria-label="Show">${ACT_FILTERS.map(([k, l]) => `<button type="button" data-act="act-filter" data-v="${k}" aria-pressed="${filt === k}">${l}</button>`).join("")}</div>
+    <div class="actlist">${out || `<p class="small muted" style="margin:0">Nothing here yet.</p>`}</div>
+    ${shown.length > limit ? `<button type="button" class="btn ghost block" data-act="act-more">Show more (${shown.length - limit})</button>` : ""}
+  </section>`;
 }
 
 // Hosts (not admins) can give stickers, e.g. the phone sticker for being active on Discord.
@@ -1537,6 +1597,7 @@ async function giveXp(form) {
 }
 
 async function refreshBoard() {
+  state.activity?.clear();
   const { data } = await sb.rpc("xp_board");
   if (data) { state.board = data; for (const r of state.board) r.sticker = state.worn?.get(r.user_id) || null; }
   render();
@@ -1731,7 +1792,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=38");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=39");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2110,6 +2171,10 @@ document.addEventListener("click", async (e) => {
     await refreshBoard();
   } else if (act === "sticker") {
     keepForm(() => { draft().sticker = el.dataset.key || null; render(); });
+  } else if (act === "act-filter") {
+    state.actFilter = el.dataset.v; state.actLimit = 25; render();
+  } else if (act === "act-more") {
+    state.actLimit = (state.actLimit || 25) + 50; render();
   } else if (act === "award-del") {
     if (!confirm("Remove this XP award?")) return;
     const { error } = await sb.from("xp_awards").delete().eq("id", el.dataset.id);
@@ -2230,4 +2295,4 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=38").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=39").catch(() => {});
