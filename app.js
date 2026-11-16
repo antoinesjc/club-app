@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=41";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=41";
-import { COUNTRIES } from "./countries.js?v=41";
+import { createClient } from "./vendor/supabase.js?v=42";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=42";
+import { COUNTRIES } from "./countries.js?v=42";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 50% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=41";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=42";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -1279,7 +1279,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=41"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=42"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1793,7 +1793,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=41");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=42");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -1918,7 +1918,7 @@ function bcListHtml() {
 }
 function bcPreviewHtml() {
   const b = bcState(), me = state.me?.display_name;
-  return `<div class="bcnotif"><img src="icons/logo.png" alt=""><div class="grow"><div class="row between"><b>${esc(bcFill(b.title || "Title", me)) }</b><span class="small muted">now</span></div>
+  return `<div class="bcnotif"><img src="icons/icon-192.png" alt=""><div class="grow"><div class="row between"><b>${esc(bcFill(b.title || "Title", me)) }</b><span class="small muted">now</span></div>
     <div>${esc(bcFill(b.body || "Your message", me))}</div></div></div>`;
 }
 function bcUpdate() {
@@ -2453,4 +2453,4 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=41").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=42").catch(() => {});
