@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=40";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=40";
-import { COUNTRIES } from "./countries.js?v=40";
+import { createClient } from "./vendor/supabase.js?v=41";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=41";
+import { COUNTRIES } from "./countries.js?v=41";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 50% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=40";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=41";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -133,6 +133,7 @@ function toast(msg) {
 }
 
 const ICON = {
+  shield: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 l8 3 v6 c0 4.5 -3.4 8 -8 9 c-4.6 -1 -8 -4.5 -8 -9 v-6z"/><path d="M9 12 l2 2 l4 -4"/></svg>',
   gear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
   home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11 l9 -7 l9 7 v9 a1 1 0 0 1 -1 1 h-5 v-6 h-6 v6 h-5 a1 1 0 0 1 -1 -1z"/></svg>',
   cal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10 h18 M8 3 v4 M16 3 v4"/></svg>',
@@ -439,7 +440,7 @@ function nav() {
   const item = (id, label, icon) => `<a href="#/${id}" ${r === id ? 'aria-current="page"' : ""}>${icon}<span>${label}</span></a>`;
   return `<nav class="nav" aria-label="Main">
     <div class="brand"><img src="icons/logo.png" alt=""><span>MANDARIN ZEST CLUB</span></div>
-    ${item("home", "Home", ICON.home)}${item("sessions", "My sessions", ICON.cal)}${item("notes", "My notes", ICON.notebook).replace("<a ", '<a class="deskonly" ')}${item("members", "Members", ICON.people)}${item("bootcamps", "Bootcamps", ICON.seedling).replace("<a ", '<a class="deskonly" ')}${item("me", "Me", ICON.me)}${item("settings", "Settings", ICON.gear).replace("<a ", '<a class="deskonly" ')}
+    ${item("home", "Home", ICON.home)}${item("sessions", "My sessions", ICON.cal)}${item("notes", "My notes", ICON.notebook).replace("<a ", '<a class="deskonly" ')}${item("members", "Members", ICON.people)}${item("bootcamps", "Bootcamps", ICON.seedling).replace("<a ", '<a class="deskonly" ')}${item("me", "Me", ICON.me)}${item("settings", "Settings", ICON.gear).replace("<a ", '<a class="deskonly" ')}${isAdmin() ? item("admin", "Admin", ICON.shield).replace("<a ", '<a class="deskonly" ') : ""}
     <a class="navchat" href="${DISCORD_CHAT}" target="_blank" rel="noopener">${ICON.chat}<span>Chat on Discord</span></a>
   </nav>`;
 }
@@ -448,7 +449,7 @@ function render() {
   if (!state.user) { app.innerHTML = loginView(); return; }
   if (!state.role) { app.innerHTML = notMemberView(); return; }
   if (!state.loaded) return;
-  const views = { home: homeView, sessions: mySessionsView, members: membersView, me: profileView, host: hostView, member: memberView, bootcamps: bootcampsView, unlocks: unlocksView, notes: notesView, settings: settingsView };
+  const views = { home: homeView, sessions: mySessionsView, members: membersView, me: profileView, host: hostView, member: memberView, bootcamps: bootcampsView, unlocks: unlocksView, notes: notesView, settings: settingsView, admin: adminView };
   const blocked = route() === "host" && !isHost();
   const view = blocked ? homeView : (views[route()] || homeView);
   app.innerHTML = `<div class="shell ${trad() ? "zh-trad" : ""}">${nav()}<main class="main" id="main">${view()}</main></div>${hongbaoOverlay()}${seasonalOverlay()}`;
@@ -1278,7 +1279,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=40"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=41"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1792,7 +1793,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=40");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=41");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -1870,6 +1871,130 @@ async function downloadNotesPdf(sid) {
 function settingsView() {
   return `<header><div class="eyebrow">Mandarin Zest Club</div><h1>Settings</h1></header>
   ${notificationsCard()}`;
+}
+
+// ---------------------------------------------------------------------------
+// Admin tab (desktop sidebar, admins only): send a notification to members
+// ---------------------------------------------------------------------------
+const BC_PAGES = [["home", "Home"], ["sessions", "My sessions"], ["bootcamps", "Bootcamps"], ["members", "Members"], ["me", "Me"]];
+const BC_AUDIENCE = [["all", "Everyone"], ["members", "Members only"], ["hosts", "Hosts only"], ["pick", "Choose people"]];
+const BC_CHANNEL = [
+  ["push", "App notification only", "Only people who turned on notifications in the app get it."],
+  ["fallback", "App notification, or email if they can't get one", "Everyone gets it once: in the app if they can, otherwise by email."],
+  ["both", "App notification and email", "Everyone gets an email too, even if they got the app notification."],
+];
+const bcState = () => (state.bc ??= { title: "", body: "", page: "home", audience: "all", channel: "push", ids: new Set(), q: "", confirm: false, busy: false });
+const firstName = (n) => String(n || "").trim().split(/\s+/)[0] || "there";
+const bcFill = (t, n) => String(t).replace(/\{name\}/gi, firstName(n));
+function bcPeople() {
+  return [...state.profiles.values()].filter((p) => state.roles.get(p.id))
+    .sort((a, b) => String(a.display_name || "").localeCompare(String(b.display_name || "")));
+}
+function bcTargets() {
+  const b = bcState(), role = (p) => state.roles.get(p.id);
+  return bcPeople().filter((p) => b.audience === "members" ? role(p) === "member"
+    : b.audience === "hosts" ? role(p) === "host" || role(p) === "admin"
+    : b.audience === "pick" ? b.ids.has(p.id) : true);
+}
+function bcReach() {
+  const t = bcTargets(), reach = state.pushReach;
+  const app = reach ? t.filter((p) => reach.has(p.id)).length : null;
+  return { n: t.length, app };
+}
+function bcReachText() {
+  const { n, app } = bcReach(), b = bcState();
+  if (!n) return "Nobody selected yet.";
+  const who = `${n} ${n === 1 ? "person" : "people"}`;
+  if (app == null) return who;
+  const noApp = n - app;
+  return `${who} · ${app} with app notifications on${noApp ? ` · ${noApp} without${b.channel === "push" ? " (they won't get it)" : " (they'll get an email)"}` : ""}`;
+}
+function bcListHtml() {
+  const b = bcState(), q = b.q.trim().toLowerCase(), reach = state.pushReach;
+  const people = bcPeople().filter((p) => !q || String(p.display_name || "").toLowerCase().includes(q));
+  return people.map((p) => `<label class="bcperson"><input type="checkbox" data-bcpick="${p.id}" ${b.ids.has(p.id) ? "checked" : ""}>
+    ${avatar(p, 32, { flag: false })}<span class="grow"><b>${esc(p.display_name || "Member")}</b>${state.roles.get(p.id) !== "member" ? ` <span class="small muted">(host)</span>` : ""}</span>
+    ${reach && !reach.has(p.id) ? `<span class="small muted" title="No app notifications on any device">no app notif.</span>` : ""}</label>`).join("") || `<p class="small muted" style="margin:0">No one matches.</p>`;
+}
+function bcPreviewHtml() {
+  const b = bcState(), me = state.me?.display_name;
+  return `<div class="bcnotif"><img src="icons/logo.png" alt=""><div class="grow"><div class="row between"><b>${esc(bcFill(b.title || "Title", me)) }</b><span class="small muted">now</span></div>
+    <div>${esc(bcFill(b.body || "Your message", me))}</div></div></div>`;
+}
+function bcUpdate() {
+  const set = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
+  set("bcpreview", bcPreviewHtml()); set("bcreach", esc(bcReachText()));
+  const n = bcReach().n, b = bcState(), btn = document.getElementById("bcsend");
+  if (btn) { btn.disabled = !n || !b.title.trim() || !b.body.trim(); btn.textContent = `Send to ${n} ${n === 1 ? "person" : "people"}`; }
+  const t = document.getElementById("bctest"); if (t) t.disabled = !b.title.trim() || !b.body.trim();
+}
+
+function adminView() {
+  if (!isAdmin()) return `<div class="card"><h2>Admins only</h2></div>`;
+  const b = bcState();
+  if (!state.pushReach && !state.pushReachLoading) {
+    state.pushReachLoading = true;
+    sb.rpc("admin_push_reach").then(({ data }) => { state.pushReach = new Set((data || []).map((r) => (typeof r === "string" ? r : Object.values(r)[0]))); if (route() === "admin") render(); });
+  }
+  if (!state.broadcasts && !state.broadcastsLoading) {
+    state.broadcastsLoading = true;
+    sb.from("admin_broadcasts").select("*").order("created_at", { ascending: false }).limit(20)
+      .then(({ data }) => { state.broadcasts = data || []; state.broadcastsLoading = false; if (route() === "admin") render(); });
+  }
+  const n = bcReach().n, ready = n && b.title.trim() && b.body.trim();
+  const chLabel = (c) => (BC_CHANNEL.find((x) => x[0] === c) || [, c])[1];
+  return `<header><div class="eyebrow">Mandarin Zest Club</div><h1>Admin</h1></header>
+  <section class="card bccard">
+    <div class="row between" style="align-items:baseline"><h2>Send a notification</h2><span class="small muted">Admins only</span></div>
+    <div class="bcgrid">
+      <div class="stack" style="gap:14px">
+        <label class="field">Title<input class="input" data-bc="title" maxlength="80" value="${esc(b.title)}" placeholder="e.g. {name}, a new bootcamp is open!"></label>
+        <label class="field">Message<textarea class="input" data-bc="body" maxlength="300" rows="4" style="padding:12px 14px;resize:vertical">${esc(b.body)}</textarea></label>
+        <p class="small muted" style="margin:-6px 0 0">Type <code>{name}</code> to insert each person's first name.</p>
+        <label class="field">Tapping it opens
+          <select class="input" data-bc="page">${BC_PAGES.map(([k, l]) => `<option value="${k}" ${b.page === k ? "selected" : ""}>${l}</option>`).join("")}</select></label>
+        <div><div class="bclabel">Send to</div>
+          <div class="periods" style="justify-content:flex-start;flex-wrap:wrap" role="group" aria-label="Send to">${BC_AUDIENCE.map(([k, l]) => `<button type="button" data-act="bc-aud" data-v="${k}" aria-pressed="${b.audience === k}">${l}</button>`).join("")}</div>
+          ${b.audience === "pick" ? `<div class="bcpick"><div class="row" style="gap:8px"><input class="input grow" data-bc="q" placeholder="Search a name" value="${esc(b.q)}">
+            <button type="button" class="btn ghost" data-act="bc-none">Clear (${b.ids.size})</button></div><div id="bclist" class="bclist">${bcListHtml()}</div></div>` : ""}
+        </div>
+        <div><div class="bclabel">How</div>
+          <div class="stack" style="gap:8px">${BC_CHANNEL.map(([k, l, h]) => `<label class="bcradio"><input type="radio" name="bcchannel" data-act-change="bc-ch" value="${k}" ${b.channel === k ? "checked" : ""}><span><b>${l}</b><br><span class="small muted">${h}</span></span></label>`).join("")}</div>
+          <p class="small muted" style="margin:8px 0 0">People who turned off emails in their settings never get one.</p>
+        </div>
+      </div>
+      <div class="stack bcside" style="gap:12px">
+        <div class="bclabel">Preview <span class="small muted" style="font-weight:500">(with your name)</span></div>
+        <div id="bcpreview">${bcPreviewHtml()}</div>
+        <div class="bcreach" id="bcreach">${esc(bcReachText())}</div>
+        ${b.confirm ? `<div class="bootreq ask"><p style="margin:0"><b>Send this to ${n} ${n === 1 ? "person" : "people"} now?</b><br><span class="small">${esc(chLabel(b.channel))}. This can't be undone.</span></p>
+            <div class="row" style="gap:10px;flex-wrap:wrap"><button type="button" class="btn green grow" data-act="bc-send" ${b.busy ? "disabled" : ""}>${b.busy ? "Sending…" : "Yes, send it"}</button><button type="button" class="btn ghost" data-act="bc-cancel">Cancel</button></div></div>`
+          : `<button type="button" class="btn green block" id="bcsend" data-act="bc-ask" ${ready ? "" : "disabled"}>Send to ${n} ${n === 1 ? "person" : "people"}</button>`}
+        <button type="button" class="btn ghost block" id="bctest" data-act="bc-test" ${b.title.trim() && b.body.trim() ? "" : "disabled"}>Send me a test first</button>
+      </div>
+    </div>
+  </section>
+  <section class="card" style="gap:0">
+    <h2 style="margin-bottom:6px">Sent</h2>
+    ${!state.broadcasts ? `<p class="small muted" style="margin:0">Loading…</p>` : state.broadcasts.length ? state.broadcasts.map((x) => `<div class="awardrow" style="align-items:flex-start">
+      <span class="grow"><b>${esc(x.title)}</b><br><span class="small">${esc(x.body)}</span><br>
+      <span class="small muted">${esc(new Date(x.created_at).toLocaleString([], { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }))} · ${esc(x.audience === "all" ? "Everyone" : x.audience === "members" ? "Members" : x.audience === "hosts" ? "Hosts" : x.audience)} · ${esc(chLabel(x.channel))}</span></span>
+      <span class="small" style="text-align:right;white-space:nowrap">${x.sent_push} app<br>${x.sent_email} email${x.unreached ? `<br><span class="muted">${x.unreached} not reached</span>` : ""}</span></div>`).join("")
+      : `<p class="small muted" style="margin:0">Nothing sent yet.</p>`}
+  </section>`;
+}
+
+async function bcSend(test) {
+  const b = bcState();
+  const { data: { session } } = await sb.auth.getSession();
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/admin-notify`, {
+    method: "POST", headers: { Authorization: `Bearer ${session.access_token}`, apikey: SUPABASE_KEY, "Content-Type": "application/json" },
+    body: JSON.stringify({ title: b.title, body: b.body, page: b.page, audience: b.audience, ids: [...b.ids], channel: b.channel, test }),
+  }).then((r) => r.json()).catch(() => ({ ok: false }));
+  if (!res.ok) { toast(res.error || "Couldn't send it. Please try again."); return false; }
+  if (test) toast(res.push ? "Test sent to your devices." : res.email ? "Test sent to your email." : "No device of yours has app notifications on. Turn them on in Settings to see the test.");
+  else toast(`Sent: ${res.push} in the app, ${res.email} by email${res.unreached ? `. ${res.unreached} not reached (no app notifications${b.channel === "push" ? "" : " and no email"})` : ""}.${res.emailOff && b.channel !== "push" ? " Emails are off until the Resend key is set." : ""}`);
+  return true;
 }
 
 function notificationsCard() {
@@ -2022,6 +2147,11 @@ document.addEventListener("submit", async (e) => {
 });
 
 document.addEventListener("input", (e) => {
+  if (e.target.dataset.bc) {
+    const b = bcState(); b[e.target.dataset.bc] = e.target.value;
+    if (e.target.dataset.bc === "q") { const l = document.getElementById("bclist"); if (l) l.innerHTML = bcListHtml(); }
+    bcUpdate(); return;
+  }
   if (e.target.id === "notesearch") {
     const q = e.target.value.trim().toLowerCase();
     let shown = 0;
@@ -2177,6 +2307,22 @@ document.addEventListener("click", async (e) => {
     await refreshBoard();
   } else if (act === "sticker") {
     keepForm(() => { draft().sticker = el.dataset.key || null; render(); });
+  } else if (act === "bc-aud") {
+    Object.assign(bcState(), { audience: el.dataset.v, confirm: false }); render();
+  } else if (act === "bc-none") {
+    bcState().ids.clear(); render();
+  } else if (act === "bc-ask") {
+    bcState().confirm = true; render();
+  } else if (act === "bc-cancel") {
+    bcState().confirm = false; render();
+  } else if (act === "bc-test") {
+    el.disabled = true; await bcSend(true); el.disabled = false;
+  } else if (act === "bc-send") {
+    const b = bcState(); b.busy = true; render();
+    const ok = await bcSend(false);
+    b.busy = false; b.confirm = false;
+    if (ok) { Object.assign(b, { title: "", body: "" }); b.ids.clear(); state.broadcasts = null; state.broadcastsLoading = false; }
+    render();
   } else if (act === "act-filter") {
     state.actFilter = el.dataset.v; state.actLimit = 25; render();
   } else if (act === "act-more") {
@@ -2205,6 +2351,12 @@ document.addEventListener("change", (e) => {
   else if (el.dataset.actChange === "attend-add" && el.value) setAttendance(routeArg(), el.value, true);
   else if (el.dataset.actChange === "map-pick") pickCountry(el.value);
   else if (el.dataset.actChange === "award-camp") { state.awardCamp = el.value; state.awardSticker = undefined; render(); }
+  else if (el.dataset.actChange === "bc-ch") { bcState().channel = el.value; bcState().confirm = false; render(); }
+  else if (el.dataset.bcpick) {
+    const ids = bcState().ids; el.checked ? ids.add(el.dataset.bcpick) : ids.delete(el.dataset.bcpick);
+    const c = document.querySelector('[data-act="bc-none"]'); if (c) c.textContent = `Clear (${ids.size})`;
+    bcUpdate();
+  }
 });
 
 // Re-render the profile without losing typed values in text fields.
@@ -2301,4 +2453,4 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=40").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=41").catch(() => {});

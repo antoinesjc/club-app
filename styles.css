@@ -564,3 +564,20 @@ details.custom.sbdet > summary b { color: #6b4423; }
 .actpts { flex: none; font-weight: 800; color: #1b6f1b; font-size: 14px; }
 .actpts.neg { color: #b42318; }
 @media (min-width: 900px) { .actsum { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+
+/* Admin tab: send a notification */
+.bcgrid { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 28px; align-items: start; }
+@media (max-width: 899px) { .bcgrid { grid-template-columns: 1fr; } }
+.bcside { position: sticky; top: 20px; }
+.bclabel { font-weight: 700; font-size: 14.5px; margin-bottom: 8px; }
+.bcnotif { display: flex; gap: 12px; align-items: flex-start; background: #fff; border: 1px solid #ecdcd2; border-radius: 18px; padding: 12px 14px; box-shadow: 0 6px 18px rgba(42,36,32,.10); font-size: 14px; line-height: 1.4; overflow-wrap: anywhere; }
+.bcnotif img { width: 36px; height: 36px; border-radius: 9px; flex: none; }
+.bcnotif .row { gap: 8px; }
+.bcreach { font-size: 13.5px; color: #4a3f39; background: #f7f1ea; border-radius: 12px; padding: 10px 12px; }
+.bcpick { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+.bclist { max-height: 300px; overflow: auto; border: 1px solid #ecdcd2; border-radius: 14px; padding: 4px 10px; }
+.bcperson { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid #f4ece4; cursor: pointer; font-size: 14.5px; }
+.bcperson:last-child { border-bottom: 0; }
+.bcperson input, .bcradio input { width: 18px; height: 18px; accent-color: #1b6f1b; flex: none; }
+.bcradio { display: flex; gap: 10px; align-items: flex-start; border: 1px solid #ecdcd2; border-radius: 14px; padding: 10px 12px; cursor: pointer; font-size: 14.5px; line-height: 1.35; }
+.bcradio:has(input:checked) { border-color: #1b6f1b; background: #f2faf2; }
