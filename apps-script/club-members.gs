@@ -19,7 +19,7 @@
  * The menu "Club app" in the sheet has "Sync now", "Check Stripe now" and "Get new ideas".
  *
  * Idea box: ideas members send from the app land in the "Ideas" tab (created automatically),
- * newest at the bottom, every hour and after each sync. Only new ideas are added, so you can
+ * newest at the bottom, within 10 minutes (and after each sync). Only new ideas are added, so you can
  * use the "Status" and "Our notes" columns freely; they're never overwritten.
  */
 
@@ -44,6 +44,7 @@ function setup() {
   ScriptApp.getProjectTriggers().forEach(t => ScriptApp.deleteTrigger(t));
   ScriptApp.newTrigger('onMembersEdit').forSpreadsheet(SpreadsheetApp.getActive()).onEdit().create();
   ScriptApp.newTrigger('syncNow').timeBased().everyHours(1).create();
+  ScriptApp.newTrigger('syncIdeas').timeBased().everyMinutes(10).create();
   // Status column (D): active / blocked / via Stripe
   const members = SpreadsheetApp.getActive().getSheetByName(MEMBERS_TAB);
   members.getRange(2, 4, Math.max(members.getMaxRows() - 1, 1), 1).setDataValidation(
