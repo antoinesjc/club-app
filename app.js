@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=61";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=61";
-import { COUNTRIES } from "./countries.js?v=61";
+import { createClient } from "./vendor/supabase.js?v=62";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=62";
+import { COUNTRIES } from "./countries.js?v=62";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 50% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=61";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=62";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -918,14 +918,69 @@ function notesBlock(s) {
   const n = state.notes.get(s.id);
   if (!n?.published_at) return `<div class="small muted">No notes yet. You'll get a notification when your host shares them.</div>`;
   const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
+  const A = isBeta() && state.lu?.noteAdd?.sid === s.id ? state.lu.noteAdd : null;
+  const deck = isBeta() && state.lu?.loaded ? new Set(state.lu.cards.flatMap((c) => [c.hanzi, c.hanzi_trad].filter(Boolean))) : null;
+  const inDeck = (v) => deck && deck.has((v.hanzi || "").trim());
   return `
-    ${vocab.length ? `<div class="vocab" role="table" aria-label="Vocabulary">${vocab.map((v) => `<div class="vrow" role="row"><span class="vz" role="cell">${esc(v.hanzi)}</span><span class="vp" role="cell">${esc(v.pinyin)}</span><span class="vm" role="cell">${esc(v.meaning)}${v.hsk?.level ? ` <span class="hskchip">HSK ${esc(v.hsk.level)}</span>` : ""}</span></div>`).join("")}</div>` : ""}
+    ${vocab.length ? `<div class="vocab ${A?.mode === "pick" ? "picking" : ""}" role="table" aria-label="Vocabulary">${vocab.map((v, i) => {
+      const box = A?.mode === "pick" && v.hanzi ? (inDeck(v) ? `<span class="vtick done" title="Already in your flashcards">✓</span>` : `<button type="button" class="vtick ${A.picked.has(i) ? "on" : ""}" data-zt="note-tick" data-i="${i}" aria-label="Choose ${esc(v.hanzi)}" aria-pressed="${A.picked.has(i)}"></button>`) : "";
+      return `<div class="vrow" role="row">${box}<span class="vz" role="cell">${esc(v.hanzi)}</span><span class="vp" role="cell">${esc(v.pinyin)}</span><span class="vm" role="cell">${esc(v.meaning)}${v.hsk?.level ? ` <span class="hskchip">HSK ${esc(v.hsk.level)}</span>` : ""}</span></div>`;
+    }).join("")}</div>` : ""}
+    ${vocab.length && isBeta() ? noteAddBar(s, vocab, A, inDeck) : ""}
     ${n.body ? `<div class="notebody">${linkify(n.body)}</div>` : ""}
     <div class="row" style="gap:8px;flex-wrap:wrap">
       <button type="button" class="btn ghost" data-act="notes-pdf" data-id="${esc(s.id)}">${ICON.download}Download PDF</button>
       ${isHost() ? `<a class="btn ghost" href="${hostLink(s)}">✎ Edit notes</a>` : ""}
     </div>`;
 }
+// "Add to flashcards" on session notes (Zest Town beta): all words, HSK words only, or chosen words.
+function noteAddBar(s, vocab, A, inDeck) {
+  if (!state.lu.loaded) { ztLoad(); }
+  const words = vocab.filter((v) => (v.hanzi || "").trim());
+  const left = words.filter((v) => !inDeck(v)), hskLeft = left.filter((v) => v.hsk);
+  const sid = esc(s.id);
+  if (!state.lu.loaded) return `<div class="small muted">Loading your flashcards…</div>`;
+  if (!left.length) return `<div class="noteadd done">✓ All ${words.length} words are in your flashcards</div>`;
+  if (A?.mode === "pick") return `<div class="noteadd pick"><span class="grow small">${A.picked.size ? `${A.picked.size} word${A.picked.size === 1 ? "" : "s"} chosen` : "Tick the words to add"}</span>
+    <button type="button" class="btn ghost small" data-zt="note-add" data-v="cancel" data-id="${sid}">Cancel</button>
+    <button type="button" class="btn small" data-zt="note-add" data-v="picked" data-id="${sid}" ${A.picked.size ? "" : "disabled"}>Add ${A.picked.size || ""} to flashcards</button></div>`;
+  if (A?.mode === "menu") return `<div class="noteadd menu" role="group" aria-label="Add to flashcards">
+    <button type="button" data-zt="note-add" data-v="all" data-id="${sid}"><b>Add all words</b><span>${left.length} word${left.length === 1 ? "" : "s"}</span></button>
+    <button type="button" data-zt="note-add" data-v="hsk" data-id="${sid}" ${hskLeft.length ? "" : "disabled"}><b>Add HSK words only</b><span>${hskLeft.length ? `${hskLeft.length} on the HSK lists` : "None on the HSK lists"}</span></button>
+    <button type="button" data-zt="note-add" data-v="pick" data-id="${sid}"><b>Choose words…</b><span>Tick the ones you want</span></button>
+    <button type="button" class="link small" data-zt="note-add" data-v="cancel" data-id="${sid}">Cancel</button></div>`;
+  return `<div class="row" style="gap:8px;align-items:center;flex-wrap:wrap"><button type="button" class="btn ghost" data-zt="note-add" data-v="menu" data-id="${sid}">＋ Add to flashcards</button>
+    ${left.length < words.length ? `<span class="small muted">${words.length - left.length} of ${words.length} already in your flashcards</span>` : ""}</div>`;
+}
+async function noteAddWords(sid, items) {
+  const L = state.lu, have = new Set(L.cards.flatMap((c) => [c.hanzi, c.hanzi_trad].filter(Boolean)));
+  const list = items.filter((v) => !have.has(v.hanzi.trim())).filter((v, i, a) => a.findIndex((x) => x.hanzi.trim() === v.hanzi.trim()) === i);
+  if (!list.length) return 0;
+  const ids = list.map((v) => v.hsk?.id).filter(Boolean);
+  const hsk = new Map();
+  if (ids.length) { const { data } = await sb.from("hsk_words").select("id, hanzi, hanzi_trad, level").in("id", ids); for (const w of data || []) hsk.set(w.id, w); }
+  const rows = list.map((v) => { const w = v.hsk && hsk.get(v.hsk.id);
+    return { hanzi: w ? w.hanzi : v.hanzi.trim(), hanzi_trad: w?.hanzi_trad || null, pinyin: v.pinyin || "", meaning: v.meaning || "", hsk_level: v.hsk?.level || null, session_id: sid, source: "session" }; });
+  const { data, error } = await sb.from("learn_cards").upsert(rows, { onConflict: "user_id,hanzi", ignoreDuplicates: true }).select("*");
+  if (error) { toast("Couldn't add those words. Check your connection."); return 0; }
+  L.cards.push(...data);
+  return data.length;
+}
+document.addEventListener("click", async (e) => {
+  const el = e.target.closest('[data-zt="note-add"], [data-zt="note-tick"]');
+  if (!el) return;
+  const L = state.lu;
+  if (el.dataset.zt === "note-tick") { const i = +el.dataset.i; L.noteAdd.picked.has(i) ? L.noteAdd.picked.delete(i) : L.noteAdd.picked.add(i); render(); return; }
+  const sid = el.dataset.id, v = el.dataset.v, vocab = (state.notes.get(sid)?.vocab || []).filter((x) => x.hanzi || x.pinyin || x.meaning);
+  if (v === "menu" || v === "pick") { L.noteAdd = { sid, mode: v, picked: new Set() }; render(); return; }
+  if (v === "cancel") { L.noteAdd = null; render(); return; }
+  const items = (v === "all" ? vocab : v === "hsk" ? vocab.filter((x) => x.hsk) : vocab.filter((x, i) => L.noteAdd?.picked.has(i))).filter((x) => (x.hanzi || "").trim());
+  el.disabled = true;
+  const n = await noteAddWords(sid, items);
+  L.noteAdd = null;
+  toast(n ? `Added ${n} word${n === 1 ? "" : "s"} to your flashcards.` : "Those words are already in your flashcards.");
+  render();
+});
 
 
 // ---------------------------------------------------------------------------
@@ -1322,7 +1377,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=61"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=62"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1887,7 +1942,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=61");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=62");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2756,7 +2811,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=61").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=62").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -2956,7 +3011,7 @@ async function ztLoad(force) {
     console.error(e); L.error = true;
   }
   L.loading = false;
-  if (route() === "learn") render();
+  if (["learn", "notes", "sessions"].includes(route())) render();
 }
 
 async function ztSyncSessionCards() {

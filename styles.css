@@ -867,3 +867,18 @@ details.custom.sbdet > summary b { color: #6b4423; }
 .ztselbar .btn.small { min-height: 38px; }
 .hskchip { display: inline-block; font-size: 10.5px; font-weight: 800; color: #2d6b22; background: var(--mint); border-radius: 99px; padding: 1px 7px; margin-left: 4px; vertical-align: 1px; white-space: nowrap; }
 .ztlv.other b { font-size: 14px; }
+.noteadd { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.noteadd.done { font-size: 14px; font-weight: 700; color: var(--green); }
+.noteadd.menu { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; }
+.noteadd.menu > button:not(.link) { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; padding: 10px 12px; border: 1.5px solid var(--line); border-radius: 14px; background: #fff; font: inherit; cursor: pointer; }
+.noteadd.menu > button:not(.link):hover { border-color: var(--green); }
+.noteadd.menu > button span { font-size: 12.5px; color: var(--faint); }
+.noteadd.menu > button:disabled { opacity: .5; cursor: default; }
+.noteadd.menu .link { justify-self: start; }
+.noteadd.pick { position: sticky; bottom: calc(var(--nav-h) + 8px); background: #fff; border: 1px solid var(--line); border-radius: 999px; padding: 6px 6px 6px 16px; box-shadow: 0 6px 18px rgba(42,36,32,.12); z-index: 4; }
+@media (min-width: 900px) { .noteadd.pick { bottom: 12px; } }
+.vocab.picking .vrow { grid-template-columns: 22px minmax(64px, auto) minmax(0, 1fr) minmax(0, 1.3fr); align-items: center; }
+.vtick { width: 20px; height: 20px; border-radius: 6px; border: 1.5px solid #c9beb5; background: #fff; padding: 0; cursor: pointer; align-self: center; display: grid; place-items: center; font-size: 12px; }
+.vtick.on { background: var(--green); border-color: var(--green); }
+.vtick.on::after { content: "✓"; color: #fff; font-weight: 800; }
+.vtick.done { border: 0; background: var(--mint); color: var(--green); font-weight: 800; cursor: default; }
