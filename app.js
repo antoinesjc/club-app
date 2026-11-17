@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=60";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=60";
-import { COUNTRIES } from "./countries.js?v=60";
+import { createClient } from "./vendor/supabase.js?v=61";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=61";
+import { COUNTRIES } from "./countries.js?v=61";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 50% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=60";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=61";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -919,7 +919,7 @@ function notesBlock(s) {
   if (!n?.published_at) return `<div class="small muted">No notes yet. You'll get a notification when your host shares them.</div>`;
   const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
   return `
-    ${vocab.length ? `<div class="vocab" role="table" aria-label="Vocabulary">${vocab.map((v) => `<div class="vrow" role="row"><span class="vz" role="cell">${esc(v.hanzi)}</span><span class="vp" role="cell">${esc(v.pinyin)}</span><span class="vm" role="cell">${esc(v.meaning)}</span></div>`).join("")}</div>` : ""}
+    ${vocab.length ? `<div class="vocab" role="table" aria-label="Vocabulary">${vocab.map((v) => `<div class="vrow" role="row"><span class="vz" role="cell">${esc(v.hanzi)}</span><span class="vp" role="cell">${esc(v.pinyin)}</span><span class="vm" role="cell">${esc(v.meaning)}${v.hsk?.level ? ` <span class="hskchip">HSK ${esc(v.hsk.level)}</span>` : ""}</span></div>`).join("")}</div>` : ""}
     ${n.body ? `<div class="notebody">${linkify(n.body)}</div>` : ""}
     <div class="row" style="gap:8px;flex-wrap:wrap">
       <button type="button" class="btn ghost" data-act="notes-pdf" data-id="${esc(s.id)}">${ICON.download}Download PDF</button>
@@ -1322,7 +1322,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=60"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=61"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1887,7 +1887,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=60");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=61");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2756,7 +2756,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=60").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=61").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -2972,7 +2972,7 @@ async function ztSyncSessionCards() {
   const hsk = new Map();
   for (const w of [...(a.data || []), ...(b.data || [])]) { if (!hsk.has(w.hanzi)) hsk.set(w.hanzi, w); if (w.hanzi_trad && !hsk.has(w.hanzi_trad)) hsk.set(w.hanzi_trad, w); }
   const rows = fresh.map((v) => {
-    const w = hsk.get(v.hanzi);
+    const w = hsk.get(v.hanzi) || (v.hsk ? { hanzi: v.hanzi, level: v.hsk.level } : null);
     return { hanzi: w ? w.hanzi : v.hanzi, hanzi_trad: w?.hanzi_trad || null, pinyin: v.pinyin || "", meaning: v.meaning || "",
       hsk_level: w?.level || null, session_id: v.session_id, source: "session" };
   }).filter((r, i, arr) => !have.has(r.hanzi) && arr.findIndex((x) => x.hanzi === r.hanzi) === i);
@@ -3225,7 +3225,7 @@ function cardsView() {
   for (const c of d.cards) if (c.session_id) { if (!bySes.has(c.session_id)) bySes.set(c.session_id, []); bySes.get(c.session_id).push(c); }
   const ses = [...bySes.entries()].map(([sid, cs]) => ({ sid, cs, s: ztSession(sid) })).sort((a, b) => (b.s?.starts_at || "").localeCompare(a.s?.starts_at || ""));
   const today = todayKey(), dueOf = (cs) => cs.filter((c) => c.reps === 0 || c.due <= today).length;
-  const lvCards = (lv) => d.cards.filter((c) => c.hsk_level === lv);
+  const lvCards = (lv) => d.cards.filter((c) => (lv === "none" ? !c.hsk_level : c.hsk_level === lv));
   return `${ztHeader(ztStreak(), "Flashcard Center <span class='zhsub'>字卡中心</span>")}
   <p class="muted small" style="margin-top:-6px">${d.cards.length} card${d.cards.length === 1 ? "" : "s"} in your deck. Words from your sessions are added for you.</p>
   <div class="card ztreviewall"><span class="ztplaceart">${ztImg("house")}</span><div class="grow"><b style="font-size:18px">Review all</b>
@@ -3235,7 +3235,7 @@ function cardsView() {
     ${ses.length ? ses.map(({ sid, cs, s }) => { const n = dueOf(cs); return `<button type="button" class="ztrow" data-zt="start-ses" data-id="${esc(sid)}"><span class="grow"><b>${esc(s?.title || "Session")}</b><br><span class="small muted">${s ? esc(new Date(s.starts_at).toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" })) + " · " : ""}${cs.length} word${cs.length === 1 ? "" : "s"}</span></span><span class="small ${n ? "duec" : "muted"}">${n ? `${n} due` : "Practice"}</span><span class="chev">›</span></button>`; }).join("")
       : `<p class="small muted" style="margin:0">When a host publishes notes for a session you joined, its words appear here.</p>`}</div>
   <div class="card"><div class="row between"><b>By HSK level</b><a class="small" href="#/learn/temple">+ Add words in the HSK Temple</a></div>
-    <div class="ztlvgrid">${HSK_LEVELS.map((lv) => { const cs = lvCards(lv), n = dueOf(cs); return `<button type="button" class="ztlv" data-zt="start-lv" data-v="${lv}" ${cs.length ? "" : "disabled"}><b>HSK ${lv}</b><small>${cs.length} card${cs.length === 1 ? "" : "s"}</small><small class="${n ? "duec" : ""}">${n ? `${n} due` : "—"}</small></button>`; }).join("")}</div></div>
+    <div class="ztlvgrid">${[...HSK_LEVELS, "none"].map((lv) => { const cs = lvCards(lv), n = dueOf(cs); return `<button type="button" class="ztlv ${lv === "none" ? "other" : ""}" data-zt="start-lv" data-v="${lv}" ${cs.length ? "" : "disabled"}><b>${lv === "none" ? "Not in HSK" : `HSK ${lv}`}</b><small>${cs.length} card${cs.length === 1 ? "" : "s"}</small><small class="${n ? "duec" : ""}">${n ? `${n} due` : "—"}</small></button>`; }).join("")}</div><p class="small muted" style="margin:0">“Not in HSK”: words from your sessions that aren’t on the official HSK lists.</p></div>
   <div class="card row between" style="flex-direction:row;align-items:center"><span><b>New cards a day</b><br><span class="small muted">How many new words Review all adds each day.</span></span>
     <span class="row" style="gap:8px;align-items:center"><button type="button" class="ztstep" data-zt="per" data-v="-1" aria-label="Fewer">−</button><b style="min-width:24px;text-align:center">${state.lu.perDay}</b><button type="button" class="ztstep" data-zt="per" data-v="1" aria-label="More">+</button></span></div>`;
 }
@@ -3405,9 +3405,9 @@ document.addEventListener("click", async (e) => {
     const due = cs.filter((c) => c.reps === 0 || c.due <= t);
     ztStart(s?.title || "Session", due.length ? due : cs, !due.length);
   } else if (a === "start-lv") {
-    const cs = L.cards.filter((c) => c.hsk_level === el.dataset.v), t = todayKey();
+    const v = el.dataset.v, cs = L.cards.filter((c) => (v === "none" ? !c.hsk_level : c.hsk_level === v)), t = todayKey();
     const due = cs.filter((c) => c.reps === 0 || c.due <= t);
-    ztStart(`HSK ${el.dataset.v}`, due.length ? due : cs, !due.length);
+    ztStart(v === "none" ? "Words not in HSK" : `HSK ${v}`, due.length ? due : cs, !due.length);
   } else if (a === "flip") { if (L.review && !L.review.flipped) { L.review.flipped = true; render(); } }
   else if (a === "grade") await ztGrade(+el.dataset.v);
   else if (a === "end") { L.review = null; if (el.tagName !== "A") render(); }
