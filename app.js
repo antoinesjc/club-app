@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=63";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=63";
-import { COUNTRIES } from "./countries.js?v=63";
+import { createClient } from "./vendor/supabase.js?v=64";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=64";
+import { COUNTRIES } from "./countries.js?v=64";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 50% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=63";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=64";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -871,12 +871,15 @@ function homeView() {
   const filtered = !!(state.lvFilter || state.catFilters.length);
   const rest = upcoming().filter((s) => s !== f && matchesFilter(s)).slice(0, 14);
   return `
-  <header class="row">
-    <div class="grow">
-      <div class="eyebrow">Mandarin Zest Club</div>
-      <h1>${greeting()}, ${esc(me?.display_name || "friend")}!</h1>
+  <header class="homehead">
+    <div class="row homehello" style="gap:14px;align-items:center">
+      <a href="#/me" aria-label="My profile" style="border-radius:50%;flex:none">${avatar(me, wide() ? 60 : 48)}</a>
+      <div class="grow">
+        <div class="eyebrow">Mandarin Zest Club</div>
+        <h1>${greeting()}, ${esc(me?.display_name || "friend")}!</h1>
+      </div>
     </div>
-    <a href="#/me" aria-label="My profile" style="border-radius:50%">${avatar(me, 48)}</a>
+    ${isBeta() ? wodCard() : ""}
   </header>
   ${isHost() ? "" : xpCard()}
   ${featuredCard(f)}
@@ -1377,7 +1380,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=63"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=64"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1942,7 +1945,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=63");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=64");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2811,7 +2814,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=63").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=64").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -3011,7 +3014,7 @@ async function ztLoad(force) {
     console.error(e); L.error = true;
   }
   L.loading = false;
-  if (["learn", "notes", "sessions"].includes(route())) render();
+  if (["learn", "notes", "sessions", "home"].includes(route())) render();
 }
 
 async function ztSyncSessionCards() {
@@ -3580,4 +3583,49 @@ document.addEventListener("click", (e) => {
     if (e.target.closest(".hbcard, a")) return;
     F.sel = el.dataset.id || null; render();
   } else if (a === "fview") { F.view = el.dataset.v; lsSet("mz-forest-view", F.view); render(); }
+});
+
+
+// ---- Word of the day (part of the Learning beta; shows for everyone once Learning is live) -------------
+const SPEAK = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>';
+async function wodLoad() {
+  const day = todayKey();
+  if (state.wodLoading || state.wod?.day === day) return;
+  state.wodLoading = true;
+  const { data, error } = await sb.rpc("word_of_day", { p_day: day });
+  state.wodLoading = false;
+  state.wod = { day, w: error ? null : data?.[0] || null };
+  if (route() === "home") render();
+}
+function wodCard() {
+  wodLoad();
+  if (!state.lu.loaded) ztLoad();
+  const w = state.wod?.w;
+  if (!w) return "";
+  const card = state.lu.cards.find((c) => c.hanzi === w.hanzi || (w.hanzi_trad && c.hanzi === w.hanzi_trad));
+  const learned = card && card.good_streak >= ZT_LEARNED;
+  const actions = !state.lu.loaded ? ""
+    : learned ? `<div class="wodbtns"><span class="wodstate known">✓ Learned · dark green in the HSK Temple</span><button type="button" class="link small" data-wod="unknow">Undo</button></div>`
+    : card ? `<div class="wodbtns"><span class="wodstate">✓ In your flashcards</span><button type="button" class="btn ghost small wodknow" data-wod="know">✓ I know this word</button></div>`
+    : `<div class="wodbtns"><button type="button" class="btn green small" data-wod="add">＋ Add to flashcards</button><button type="button" class="btn ghost small wodknow" data-wod="know">✓ I know this word</button></div>`;
+  return `<section class="card wod" aria-label="Word of the day">
+    <div class="row" style="align-items:center;gap:8px"><span class="eyebrow grow" style="margin:0">Word of the day · ${trad() ? "每日一詞" : "每日一词"}</span><span class="hskchip">HSK ${esc(w.level)}</span></div>
+    <div class="wodword"><span class="wodzh">${esc(wordZh(w))}</span><span class="wodpy">${esc(w.pinyin)}</span><button type="button" class="wodspeak" data-wod="say" aria-label="Listen">${SPEAK}</button></div>
+    <div class="small">${esc(w.meaning)}${w.types ? ` <span class="muted">· ${esc(w.types)}</span>` : ""}</div>
+    ${actions}
+  </section>`;
+}
+document.addEventListener("click", async (e) => {
+  const el = e.target.closest("[data-wod]");
+  if (!el) return;
+  const w = state.wod?.w; if (!w) return;
+  const a = el.dataset.wod, word = { ...w, level: w.level };
+  if (a === "say") {
+    try { const u = new SpeechSynthesisUtterance(wordZh(w)); u.lang = trad() ? "zh-TW" : "zh-CN"; u.rate = 0.85; speechSynthesis.cancel(); speechSynthesis.speak(u); } catch { toast("Your browser can't read this word aloud."); }
+    return;
+  }
+  el.disabled = true;
+  if (a === "add") { const n = await ztAddWords([word]); if (n) toast("Added to your flashcards. It'll come up in today's review."); }
+  else { const n = await ztMarkKnown([word], a === "know"); if (n) toast(a === "know" ? "Marked as learned in the HSK Temple." : "Back to learning."); }
+  render();
 });

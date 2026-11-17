@@ -884,3 +884,17 @@ details.custom.sbdet > summary b { color: #6b4423; }
 .vtick.done { border: 0; background: var(--mint); color: var(--green); font-weight: 800; cursor: default; }
 .btn.green { background: var(--green); color: #fff; }
 .btn.green:hover { background: var(--green-ink); color: #fff; }
+/* Home header + word of the day */
+.homehead { display: flex; flex-direction: column; gap: 14px; }
+@media (min-width: 900px) { .homehead { flex-direction: row; align-items: center; gap: 24px; } .homehead .homehello { flex: 1; } .homehead .wod { width: 400px; flex: none; } }
+.wod { gap: 6px; padding: 14px 16px; }
+.wodword { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.wodzh { font-family: "Noto Sans SC", "Noto Sans TC", sans-serif; font-weight: 700; font-size: 38px; line-height: 1.05; }
+.zh-trad .wodzh { font-family: "Noto Sans TC", sans-serif; }
+.wodpy { font-size: 18px; font-weight: 700; color: #a8431a; }
+.wodspeak { border: 0; background: none; color: var(--faint); padding: 2px; cursor: pointer; align-self: center; }
+.wodbtns { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 2px; }
+.wodknow { border-color: #2f7a25; color: #2f7a25; }
+.wodstate { display: inline-flex; align-items: center; background: var(--mint); color: var(--green); border-radius: 999px; padding: 7px 12px; font-size: 13px; font-weight: 800; }
+.wodstate.known { background: #2f7a25; color: #fff; }
+.wodbtns .btn.small { min-height: 34px; padding: 5px 12px; font-size: 13px; }
