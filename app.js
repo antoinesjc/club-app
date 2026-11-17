@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=64";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=64";
-import { COUNTRIES } from "./countries.js?v=64";
+import { createClient } from "./vendor/supabase.js?v=65";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=65";
+import { COUNTRIES } from "./countries.js?v=65";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 50% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=64";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=65";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -489,6 +489,7 @@ function render() {
   const view = blocked ? homeView : (views[route()] || homeView);
   app.innerHTML = `<div class="shell ${trad() ? "zh-trad" : ""}">${nav()}<main class="main" id="main">${view()}</main></div>${seasonalOverlay() || hongbaoOverlay()}`;
   if (state.pushAsk && !app.querySelector(".hbover")) app.insertAdjacentHTML("beforeend", pushOverlay());
+  if (state.scrollTo) { const t = document.getElementById(state.scrollTo); state.scrollTo = null; if (t) setTimeout(() => t.scrollIntoView({ block: "start", behavior: "smooth" }), 60); }
   if (state.idea?.open) app.insertAdjacentHTML("beforeend", ideaOverlay());
   else if (state.rewardQueue?.length && !app.querySelector(".hbover")) app.insertAdjacentHTML("beforeend", rewardOverlay());
   wireMap();
@@ -1380,7 +1381,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=64"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=65"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1945,7 +1946,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=64");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=65");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2300,13 +2301,14 @@ function notificationsCard() {
   }
   const tog = (k, label, sub) => `<label class="check"><input type="checkbox" data-pref="${k}" ${me[k] ? "checked" : ""}>
     <span style="font-size:14.5px;line-height:1.35"><b>${label}</b><br><span class="muted">${sub}</span></span></label>`;
-  return `<section class="stack" style="gap:10px" aria-label="Notifications">
+  return `<section class="stack" style="gap:10px" aria-label="Notifications" id="notifications">
     <h2>Notifications</h2>
     ${device}
     ${tog("notify_reminders", "Session reminders and changes", "1 hour before sessions you said you'd join, and if one is cancelled or moved")}
     ${tog("notify_new", "New sessions", "When a new session is added to the calendar")}
     ${tog("notify_notes", "Notes are up", "When your host shares the notes of a session you joined")}
     ${tog("notify_rewards", "Rewards", "New level, character, sticker, XP or hongbao")}
+    ${isBeta() ? tog("notify_streak", "Streak reminder", "1 hour before your day ends, if your streak tree hasn't grown yet (phone notification only)") : ""}
     ${tog("notify_email", "Email me instead", "For reminders and notes, when this app can't notify you")}
   </section>`;
 }
@@ -2814,7 +2816,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=64").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=65").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -3261,6 +3263,7 @@ function treeSheet(st) {
     <div class="card" style="gap:8px"><b>This week</b><div class="ztweek">${week}</div></div>
     <div class="ztinfo"><div class="card"><b>What counts</b><span class="small">Joining a session, or playing a game in Zest Town (a flashcard review), once a day.</span></div>
       <div class="card water">${ZT_DROP}<b>${w} watering can</b><span class="small">${w ? "left this month. If you miss a day, it brings your tree back." : "used this month. You get a new one on the 1st."}</span></div></div>
+    ${state.push?.subscribed ? "" : `<a class="ztnotif" href="#/settings" data-scroll="notifications">${ICON.bell}<span><b>Turn on notifications</b> so you never lose your streak. We'll remind you 1 hour before your day ends.</span><span class="chev" aria-hidden="true">›</span></a>`}
     <details class="ztstages"><summary>All 9 stages</summary><div class="ztstagegrid">${ZT_STAGES.map((s, i) => `<span>${ztImg("tree-" + i)}<b>${esc(s[0])}</b><small>Day ${s[3]}${i < 8 ? "+" : ""}</small></span>`).join("")}</div></details>
   </div></div>`;
 }
@@ -3629,3 +3632,5 @@ document.addEventListener("click", async (e) => {
   else { const n = await ztMarkKnown([word], a === "know"); if (n) toast(a === "know" ? "Marked as learned in the HSK Temple." : "Back to learning."); }
   render();
 });
+
+document.addEventListener("click", (e) => { const a = e.target.closest("[data-scroll]"); if (a) state.scrollTo = a.dataset.scroll; }, true);

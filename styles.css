@@ -898,3 +898,7 @@ details.custom.sbdet > summary b { color: #6b4423; }
 .wodstate { display: inline-flex; align-items: center; background: var(--mint); color: var(--green); border-radius: 999px; padding: 7px 12px; font-size: 13px; font-weight: 800; }
 .wodstate.known { background: #2f7a25; color: #fff; }
 .wodbtns .btn.small { min-height: 34px; padding: 5px 12px; font-size: 13px; }
+.ztnotif { display: flex; align-items: center; gap: 10px; background: #fff7ef; border: 1.5px solid #f6cfa9; border-radius: 16px; padding: 12px 14px; color: var(--ink); text-decoration: none; font-size: 14px; }
+.ztnotif:hover { color: var(--ink); border-color: #f37a48; }
+.ztnotif svg { width: 22px; height: 22px; flex: none; color: #c2410c; }
+.ztnotif .chev { font-size: 22px; color: var(--faint); }
