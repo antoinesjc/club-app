@@ -863,3 +863,5 @@ details.custom.sbdet > summary b { color: #6b4423; }
 .ztmcard .ztx { position: static; flex: none; }
 .zthead .zhsub { white-space: nowrap; }
 @media (max-width: 899px) { .zthead h1 { font-size: 26px; } }
+.ztknow { border-color: #2f7a25; color: #2f7a25; }
+.ztselbar .btn.small { min-height: 38px; }

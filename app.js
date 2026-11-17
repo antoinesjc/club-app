@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=59";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=59";
-import { COUNTRIES } from "./countries.js?v=59";
+import { createClient } from "./vendor/supabase.js?v=60";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=60";
+import { COUNTRIES } from "./countries.js?v=60";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 50% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=59";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=60";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -1322,7 +1322,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=59"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=60"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1887,7 +1887,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=59");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=60");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2756,7 +2756,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=59").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=60").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -3275,7 +3275,7 @@ function templeView() {
     const inDeck = new Set(L.cards.flatMap((c) => [c.hanzi, c.hanzi_trad].filter(Boolean)));
     const tiles = words.slice(0, L.show).map((w) => {
       const s = statusOf(w, ws), z = wordZh(w), picked = L.pick?.has(w.id), owned = inDeck.has(w.hanzi);
-      return `<button type="button" class="zttile ${s} ${z.length > 2 ? "long" : ""} ${L.word === w.id ? "sel" : ""}" data-zt="${L.pick ? "tick" : "word"}" data-id="${w.id}" ${L.pick && owned ? "disabled" : ""} aria-label="${esc(z)} ${esc(w.pinyin)}">${esc(z)}${L.pick ? `<i class="tk ${picked || owned ? "on" : ""}"></i>` : ""}</button>`;
+      return `<button type="button" class="zttile ${s} ${z.length > 2 ? "long" : ""} ${L.word === w.id ? "sel" : ""}" data-zt="${L.pick ? "tick" : "word"}" data-id="${w.id}" ${L.pick && s === "learned" ? "disabled" : ""} aria-label="${esc(z)} ${esc(w.pinyin)}">${esc(z)}${L.pick ? `<i class="tk ${picked ? "on" : ""}"></i>` : ""}</button>`;
     }).join("");
     const wsel = L.word && words.find((w) => w.id === L.word);
     if (wsel) {
@@ -3284,16 +3284,18 @@ function templeView() {
         <button type="button" class="ztx" data-zt="word" data-id="" aria-label="Close">×</button></div>
         <div>${esc(wsel.meaning)}</div><div class="small muted">HSK ${esc(wsel.level)}${wsel.types ? " · " + esc(wsel.types) : ""}${wsel.hanzi_trad && wsel.hanzi_trad !== wsel.hanzi ? ` · ${trad() ? "简" : "繁"} ${esc(trad() ? wsel.hanzi : wsel.hanzi_trad)}` : ""}</div>
         <span class="ztst ${s}">${s === "learned" ? "Learned" : s === "seen" ? "Seen" : "Not yet"}</span>
-        ${owned ? `<span class="small muted">In your flashcards</span>` : `<button type="button" class="btn" data-zt="add-word" data-id="${wsel.id}">+ Add to my flashcards</button>`}</div>`;
+        ${owned ? `<span class="small muted">In your flashcards</span>` : `<button type="button" class="btn" data-zt="add-word" data-id="${wsel.id}">+ Add to my flashcards</button>`}
+        ${s === "learned" ? `<button type="button" class="link small" data-zt="unknow" data-id="${wsel.id}" style="align-self:flex-start">Not learned after all? Undo</button>`
+          : `<button type="button" class="btn ghost ztknow" data-zt="know" data-id="${wsel.id}">✓ I already know this word</button>`}</div>`;
     }
     main = `<div class="card" style="gap:8px"><div class="row between"><b>HSK ${lv} · ${T.toLocaleString()} words</b><b style="color:var(--green)">${Math.round(pc(cnt.learned))}% learned</b></div>
       <div class="ztlvbar"><i class="l" style="width:${pc(cnt.learned)}%"></i><i class="s" style="width:${pc(cnt.seen)}%"></i></div>
       <div class="ztlegend"><span><i class="l"></i>Learned ${cnt.learned}</span><span><i class="s"></i>Seen ${cnt.seen}</span><span><i class="n"></i>Not yet ${cnt.none}</span></div></div>
-      <div class="row between" style="align-items:center"><span class="small muted">${L.pick ? "Tick the words to add" : "Tap a word to see it"}</span>
+      <div class="row between" style="align-items:center"><span class="small muted">${L.pick ? "Tick words, then add them or mark them as known" : "Tap a word to see it"}</span>
         <button type="button" class="ztselbtn ${L.pick ? "on" : ""}" data-zt="pick">${L.pick ? "Cancel" : "Select words"}</button></div>
       <div class="zttiles">${tiles}</div>
       ${T > L.show ? `<button type="button" class="btn ghost block" data-zt="more">Show more (${(T - L.show).toLocaleString()} left)</button>` : ""}
-      ${L.pick ? `<div class="ztselbar"><span>${L.pick.size} word${L.pick.size === 1 ? "" : "s"} selected</span><button type="button" class="btn" data-zt="add-picked" ${L.pick.size ? "" : "disabled"}>Add to flashcards</button></div>` : ""}`;
+      ${L.pick ? `<div class="ztselbar"><span>${L.pick.size} word${L.pick.size === 1 ? "" : "s"} selected</span><span class="row" style="gap:6px"><button type="button" class="btn ghost small" data-zt="know-picked" ${L.pick.size ? "" : "disabled"}>✓ I know them</button><button type="button" class="btn small" data-zt="add-picked" ${L.pick.size ? "" : "disabled"}>Add to flashcards</button></span></div>` : ""}`;
   }
   const head = `<div class="ztthead"><span class="ztplaceart">${ztImg("temple")}</span><span class="small muted">Every HSK word, and how well you know it.<br>Grey: not met yet · light green: seen · dark green: learned.</span></div>`;
   return `${ztHeader(ztStreak(), `HSK Temple <span class='zhsub'>${trad() ? "漢語廟" : "汉语庙"}</span>`)}${head}<div class="ztlvpills">${pills}</div>
@@ -3309,6 +3311,31 @@ async function ztAddWords(ws) {
   if (error) { toast("Couldn't add those words. Check your connection."); return 0; }
   state.lu.cards.push(...data);
   return data.length;
+}
+
+// "I already know this word": a learned card due in 30 days (so it still comes back once in a while).
+async function ztMarkKnown(words, known) {
+  const L = state.lu, byHanzi = new Map(L.cards.map((c) => [c.hanzi, c]));
+  const upd = known
+    ? { good_streak: ZT_LEARNED, interval_days: 30, due: addDays(30), reps: 1, last_review: new Date().toISOString() }
+    : { good_streak: 0, interval_days: 0, due: todayKey() };
+  const have = words.filter((w) => byHanzi.has(w.hanzi)), fresh = known ? words.filter((w) => !byHanzi.has(w.hanzi)) : [];
+  let n = 0;
+  if (have.length) {
+    const ids = have.map((w) => byHanzi.get(w.hanzi).id);
+    const { error } = await sb.from("learn_cards").update(upd).in("id", ids);
+    if (error) { toast("Couldn't save that. Check your connection."); return 0; }
+    for (const id of ids) Object.assign(L.cards.find((c) => c.id === id), upd);
+    n += ids.length;
+  }
+  if (fresh.length) {
+    const rows = fresh.filter((w, i, a) => a.findIndex((x) => x.hanzi === w.hanzi) === i)
+      .map((w) => ({ hanzi: w.hanzi, hanzi_trad: w.hanzi_trad, pinyin: w.pinyin, meaning: w.meaning, hsk_level: w.level, source: "hsk", ...upd }));
+    const { data, error } = await sb.from("learn_cards").upsert(rows, { onConflict: "user_id,hanzi", ignoreDuplicates: true }).select("*");
+    if (error) { toast("Couldn't save that. Check your connection."); return n; }
+    L.cards.push(...data); n += data.length;
+  }
+  return n;
 }
 
 // Fruit hopping around the plaza
@@ -3363,6 +3390,14 @@ document.addEventListener("click", async (e) => {
     const n = await ztAddWords(list);
     if (a === "add-picked") L.pick = null;
     toast(n ? `Added ${n} word${n === 1 ? "" : "s"} to your flashcards.` : "Those words are already in your flashcards.");
+    render();
+  } else if (a === "know" || a === "know-picked" || a === "unknow") {
+    const words = L.hsk.get(L.lv) || [];
+    const list = a === "know-picked" ? words.filter((w) => L.pick.has(w.id)) : words.filter((w) => w.id === +el.dataset.id);
+    el.disabled = true;
+    const n = await ztMarkKnown(list, a !== "unknow");
+    if (a === "know-picked") L.pick = null;
+    if (n) toast(a === "unknow" ? "Back to learning. It'll come up in your reviews." : `Marked ${n} word${n === 1 ? "" : "s"} as learned.`);
     render();
   } else if (a === "start-all") ztStart("Review all", ztQueueAll());
   else if (a === "start-ses") {
