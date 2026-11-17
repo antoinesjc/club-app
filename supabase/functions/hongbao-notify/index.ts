@@ -57,9 +57,10 @@ Deno.serve(async (req) => {
     for (const h of hbs) {
       const { data: g } = await db.from("profiles").select("display_name").eq("id", h.giver).maybeSingle();
       const m = { title: "🧧 You received a hongbao!", body: `${g?.display_name || "A member"} sent you a hongbao: +30 XP. Open the app to see it.`, url: `${APP_URL}/#/me`, tag: `hongbao-${h.id}` };
+      const { data: r } = await db.from("profiles").select("display_name, notify_email, notify_rewards").eq("id", h.receiver).maybeSingle();
+      if (r?.notify_rewards === false) { await db.from("hongbaos").update({ notified_at: new Date().toISOString() }).eq("id", h.id); continue; }
       let ok = (await pushTo(h.receiver, JSON.stringify(m))) > 0;
       if (!ok) {
-        const { data: r } = await db.from("profiles").select("display_name, notify_email").eq("id", h.receiver).maybeSingle();
         const { data: u } = await db.auth.admin.getUserById(h.receiver);
         if (r?.notify_email !== false && u?.user?.email) ok = await email(u.user.email, r?.display_name ?? "", m);
       }

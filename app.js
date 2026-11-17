@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=56";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=56";
-import { COUNTRIES } from "./countries.js?v=56";
+import { createClient } from "./vendor/supabase.js?v=57";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=57";
+import { COUNTRIES } from "./countries.js?v=57";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 50% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=56";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=57";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -279,23 +279,56 @@ async function loadAll() {
   claimSeasonal();
   logOpen();
   ztCheckBeta();
-  if (!isHost()) {
-    try {
-      const lv = myLevel(), seen = +(localStorage.getItem("mz-level") || 0);
-      if (seen && lv > seen) {
-        const f = FRUITS.filter((x) => x.level > seen && x.level <= lv);
-        setTimeout(() => toast(`Level ${lv}! You unlocked ${f.map((x) => zh(x.zh)).join(", ") || "a new fruit"}.`), 600);
-      }
-      localStorage.setItem("mz-level", String(lv));
-    } catch { /* storage off */ }
-    try {
-      const mine = myStickers(), raw = localStorage.getItem("mz-stickers");
-      const seen = raw ? JSON.parse(raw) : null;
-      const fresh = seen ? mine.filter((k) => !seen.includes(k)) : [];
-      if (fresh.length) setTimeout(() => toast(`New sticker! ${fresh.map((k) => stickerInfo(k)?.en).join(", ")}. Put it on your avatar in Me.`), 1400);
-      localStorage.setItem("mz-stickers", JSON.stringify(mine));
-    } catch { /* storage off */ }
+  if (!isHost()) rewardCheck();
+}
+
+// Reward pop-ups: level up (new fruit), new sticker, new character, XP given by the team.
+// Each shows once per device; the first run on a device only sets the starting point.
+function rewardCheck() {
+  const q = state.rewardQueue = state.rewardQueue || [];
+  const uid = state.user.id;
+  try {
+    const lv = myLevel(), seen = +(lsGet("mz-level") || 0);
+    if (seen && lv > seen) q.push({ kind: "level", lv, fruits: FRUITS.filter((x) => x.level > seen && x.level <= lv) });
+    lsSet("mz-level", String(lv));
+    const mine = myStickers(), raw = lsGet("mz-stickers"), had = raw ? JSON.parse(raw) : null;
+    if (had) for (const k of mine.filter((k) => !had.includes(k))) q.push({ kind: "sticker", key: k });
+    lsSet("mz-stickers", JSON.stringify(mine));
+    const av = (state.avatarAwards || []).filter((a) => a.user_id === uid && a.avatar !== "corn"), avRaw = lsGet("mz-avatars");
+    if (avRaw) { const hadAv = JSON.parse(avRaw); for (const a of av.filter((a) => !hadAv.includes(a.id))) q.push({ kind: "avatar", key: a.avatar, reason: a.reason }); }
+    lsSet("mz-avatars", JSON.stringify(av.map((a) => a.id)));
+    const xp = (state.awards || []).filter((a) => a.user_id === uid), mark = lsGet("mz-xpseen");
+    if (mark) for (const a of xp.filter((a) => a.awarded_at > mark).reverse()) q.push({ kind: "xp", points: a.points, reason: a.reason });
+    if (xp.length) lsSet("mz-xpseen", xp.reduce((m, a) => (a.awarded_at > m ? a.awarded_at : m), mark || ""));
+    else if (!mark) lsSet("mz-xpseen", new Date().toISOString());
+  } catch { /* storage off: no pop-ups */ }
+}
+function rewardOverlay() {
+  const r = state.rewardQueue?.[0];
+  if (!r) return "";
+  let art, title, body;
+  if (r.kind === "level") {
+    const f = r.fruits.at(-1);
+    art = f ? `<span class="av" style="--s:84px;--bg-av:#fff1c9"><span class="disc">${fruitSvg(f.key)}</span></span>` : "";
+    title = `Level ${r.lv}! 🎉`;
+    body = r.fruits.length ? `You unlocked ${r.fruits.map((x) => `<b>${esc(x.en)}</b> ${esc(zh(x.zh))}`).join(", ")}. Choose ${r.fruits.length > 1 ? "one" : "it"} in Me → Avatar customization.` : "Keep going!";
+  } else if (r.kind === "sticker") {
+    const i = stickerInfo(r.key);
+    art = `<span class="stkbig" style="--z:84px">${stickerSvg(r.key)}</span>`;
+    title = "New sticker!";
+    body = `You got the <b>${esc(i?.en || r.key)}</b> sticker. Wear it on your avatar in Me → Avatar customization.`;
+  } else if (r.kind === "avatar") {
+    art = `<span class="av" style="--s:84px;--bg-av:#e0f4e0"><span class="disc">${fruitSvg(r.key)}</span></span>`;
+    title = "New character unlocked!";
+    body = `${r.reason ? esc(r.reason) + ". " : ""}Choose it in Me → Avatar customization.`;
+  } else {
+    art = `<span class="rwxp">+${r.points} XP</span>`;
+    title = "You got XP!";
+    body = r.reason ? esc(r.reason) : "A gift from the Mandarin Zest team.";
   }
+  return `<div class="hbover" role="dialog" aria-modal="true" aria-labelledby="rwtitle"><div class="hbbox">
+    <div class="rwart">${art}</div><h2 id="rwtitle">${title}</h2><p class="muted" style="margin:0">${body}</p>
+    <button type="button" class="btn block" data-act="reward-ok">${state.rewardQueue.length > 1 ? "Next" : "太棒了！ Great"}</button></div></div>`;
 }
 
 // Seasonal unlocks (Thanksgiving: corn avatar + turkey sticker, 25-30 Nov, Taiwan time): the database decides.
@@ -454,9 +487,10 @@ function render() {
   const views = { home: homeView, sessions: mySessionsView, members: membersView, me: profileView, host: hostView, member: memberView, bootcamps: bootcampsView, unlocks: unlocksView, notes: notesView, settings: settingsView, admin: adminView, learn: learnView };
   const blocked = route() === "host" && !isHost();
   const view = blocked ? homeView : (views[route()] || homeView);
-  app.innerHTML = `<div class="shell ${trad() ? "zh-trad" : ""}">${nav()}<main class="main" id="main">${view()}</main></div>${hongbaoOverlay()}${seasonalOverlay()}`;
+  app.innerHTML = `<div class="shell ${trad() ? "zh-trad" : ""}">${nav()}<main class="main" id="main">${view()}</main></div>${seasonalOverlay() || hongbaoOverlay()}`;
   if (state.pushAsk && !app.querySelector(".hbover")) app.insertAdjacentHTML("beforeend", pushOverlay());
   if (state.idea?.open) app.insertAdjacentHTML("beforeend", ideaOverlay());
+  else if (state.rewardQueue?.length && !app.querySelector(".hbover")) app.insertAdjacentHTML("beforeend", rewardOverlay());
   wireMap();
 }
 
@@ -1230,7 +1264,7 @@ function hongbaoMeCard() {
 
 function hongbaoOverlay() {
   const fresh = (state.hbIn || []).filter((h) => !h.seen_at);
-  if (!fresh.length || route() !== "me") return "";
+  if (!fresh.length) return "";
   const names = [...new Set(fresh.map((h) => h.name || "A member"))];
   const who = names.length === 1 ? names[0] : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
   return `<div class="hbover" role="dialog" aria-modal="true" aria-labelledby="hbtitle">
@@ -1288,7 +1322,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=56"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=57"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1853,7 +1887,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=56");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=57");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2214,6 +2248,7 @@ function notificationsCard() {
     ${tog("notify_reminders", "Session reminders and changes", "1 hour before sessions you said you'd join, and if one is cancelled or moved")}
     ${tog("notify_new", "New sessions", "When a new session is added to the calendar")}
     ${tog("notify_notes", "Notes are up", "When your host shares the notes of a session you joined")}
+    ${tog("notify_rewards", "Rewards", "New level, character, sticker, XP or hongbao")}
     ${tog("notify_email", "Email me instead", "For reminders and notes, when this app can't notify you")}
   </section>`;
 }
@@ -2496,6 +2531,8 @@ document.addEventListener("click", async (e) => {
     state.bootAsk = null; state.bootJust = el.dataset.k; render();
   } else if (act === "hb-give") {
     el.disabled = true; await giveHongbao(el.dataset.id); el.disabled = false;
+  } else if (act === "reward-ok") {
+    state.rewardQueue.shift(); render();
   } else if (act === "seasonal-ok") {
     state.seasonalPopup = null; render();
   } else if (act === "hb-seen") {
@@ -2719,7 +2756,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=56").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=57").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -2839,10 +2876,10 @@ document.addEventListener("focusout", (e) => { if (vsugg.input && e.target === v
 // ---------------------------------------------------------------------------
 const ZT_MAP = {
   phone: { w: 98, h: 178, tree: [28, 39], temple: [70, 26], house: [26, 30], library: [25, 146], callig: [73, 146], plaza: [49, 73],
-    river: [90, 28], bushes: [[4, 4], [85, 63], [1, 71], [43, 2], [85, 111], [1, 113], [42, 164]],
+    river: [89, 29], bridge: [44, 96, 11, 18], bushes: [[4, 4], [85, 63], [1, 71], [43, 2], [85, 111], [1, 113], [42, 164]],
     hops: [[8, 58], [12, 76], [64, 80], [74, 60], [58, 86], [26, 86]] },
   wide: { w: 196, h: 180, tree: [77, 66], temple: [141, 36], house: [52, 41], library: [32, 108], callig: [164, 108], plaza: [98, 100],
-    river: [130, 28], bushes: [[8, 6], [175, 61], [1, 59], [91, 4], [167, 159], [21, 159], [59, 71], [127, 69]],
+    river: [129, 30], bridge: [93, 129, 11, 17], bushes: [[8, 6], [175, 61], [1, 59], [91, 4], [167, 159], [21, 159], [59, 71], [127, 69]],
     hops: [[58, 94], [62, 116], [120, 116], [124, 94], [104, 124], [76, 124]] },
 };
 const ZT_STAGES = [ // [en, simplified, traditional, first day]
@@ -3127,6 +3164,7 @@ function townMap(st) {
       .map(([key, ox, oy, bw, bh, tag, to, label]) => { const [x, y] = M[key], st = `${at(x - ox, y - oy)};width:${pct(bw, M.w)};height:${pct(bh, M.h)}`;
         return tag === "a" ? `<a class="zthit" href="${to}" style="${st}" aria-label="${label}"></a>` : `<button type="button" class="zthit" data-zt="soon" data-v="${to}" style="${st}" aria-label="${label}"></button>`; }).join("")}
     <div class="ztriver" style="top:${pct(M.river[0], M.h)};height:${pct(M.river[1], M.h)}" aria-hidden="true"><img class="px" src="icons/zt/river-${k}.png" alt="" draggable="false"></div>
+    <img class="px ztbridge" src="icons/zt/bridge-${k}.png" alt="" draggable="false" style="${at(M.bridge[0], M.bridge[1])};width:${pct(M.bridge[2], M.w)}">
     ${M.bushes.map(([x, y], i) => `<img class="px ztbush" src="icons/zt/bush.png" alt="" draggable="false" style="${at(x, y)};width:${pct(15, M.w)};animation-delay:-${(i * 0.7) % 3}s">`).join("")}
     <button type="button" class="zttreebtn" data-zt="sheet" style="${at(...M.tree)};width:${pct(42, M.w)}" aria-label="Your streak tree">${treeImg(st)}</button>
     ${st.wilted ? "" : `<button type="button" class="ztfruit" data-zt="cheer" style="${at(...h0)};width:${pct(18, M.w)}" aria-label="Your fruit"><span class="ztbubble" hidden></span>${ztImg("fruit-" + fruit)}</button>`}
