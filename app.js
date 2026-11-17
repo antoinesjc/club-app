@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=48";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=48";
-import { COUNTRIES } from "./countries.js?v=48";
+import { createClient } from "./vendor/supabase.js?v=49";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=49";
+import { COUNTRIES } from "./countries.js?v=49";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 50% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=48";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=49";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -277,6 +277,7 @@ async function loadAll() {
   state.me = state.profiles.get(state.user.id) || state.me;
   state.loaded = true;
   claimSeasonal();
+  logOpen();
   if (!isHost()) {
     try {
       const lv = myLevel(), seen = +(localStorage.getItem("mz-level") || 0);
@@ -1281,7 +1282,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=48"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=49"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1808,7 +1809,7 @@ function profileView() {
     </div>
     <span class="small muted">50% off all Mandarin Zest materials. Enter the code at checkout.</span>
   </section>
-  <div class="mobonly" style="display:contents">${notificationsCard()}</div>
+  <div class="mobonly" style="display:contents">${notificationsCard()}<p class="small muted privnote">Privacy: the Club team can see when you last opened the app and your Club activity (sessions, XP, stickers), only to keep the Club running well. It’s never shared.</p></div>
   ${installHint(true)}
   <div class="row between">
     <span class="small muted">${esc(state.user.email)}</span>
@@ -1846,7 +1847,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=48");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=49");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -1923,7 +1924,8 @@ async function downloadNotesPdf(sid) {
 // Desktop: settings get their own tab in the sidebar (on the phone they stay at the bottom of Me).
 function settingsView() {
   return `<header><div class="eyebrow">Mandarin Zest Club</div><h1>Settings</h1></header>
-  ${notificationsCard()}`;
+  ${notificationsCard()}
+  <p class="small muted privnote">Privacy: the Club team can see when you last opened the app and your Club activity (sessions, XP, stickers), only to keep the Club running well. It’s never shared.</p>`;
 }
 
 // ---------------------------------------------------------------------------
@@ -1998,7 +2000,8 @@ function adminView() {
   }
   const n = bcReach().n, ready = n && b.title.trim() && b.body.trim();
   const chLabel = (c) => (BC_CHANNEL.find((x) => x[0] === c) || [, c])[1];
-  return `<header><div class="eyebrow">Mandarin Zest Club</div><h1>Admin</h1></header>
+  if ((state.adminTab || "activity") === "activity") return adminHeader() + activityAdmin();
+  return adminHeader() + `
   <section class="card bccard">
     <div class="row between" style="align-items:baseline"><h2>Send a notification</h2><span class="small muted">Admins only</span></div>
     <div class="bcgrid">
@@ -2052,6 +2055,133 @@ async function bcSend(test) {
     : "No device of yours has app notifications on. Turn them on in Settings to see the test.");
   else toast(`Sent: ${res.push} in the app, ${res.email} by email${res.unreached ? `. ${res.unreached} not reached (no app notifications${b.channel === "push" ? "" : " and no email"})` : ""}.${res.emailOff && b.channel !== "push" ? " Emails are off until the Resend key is set." : ""}`);
   return true;
+}
+
+// ---------------------------------------------------------------------------
+// Activity tracking: one "app open" per 30 minutes, with the kind of device (for the admin Activity board)
+// ---------------------------------------------------------------------------
+function deviceKind() {
+  const ua = navigator.userAgent || "";
+  const ipad = /iPad/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+  const tablet = ipad || (/Android/.test(ua) && !/Mobile/.test(ua));
+  const phone = !tablet && /iPhone|iPod|Android.*Mobile|Mobile/.test(ua);
+  const installed = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+  return phone ? (installed ? "phone-app" : "phone-browser") : tablet ? "tablet" : "computer";
+}
+let lastOpenLog = 0;
+function logOpen() {
+  if (!state.user || Date.now() - lastOpenLog < 30 * 60e3) return;
+  lastOpenLog = Date.now();
+  sb.rpc("log_open", { p_device: deviceKind() }).then(() => {}, () => {});
+}
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && state.loaded) logOpen(); });
+
+// ---------------------------------------------------------------------------
+// Admin → Activity board (members only; hosts and admins are left out)
+// ---------------------------------------------------------------------------
+const DEVICE_LABEL = { "phone-app": "Phone · app", "phone-browser": "Phone · browser", tablet: "Tablet", computer: "Computer" };
+function adminHeader() {
+  const t = state.adminTab || "activity";
+  return `<header><div class="eyebrow">Mandarin Zest Club</div><h1>Admin</h1></header>
+  <div class="admtabs" role="tablist">${[["activity", "Activity"], ["notify", "Send a notification"]].map(([k, l]) =>
+    `<button type="button" role="tab" aria-selected="${t === k}" data-act="adm-tab" data-v="${k}">${l}</button>`).join("")}</div>`;
+}
+function ago(d) {
+  if (!d) return "Never";
+  const m = Math.round((Date.now() - new Date(d)) / 60e3);
+  if (m < 1) return "Just now";
+  if (m < 60) return `${m} min ago`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `${h} h ago`;
+  const days = Math.round(h / 24);
+  if (days === 1) return "Yesterday";
+  if (days < 30) return `${days} days ago`;
+  return new Date(d).toLocaleDateString([], { day: "numeric", month: "short" });
+}
+const actStatus = (d) => { const days = d ? (Date.now() - new Date(d)) / 864e5 : Infinity; return days < 7 ? "active" : days < 14 ? "quiet" : "inactive"; };
+function actLoad(force) {
+  const a = (state.adm ??= { filter: "all", q: "", group: "all", feed: null, feedMore: true });
+  if (a.loading && !force) return;
+  if (a.members && !force) return;
+  a.loading = true;
+  Promise.all([sb.rpc("admin_activity_members"), sb.rpc("admin_activity_daily"), sb.rpc("admin_activity_feed", { p_group: a.group, p_limit: 30 })])
+    .then(([m, d, f]) => {
+      a.members = m.data || []; a.daily = d.data || []; a.feed = f.data || []; a.feedMore = (f.data || []).length === 30;
+      a.loading = false; a.at = Date.now();
+      if (route() === "admin") render();
+    });
+}
+async function actFeed(more) {
+  const a = state.adm, before = more && a.feed?.length ? a.feed[a.feed.length - 1].at : null;
+  const { data } = await sb.rpc("admin_activity_feed", { p_group: a.group, p_before: before, p_limit: 30 });
+  a.feed = more ? (a.feed || []).concat(data || []) : (data || []);
+  a.feedMore = (data || []).length === 30;
+  if (route() === "admin") render();
+}
+function feedText(e) {
+  const L = esc(e.label || "");
+  switch (e.kind) {
+    case "open": return `opened the app${L ? " " + L : ""}`;
+    case "imin": return `said “I’m in” to <b>${L}</b>`;
+    case "cant": return `can’t make it to <b>${L}</b>`;
+    case "attended": return `came to <b>${L}</b>`;
+    case "hongbao": return `sent a hongbao 红包 to <b>${L}</b>`;
+    case "idea": return `sent an idea · ${L}`;
+    case "bootcamp": return `asked to join <b>${L}</b>`;
+    case "sticker": return `got the <b>${esc(stickerInfo(e.label)?.en || e.label)}</b> sticker`;
+    case "xp": { const [p, ...r] = String(e.label).split(" · "); return `got <b>${+p > 0 ? "+" : ""}${esc(p)} XP</b>${r.length ? " · " + esc(r.join(" · ")) : ""}`; }
+    default: return L;
+  }
+}
+function activityAdmin() {
+  actLoad();
+  const a = state.adm;
+  if (!a.members) return `<section class="card"><p class="muted" style="margin:0">Loading activity…</p></section>`;
+  const ms = a.members, total = ms.length, d = a.daily || [];
+  const today = d[d.length - 1] || { members: 0, opens: 0 }, lastWeekDay = d[d.length - 8] || { members: 0 };
+  const sum = (arr) => arr.reduce((t, x) => t + (x.opens || 0), 0);
+  const opens7 = sum(d.slice(-7)), opensPrev = sum(d.slice(-14, -7));
+  const counts = { active: 0, quiet: 0, inactive: 0 };
+  ms.forEach((m) => counts[actStatus(m.last_seen)]++);
+  const notif = ms.filter((m) => m.notif).length;
+  const diff = (a2, b2, word) => a2 === b2 ? `Same as ${word}` : `${a2 > b2 ? "↑" : "↓"} ${Math.abs(a2 - b2)} vs ${word}`;
+  const tile = (v, l, sub, cls = "") => `<div class="acttile"><span>${l}</span><b>${v}</b><span class="sub ${cls}">${sub}</span></div>`;
+  const max = Math.max(4, ...d.map((x) => x.members));
+  const dfmt = (s) => new Date(s + "T12:00:00").toLocaleDateString([], { day: "numeric", month: "short" });
+  const chart = `<section class="card actchart"><div class="row between" style="align-items:baseline;gap:8px;flex-wrap:wrap">
+      <h2 style="margin:0">Members who opened the app, per day</h2><span class="small muted">Last 30 days (Taiwan time) · today: <b class="green">${today.members}</b></span></div>
+    <div class="actbars" role="img" aria-label="Members who opened the app each day over the last 30 days">${d.map((x, i) =>
+      `<div class="actbar${i === d.length - 1 ? " now" : ""}" style="height:${Math.max(2, (x.members / max) * 100)}%" title="${esc(dfmt(x.day))}: ${x.members} member${x.members === 1 ? "" : "s"}, ${x.opens} open${x.opens === 1 ? "" : "s"}"></div>`).join("")}</div>
+    <div class="row between small muted"><span>${d[0] ? esc(dfmt(d[0].day)) : ""}</span><span>${d[15] ? esc(dfmt(d[15].day)) : ""}</span><span>Today</span></div>
+    ${a.at && !d.some((x) => x.opens) ? `<p class="small muted" style="margin:0">App opens are recorded from 17 Nov 2026, so the chart fills in from today.</p>` : ""}</section>`;
+  const q = a.q.trim().toLowerCase();
+  const rows = ms.filter((m) => (a.filter === "all" || actStatus(m.last_seen) === a.filter) && (!q || String(m.name || "").toLowerCase().includes(q)))
+    .sort((x, y) => new Date(y.last_seen || 0) - new Date(x.last_seen || 0));
+  const chip = (k, l) => `<button type="button" class="actchip" data-act="adm-filter" data-v="${k}" aria-pressed="${a.filter === k}">${l}</button>`;
+  const table = `<section class="card acttable"><div class="row" style="gap:8px;flex-wrap:wrap;align-items:center">
+      <h2 class="grow" style="margin:0">Members</h2>${chip("all", `All ${total}`)}${chip("active", `Active ${counts.active}`)}${chip("quiet", `Quiet ${counts.quiet}`)}${chip("inactive", `Inactive ${counts.inactive}`)}
+      <input class="input actsearch" data-admq placeholder="Search a name" value="${esc(a.q)}" aria-label="Search a member"></div>
+    <div class="actgrid acthead" aria-hidden="true"><span>Member</span><span>Last seen</span><span>Device</span><span>Opens 7d</span><span>Sessions 30d</span><span>“I’m in” 7d</span><span>XP month</span><span>Notif.</span></div>
+    <div id="actrows">${rows.map((m) => { const p = state.profiles.get(m.user_id) || { id: m.user_id, display_name: m.name }, st = actStatus(m.last_seen);
+      return `<a class="actgrid actrow2" href="#/member/${m.user_id}">
+        <span class="row" style="gap:10px;min-width:0">${avatar(p, 32, { flag: false })}<b class="ellip">${esc(m.name || p.display_name || "Member")}</b></span>
+        <span class="row" style="gap:6px"><i class="actdot ${st}" aria-label="${st}"></i>${esc(ago(m.last_seen))}</span>
+        <span class="muted">${esc(DEVICE_LABEL[m.device] || "—")}</span><span>${m.opens_7d}</span><span>${m.sessions_30d}</span><span>${m.imin_7d}</span>
+        <span class="green" style="font-weight:700">${m.xp_month > 0 ? "+" : ""}${m.xp_month}</span><span class="${m.notif ? "green" : "muted"}" style="font-weight:700">${m.notif ? "On" : "Off"}</span></a>`; }).join("") || `<p class="small muted" style="padding:12px">No member here.</p>`}</div>
+    <p class="small muted" style="margin:6px 0 0">Active: opened the app in the last 7 days · Quiet: 7 to 14 days · Inactive: 14+ days. Until members open the app again, “last seen” is their last sign-in.</p></section>`;
+  const gchip = (k, l) => `<button type="button" class="actchip" data-act="adm-group" data-v="${k}" aria-pressed="${a.group === k}">${l}</button>`;
+  const feed = `<section class="card actfeed"><div class="row between"><h2 style="margin:0">Live activity</h2><button type="button" class="linkbtn" data-act="adm-refresh">Refresh</button></div>
+    <div class="row" style="gap:6px;flex-wrap:wrap">${gchip("all", "Everything")}${gchip("sessions", "Sessions")}${gchip("learning", "Learning")}${gchip("community", "Community")}</div>
+    <div>${(a.feed || []).map((e) => { const p = state.profiles.get(e.user_id) || { id: e.user_id, display_name: e.name };
+      return `<div class="feedrow">${avatar(p, 30, { flag: false })}<span class="grow"><a href="#/member/${e.user_id}"><b>${esc(e.name || "Member")}</b></a> ${feedText(e)}<br><span class="small muted">${esc(ago(e.at))}</span></span></div>`; }).join("") || `<p class="small muted">Nothing yet.</p>`}</div>
+    ${a.feedMore ? `<button type="button" class="linkbtn" data-act="adm-older" style="align-self:center">Show older</button>` : ""}</section>`;
+  return `<div class="actlayout"><div class="stack" style="gap:16px;min-width:0">
+    <div class="acttiles">${tile(today.members, "Opened the app today", diff(today.members, lastWeekDay.members, "last week"))}
+      ${tile(`${counts.active} / ${total}`, "Active this week", `${total ? Math.round((counts.active / total) * 100) : 0}% of members`)}
+      ${tile(opens7, "App opens this week", diff(opens7, opensPrev, "the week before"))}
+      ${tile(counts.inactive, "Inactive 14+ days", counts.inactive ? "Worth a message" : "Everyone is around", counts.inactive ? "red" : "")}
+      ${tile(`${notif} / ${total}`, "Notifications on", total - notif ? `${total - notif} can’t get them` : "Everyone", total - notif ? "amber" : "")}</div>
+    ${chart}${table}</div>${feed}</div>`;
 }
 
 function notificationsCard() {
@@ -2229,6 +2359,12 @@ document.addEventListener("submit", async (e) => {
 });
 
 document.addEventListener("input", (e) => {
+  if (e.target.matches?.("[data-admq]") && state.adm) {
+    state.adm.q = e.target.value;
+    const pos = e.target.selectionStart; render();
+    const f = document.querySelector("[data-admq]"); if (f) { f.focus(); f.setSelectionRange(pos, pos); }
+    return;
+  }
   if (e.target.dataset.idea && state.idea) {
     state.idea[e.target.dataset.idea] = e.target.value;
     const f = state.idea, b = document.getElementById("ideasend");
@@ -2419,6 +2555,16 @@ document.addEventListener("click", async (e) => {
     f.busy = false;
     if (error) { toast("Couldn't send your idea. Please try again."); render(); return; }
     f.sent = true; render();
+  } else if (act === "adm-tab") {
+    state.adminTab = el.dataset.v; render();
+  } else if (act === "adm-filter") {
+    state.adm.filter = el.dataset.v; render();
+  } else if (act === "adm-group") {
+    state.adm.group = el.dataset.v; actFeed(false);
+  } else if (act === "adm-older") {
+    el.disabled = true; actFeed(true);
+  } else if (act === "adm-refresh") {
+    actLoad(true);
   } else if (act === "bc-aud") {
     Object.assign(bcState(), { audience: el.dataset.v, confirm: false }); render();
   } else if (act === "bc-none") {
@@ -2565,7 +2711,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=48").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=49").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
