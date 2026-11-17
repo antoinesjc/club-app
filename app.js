@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=52";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=52";
-import { COUNTRIES } from "./countries.js?v=52";
+import { createClient } from "./vendor/supabase.js?v=53";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=53";
+import { COUNTRIES } from "./countries.js?v=53";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 50% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=52";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=53";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -1288,7 +1288,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=52"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=53"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1853,7 +1853,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=52");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=53");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2719,7 +2719,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=52").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=53").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -2838,10 +2838,10 @@ document.addEventListener("focusout", (e) => { if (vsugg.input && e.target === v
 // Streak tree, HSK Temple and Flashcard Center. Art: icons/zt/*.png (pixel art, see the design canvas).
 // ---------------------------------------------------------------------------
 const ZT_MAP = {
-  phone: { w: 98, h: 132, tree: [28, 39], temple: [70, 26], house: [26, 30], plaza: [49, 73],
+  phone: { w: 98, h: 178, tree: [28, 39], temple: [70, 26], house: [26, 30], library: [25, 146], callig: [73, 146], plaza: [49, 73],
     hops: [[8, 58], [12, 76], [64, 80], [74, 60], [58, 86], [26, 86]] },
-  wide: { w: 196, h: 180, tree: [77, 66], temple: [141, 36], house: [52, 41], plaza: [98, 100],
-    hops: [[40, 92], [56, 108], [124, 108], [142, 90], [112, 120], [70, 120]] },
+  wide: { w: 196, h: 180, tree: [77, 66], temple: [141, 36], house: [52, 41], library: [32, 108], callig: [164, 108], plaza: [98, 100],
+    hops: [[58, 94], [62, 116], [120, 116], [124, 94], [104, 124], [76, 124]] },
 };
 const ZT_STAGES = [ // [en, simplified, traditional, first day]
   ["Seed", "种子", "種子", 0], ["Sprout", "嫩芽", "嫩芽", 1], ["Seedling", "幼苗", "幼苗", 7], ["Sapling", "小树", "小樹", 30],
@@ -3107,6 +3107,12 @@ function placeCards(big) {
   return card("#/learn/cards", "house", "Flashcard Center", trad() ? "字卡中心" : "字卡中心", dueN ? `${dueN} card${dueN === 1 ? "" : "s"} to review today` : "All done for today", `${d.cards.length} in your deck`, "Review")
     + card("#/learn/temple", "temple", "HSK Temple", trad() ? "漢語廟" : "汉语庙", hskLine, "Every HSK word, and how well you know it", "Explore");
 }
+function soonCards(big) {
+  const card = (img, t, z, line) => `<div class="card ztplace soon ${big ? "big" : ""}"><span class="ztplaceart">${ztImg(img)}</span>
+    <span class="grow"><b>${t}</b> <span class="muted">${z}</span><br><span class="small muted">${line}</span></span><span class="ztsoon">Open soon</span></div>`;
+  return card("library", "Library", trad() ? "圖書館" : "图书馆", "Still closed. Coming soon to Zest Town.")
+    + card("callig", "Calligraphy School", trad() ? "書法學校" : "书法学校", "Still closed. Coming soon to Zest Town.");
+}
 function townMap(st) {
   const k = wide() ? "wide" : "phone", M = ZT_MAP[k], pct = (x, w) => `${(x / w) * 100}%`;
   const at = (x, y) => `left:${pct(x, M.w)};top:${pct(y, M.h)}`;
@@ -3117,6 +3123,8 @@ function townMap(st) {
     ${st.wilted ? "" : `<button type="button" class="ztfruit" data-zt="cheer" style="${at(...h0)};width:${pct(18, M.w)}" aria-label="Your fruit"><span class="ztbubble" hidden></span>${ztImg("fruit-" + fruit)}</button>`}
     <a class="ztlabel" href="#/learn/cards" style="${at(M.house[0], M.house[1] + 15)}">FLASHCARDS<span>字卡中心</span>${dueN ? `<em>${dueN} DUE</em>` : ""}</a>
     <a class="ztlabel" href="#/learn/temple" style="${at(M.temple[0], M.temple[1] + 17)}">HSK TEMPLE<span>${trad() ? "漢語廟" : "汉语庙"}</span></a>
+    <button type="button" class="ztlabel soon" data-zt="soon" data-v="library" style="${at(M.library[0], M.library[1] + 15)}">LIBRARY<span>${trad() ? "圖書館" : "图书馆"}</span><em>OPEN SOON</em></button>
+    <button type="button" class="ztlabel soon" data-zt="soon" data-v="callig" style="${at(M.callig[0], M.callig[1] + 15)}">CALLIGRAPHY<span>${trad() ? "書法學校" : "书法学校"}</span><em>OPEN SOON</em></button>
     <button type="button" class="ztlabel day ${st.wilted ? "dead" : ""}" data-zt="sheet" style="${at(M.plaza[0], M.plaza[1] + 11)}">${st.wilted ? "WILTED" : `DAY ${st.n}`}</button>
   </div>`;
 }
@@ -3124,7 +3132,7 @@ function townView() {
   const st = ztStreak(), L = state.lu, list = L.view === "list";
   const toggle = `<div class="seg ztseg" role="group" aria-label="Show Zest Town as"><button type="button" data-zt="view" data-v="town" aria-pressed="${!list}">Town</button><button type="button" data-zt="view" data-v="list" aria-pressed="${list}">List</button></div>`;
   let body;
-  if (list) body = `${treeCard(st, wide())}${todayCard(st)}<h2 style="margin:4px 0 0">Places</h2><div class="ztplaces">${placeCards(wide())}</div><p class="small muted" style="text-align:center">More places will open in Zest Town soon.</p>`;
+  if (list) body = `${treeCard(st, wide())}${todayCard(st)}<h2 style="margin:4px 0 0">Places</h2><div class="ztplaces">${placeCards(wide())}</div><h2 style="margin:4px 0 0">Opening soon</h2><div class="ztplaces">${soonCards(wide())}</div>`;
   else if (wide()) body = `<div class="ztwide">${townMap(st)}<div class="ztside">${treeCard(st)}${todayCard(st)}${placeCards()}</div></div>`;
   else body = `${townMap(st)}${todayCard(st)}`;
   setTimeout(ztHop, 50);
@@ -3280,6 +3288,7 @@ document.addEventListener("click", async (e) => {
   const L = state.lu, a = el.dataset.zt;
   if (a === "view") { L.view = el.dataset.v; lsSet("mz-zt-view", L.view); render(); }
   else if (a === "sheet") { L.sheet = "tree"; render(); }
+  else if (a === "soon") toast(`The ${el.dataset.v === "library" ? "Library" : "Calligraphy School"} is still closed. It opens soon!`);
   else if (a === "close") { L.sheet = null; render(); }
   else if (a === "cheer") {
     const b = el.querySelector(".ztbubble"); el.classList.add("talk");
