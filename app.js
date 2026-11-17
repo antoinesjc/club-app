@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=58";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=58";
-import { COUNTRIES } from "./countries.js?v=58";
+import { createClient } from "./vendor/supabase.js?v=59";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=59";
+import { COUNTRIES } from "./countries.js?v=59";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 50% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=58";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=59";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -1322,7 +1322,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=58"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=59"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1887,7 +1887,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=58");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=59");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2756,7 +2756,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=58").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=59").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -2879,7 +2879,7 @@ const ZT_MAP = {
     river: [89, 29], bridge: [44, 96, 11, 18], fsign: [74, 82, 24], bushes: [[4, 4], [85, 63], [1, 71], [43, 2], [85, 111], [1, 113], [42, 164]],
     hops: [[8, 58], [12, 76], [64, 80], [74, 60], [58, 86], [26, 86]] },
   wide: { w: 196, h: 180, tree: [77, 66], temple: [141, 36], house: [52, 41], library: [32, 108], callig: [164, 108], plaza: [98, 100],
-    river: [129, 30], bridge: [93, 129, 11, 17], fsign: [160, 10, 32], bushes: [[8, 6], [175, 61], [1, 59], [91, 4], [167, 159], [21, 159], [59, 71], [127, 69]],
+    river: [129, 30], bridge: [93, 129, 11, 17], fsign: [160, 150, 32], bushes: [[8, 6], [175, 61], [1, 59], [91, 4], [176, 8], [21, 159], [59, 71], [127, 69]],
     hops: [[58, 94], [62, 116], [120, 116], [124, 94], [104, 124], [76, 124]] },
 };
 const ZT_STAGES = [ // [en, simplified, traditional, first day]
