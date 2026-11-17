@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=45";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=45";
-import { COUNTRIES } from "./countries.js?v=45";
+import { createClient } from "./vendor/supabase.js?v=46";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=46";
+import { COUNTRIES } from "./countries.js?v=46";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 50% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=45";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=46";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -454,6 +454,7 @@ function render() {
   const view = blocked ? homeView : (views[route()] || homeView);
   app.innerHTML = `<div class="shell ${trad() ? "zh-trad" : ""}">${nav()}<main class="main" id="main">${view()}</main></div>${hongbaoOverlay()}${seasonalOverlay()}`;
   if (state.pushAsk && !app.querySelector(".hbover")) app.insertAdjacentHTML("beforeend", pushOverlay());
+  if (state.idea?.open) app.insertAdjacentHTML("beforeend", ideaOverlay());
   wireMap();
 }
 
@@ -1280,7 +1281,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=45"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=46"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1641,6 +1642,56 @@ function stickerBook() {
   </section></div></details>`;
 }
 
+// ---------------------------------------------------------------------------
+// Idea box (Me page): suggestions and feedback → ideas table → "Ideas" tab of the Club members sheet
+// ---------------------------------------------------------------------------
+const BULB = '<svg viewBox="0 0 24 24" fill="none" stroke="#8a5a00" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.6.5 1 1.2 1.1 2V17h5v-1.2c.1-.8.5-1.5 1.1-2A6 6 0 0 0 12 3z" fill="#ffd95a"/><path d="M12 7.5v3M10.5 9h3" stroke="#b07a00" stroke-width="1.5"/></svg>';
+const IDEA_CATS = [["sessions", "Sessions"], ["app", "App features"], ["discord", "Discord"], ["other", "Something else"]];
+const IDEA_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const IDEA_TIMES = ["Morning", "Afternoon", "Evening"];
+const IDEA_NOTE = "We read every idea at the end of each month and will do our best to answer you.";
+function ideaNew() {
+  return { open: true, cat: "sessions", tz: state.me?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || "",
+    days: new Set(), times: new Set(), topic: "", level: state.me?.chinese_level || "", msg: "", sent: false, busy: false, first: true };
+}
+function tzOptions(cur) {
+  let list = [];
+  try { list = Intl.supportedValuesOf("timeZone"); } catch { /* old browser */ }
+  if (cur && !list.includes(cur)) list = [cur, ...list];
+  const off = (z) => { try { return new Intl.DateTimeFormat("en-US", { timeZone: z, timeZoneName: "shortOffset" }).formatToParts(new Date()).find((p) => p.type === "timeZoneName")?.value || ""; } catch { return ""; } };
+  return list.map((z) => `<option value="${esc(z)}" ${z === cur ? "selected" : ""}>${esc(z.replace(/_/g, " "))}${z === cur ? ` (${off(z)})` : ""}</option>`).join("");
+}
+function ideaOverlay() {
+  const f = state.idea;
+  if (f.sent) return `<div class="hbover ideaover" role="dialog" aria-modal="true" aria-labelledby="ideathanks">
+    <div class="hbbox"><span class="ideaicon big">${BULB}</span>
+      <h2 id="ideathanks">Thank you! ${zh(["谢谢", "謝謝"])}!</h2>
+      <p class="muted" style="margin:0">Your idea is in the box. ${IDEA_NOTE}</p>
+      <button type="button" class="btn green block" data-act="idea-close">Close</button></div></div>`;
+  const pill = (act, v, label, on) => `<button type="button" class="ideapill" data-act="${act}" data-v="${esc(v)}" aria-pressed="${on}">${label}</button>`;
+  const ok = f.cat === "sessions" ? f.topic.trim() : f.msg.trim();
+  const body = f.cat === "sessions" ? `
+      <label class="field">Your time zone<select class="input" data-idea="tz">${tzOptions(f.tz)}</select></label>
+      <div class="field"><span style="font-weight:700">Best days <span class="muted" style="font-weight:500">(optional)</span></span>
+        <div class="ideachips">${IDEA_DAYS.map((d) => pill("idea-day", d, d, f.days.has(d))).join("")}</div></div>
+      <div class="field"><span style="font-weight:700">Best time of day <span class="muted" style="font-weight:500">(optional)</span></span>
+        <div class="ideachips">${IDEA_TIMES.map((t) => pill("idea-time", t, t, f.times.has(t))).join("")}</div></div>
+      <label class="field">Topic you'd like<textarea class="input" data-idea="topic" maxlength="500" rows="2" style="padding:12px 14px;resize:vertical" placeholder="e.g. Ordering food at a night market">${esc(f.topic)}</textarea></label>
+      <label class="field">Level<select class="input" data-idea="level">${LEVEL_OPTIONS.map((l) => `<option value="${esc(l)}" ${l === f.level ? "selected" : ""}>${l ? esc(l) : "Choose a level"}</option>`).join("")}</select></label>`
+    : `<label class="field">Your idea<textarea class="input" data-idea="msg" maxlength="2000" rows="7" style="padding:12px 14px;resize:vertical" placeholder="${f.cat === "app" ? "What would make the app better for you?" : f.cat === "discord" ? "What would you like on our Discord?" : "Tell us anything: suggestions, feedback, ideas…"}">${esc(f.msg)}</textarea></label>
+      <p class="small muted" style="margin:-6px 0 0">Your name is sent with your idea so we can follow up.</p>`;
+  const first = f.first; f.first = false;
+  return `<div class="hbover ideaover${first ? " first" : ""}" role="dialog" aria-modal="true" aria-labelledby="ideatitle">
+    <div class="ideasheet">
+      <div class="row" style="gap:12px;align-items:center"><span class="ideaicon">${BULB}</span>
+        <div class="grow"><h2 id="ideatitle" style="margin:0">Idea box</h2><div class="small muted">${IDEA_NOTE}</div></div>
+        <button type="button" class="iconbtn" data-act="idea-close" aria-label="Close">✕</button></div>
+      <div class="ideachips" role="group" aria-label="About">${IDEA_CATS.map(([k, l]) => `<button type="button" class="ideacat" data-act="idea-cat" data-v="${k}" aria-pressed="${f.cat === k}">${l}</button>`).join("")}</div>
+      ${body}
+      <button type="button" class="btn green block" id="ideasend" data-act="idea-send" ${ok && !f.busy ? "" : "disabled"}>${f.busy ? "Sending…" : "Send my idea"}</button>
+    </div></div>`;
+}
+
 function profileView() {
   const d = draft(), info = fruitInfo(d.fruit), idx = trad() ? 1 : 0;
   const level = myLevel();
@@ -1656,6 +1707,7 @@ function profileView() {
       <h1>${esc(d.display_name || "Me")}</h1>
       <div style="font-size:15px;font-weight:700;color:var(--orange-ink);margin-top:4px">${zh(info.zh)} <span style="font-weight:600">${esc(info.py[idx])}</span></div>
     </div>
+    <button type="button" class="ideabtn" data-act="idea-open" aria-haspopup="dialog"><span>${BULB}</span>Idea box</button>
   </header>
 
   <form class="stack" data-form="profile" style="gap:16px">
@@ -1794,7 +1846,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=45");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=46");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2177,6 +2229,12 @@ document.addEventListener("submit", async (e) => {
 });
 
 document.addEventListener("input", (e) => {
+  if (e.target.dataset.idea && state.idea) {
+    state.idea[e.target.dataset.idea] = e.target.value;
+    const f = state.idea, b = document.getElementById("ideasend");
+    if (b) b.disabled = !(f.cat === "sessions" ? f.topic.trim() : f.msg.trim()) || f.busy;
+    return;
+  }
   if (e.target.dataset.bc) {
     const b = bcState(); b[e.target.dataset.bc] = e.target.value;
     if (e.target.dataset.bc === "q") { const l = document.getElementById("bclist"); if (l) l.innerHTML = bcListHtml(); }
@@ -2341,6 +2399,26 @@ document.addEventListener("click", async (e) => {
     await refreshBoard();
   } else if (act === "sticker") {
     keepForm(() => { draft().sticker = el.dataset.key || null; render(); });
+  } else if (act === "idea-open") {
+    state.idea = ideaNew(); render(); document.querySelector(".ideasheet .ideacat")?.focus();
+  } else if (act === "idea-close") {
+    state.idea = null; render();
+  } else if (act === "idea-cat") {
+    state.idea.cat = el.dataset.v; render();
+  } else if (act === "idea-day" || act === "idea-time") {
+    const set = act === "idea-day" ? state.idea.days : state.idea.times;
+    set.has(el.dataset.v) ? set.delete(el.dataset.v) : set.add(el.dataset.v); render();
+  } else if (act === "idea-send") {
+    const f = state.idea; f.busy = true; render();
+    const s = f.cat === "sessions";
+    const order = (list, set) => list.filter((x) => set.has(x));
+    const { error } = await sb.from("ideas").insert({
+      category: f.cat, message: (s ? f.topic : f.msg).trim(), level: s ? f.level : "", timezone: s ? f.tz : "",
+      days: s ? order(IDEA_DAYS, f.days) : [], times: s ? order(IDEA_TIMES, f.times) : [],
+    });
+    f.busy = false;
+    if (error) { toast("Couldn't send your idea. Please try again."); render(); return; }
+    f.sent = true; render();
   } else if (act === "bc-aud") {
     Object.assign(bcState(), { audience: el.dataset.v, confirm: false }); render();
   } else if (act === "bc-none") {
@@ -2487,4 +2565,9 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=45").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=46").catch(() => {});
+
+// Escape closes the Idea box.
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && state.idea?.open) { state.idea = null; render(); }
+});

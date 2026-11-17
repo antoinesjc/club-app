@@ -16,18 +16,27 @@
  *        SYNC_SECRET = (the value Claude gave you)
  *   3. Back in the editor, pick the function "setup" and click Run, then allow access.
  * After that it runs by itself: a few seconds after each edit, and every hour.
- * The menu "Club app" in the sheet has "Sync now" and "Check Stripe now".
+ * The menu "Club app" in the sheet has "Sync now", "Check Stripe now" and "Get new ideas".
+ *
+ * Idea box: ideas members send from the app land in the "Ideas" tab (created automatically),
+ * newest at the bottom, every hour and after each sync. Only new ideas are added, so you can
+ * use the "Status" and "Our notes" columns freely; they're never overwritten.
  */
 
 const SYNC_URL = 'https://eypehvhcqzhwssydvrhn.supabase.co/functions/v1/sync';
 const MEMBERS_TAB = 'Members';
 const STRIPE_TAB = 'From Stripe';
 const VIA_STRIPE = 'via Stripe';
+const IDEAS_URL = 'https://eypehvhcqzhwssydvrhn.supabase.co/functions/v1/ideas-export';
+const IDEAS_TAB = 'Ideas';
+const IDEAS_HEAD = ['Date', 'Name', 'Email', 'About', 'Idea / topic', 'Level', 'Time zone', 'Best days', 'Best time of day', 'Status', 'Our notes', 'ID'];
+const IDEA_CATS = { sessions: 'Sessions', app: 'App features', discord: 'Discord', other: 'Something else' };
 
 function onOpen() {
   SpreadsheetApp.getUi().createMenu('Club app')
     .addItem('Sync now', 'syncNow')
     .addItem('Check Stripe now', 'syncWithStripe')
+    .addItem('Get new ideas', 'syncIdeas')
     .addToUi();
 }
 
@@ -85,6 +94,46 @@ function sync_(stripeNow) {
   } finally {
     lock.releaseLock();
   }
+  try { syncIdeas(); } catch (err) { console.error(err); } // ideas never block the members sync
+}
+
+// Idea box → "Ideas" tab. Adds only ideas the tab doesn't have yet (matched by the ID column).
+function syncIdeas() {
+  const secret = PropertiesService.getScriptProperties().getProperty('SYNC_SECRET');
+  if (!secret) throw new Error('Add the SYNC_SECRET script property first (Project Settings → Script properties).');
+  const res = UrlFetchApp.fetch(IDEAS_URL, {
+    method: 'post', contentType: 'application/json', headers: { 'x-sync-secret': secret },
+    payload: '{}', muteHttpExceptions: true,
+  });
+  const body = JSON.parse(res.getContentText() || '{}');
+  if (res.getResponseCode() !== 200 || !body.ok) throw new Error('Idea box sync failed: ' + (body.error || res.getResponseCode()));
+
+  const ss = SpreadsheetApp.getActive();
+  let sheet = ss.getSheetByName(IDEAS_TAB);
+  if (!sheet) {
+    sheet = ss.insertSheet(IDEAS_TAB);
+    sheet.getRange(1, 1, 1, IDEAS_HEAD.length).setValues([IDEAS_HEAD]).setFontWeight('bold');
+    sheet.setFrozenRows(1);
+    sheet.setColumnWidth(5, 380);
+    sheet.getRange('E:E').setWrap(true);
+    sheet.getRange(2, 10, sheet.getMaxRows() - 1, 1).setDataValidation(
+      SpreadsheetApp.newDataValidation().requireValueInList(['new', 'read', 'answered', 'planned', 'done'], true).setAllowInvalid(true).build());
+    sheet.hideColumns(IDEAS_HEAD.length); // ID: only for the script
+  }
+  const idCol = IDEAS_HEAD.length;
+  const last = sheet.getLastRow();
+  const have = new Set(last > 1 ? sheet.getRange(2, idCol, last - 1, 1).getValues().map(r => String(r[0])) : []);
+  const tz = ss.getSpreadsheetTimeZone();
+  const rows = (body.ideas || []).filter(i => !have.has(String(i.id))).map(i => [
+    Utilities.formatDate(new Date(i.created_at), tz, 'yyyy-MM-dd HH:mm'),
+    i.name || '', i.email || '', IDEA_CATS[i.category] || i.category, i.message || '', i.level || '',
+    i.timezone || '', (i.days || []).join(', '), (i.times || []).join(', '), 'new', '', String(i.id),
+  ]);
+  if (rows.length) {
+    sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, IDEAS_HEAD.length).setValues(rows);
+    ss.toast(rows.length + ' new idea' + (rows.length === 1 ? '' : 's') + ' in the Ideas tab.', 'Club app');
+  }
+  return rows.length;
 }
 
 function writeStripe_(ss, list) {
