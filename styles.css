@@ -674,8 +674,12 @@ details.custom.sbdet > summary b { color: #6b4423; }
 .zthead .zhsub { font-weight: 600; color: var(--faint); font-size: .7em; }
 .ztback { font-weight: 800; text-decoration: none; font-size: 14px; }
 .ztpill { display: inline-flex; align-items: center; gap: 3px; padding: 5px 10px 5px 7px; border-radius: 999px; font-weight: 800; font-size: 14px; }
-.ztpill.flame { background: #fff1e6; color: #c2410c; }
-.ztpill.flame.off { background: #f1ece7; color: #8a7d74; }
+.ztpill.leaf { background: #e6f4df; color: #2d6b22; }
+.ztpill.leaf.off { background: #f1ece7; color: #8a7d74; }
+.ztpill.leaf.off svg { filter: grayscale(1) opacity(.6); }
+.zthit { position: absolute; z-index: 1; display: block; padding: 0; border: 0; background: none; cursor: pointer; border-radius: 6px; }
+.zthit:hover { background: rgba(255,255,255,.12); }
+.zthit:focus-visible { outline: 3px solid #fff; }
 .ztpill.drop { background: #e8f4fc; color: #1f6fa3; }
 .ztseg { max-width: 220px; }
 .ztmap { position: relative; width: 100%; border-radius: 18px; overflow: hidden; border: 4px solid #2b2a3a; background: #8fcf5a; }

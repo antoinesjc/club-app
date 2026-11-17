@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=54";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=54";
-import { COUNTRIES } from "./countries.js?v=54";
+import { createClient } from "./vendor/supabase.js?v=55";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=55";
+import { COUNTRIES } from "./countries.js?v=55";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 50% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=54";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=55";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -1288,7 +1288,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=54"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=55"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1853,7 +1853,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=54");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=55");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2719,7 +2719,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=54").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=55").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -2854,6 +2854,7 @@ const HSK_LEVELS = ["1", "2", "3", "4", "5", "6", "7-9"];
 const ZT_LEARNED = 3; // a word counts as learned after 3 good answers in a row, on different days
 const ZT_CHEERS = [["加油！", "加油！"], ["你好！", "你好！"], ["太棒了！", "太棒了！"], ["我们走吧！", "我們走吧！"], ["好开心！", "好開心！"], ["学中文吧！", "學中文吧！"]];
 const ZT_FLAME = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 2c1 4 6 6 6 12a6 6 0 0 1-12 0c0-3 2-5 3-6 0 2 1 3 2 3 0-4-1-6 1-9z" fill="#f37a48"/><path d="M12 12c1 2 3 3 3 5a3 3 0 0 1-6 0c0-1.5 1-2.5 1.5-3 .2 1 .8 1.5 1.5 1.5 0-1.5-.5-2.5 0-3.5z" fill="#ffd95a"/></svg>';
+const ZT_LEAF = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M20 3C11 3 4.5 7.5 4.5 14.5c0 2 .6 3.7 1.6 5C8 12.8 12 9.5 16 8c-4 2.8-7 6.6-8.4 12.2 1.2.6 2.6.8 4 .8C18.6 21 21 13 20 3z" fill="#3f8f2f"/><path d="M8 18.5C10 13.5 13 10.5 16 8" stroke="#b9e98b" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg>';
 const ZT_DROP = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 2.5C9 7 5.5 10.5 5.5 14.5a6.5 6.5 0 0 0 13 0C18.5 10.5 15 7 12 2.5z" fill="#4aa3df"/><path d="M9 14.5a3 3 0 0 0 3 3" stroke="#d6efff" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg>';
 ICON.tree = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="9" r="6"/><path d="M12 15v7M8 22h8M10 10l2 2 2-3"/></svg>';
 
@@ -3079,14 +3080,14 @@ function learnView() {
   return townView();
 }
 function ztHeader(st, back) {
-  const pills = st ? `<span class="ztpill flame ${st.wilted ? "off" : ""}" title="Streak">${ZT_FLAME}${st.wilted ? 0 : st.n}</span><span class="ztpill drop" title="Watering cans left this month">${ZT_DROP}${ztWaterLeft()}</span>` : "";
+  const pills = st ? `<span class="ztpill leaf ${st.wilted ? "off" : ""}" title="Streak (days in a row)">${ZT_LEAF}${st.wilted ? 0 : st.n}</span><span class="ztpill drop" title="Watering cans left this month">${ZT_DROP}${ztWaterLeft()}</span>` : "";
   return `<header class="zthead">${back ? `<a class="ztback" href="#/learn">‹ Zest Town</a>` : `<div class="eyebrow">Learning Universe · ${trad() ? "學習宇宙" : "学习宇宙"} <span class="betachip">BETA</span></div>`}
     <div class="row between" style="align-items:center;gap:10px"><h1>${back || "Zest Town"}</h1><span class="row" style="gap:6px">${pills}</span></div></header>`;
 }
 function todayCard(st) {
   return st.doneToday
-    ? `<div class="zttoday done">${ZT_FLAME}<span><b>Today counts!</b><br><span class="small">Your tree grows again tomorrow. Come back for day ${st.n + 1}.</span></span></div>`
-    : `<div class="zttoday">${ZT_FLAME}<span><b>Keep your tree growing</b><br><span class="small">Review flashcards or join a session today.</span></span></div>`;
+    ? `<div class="zttoday done">${ZT_LEAF}<span><b>Today counts!</b><br><span class="small">Your tree grows again tomorrow. Come back for day ${st.n + 1}.</span></span></div>`
+    : `<div class="zttoday">${ZT_LEAF}<span><b>Keep your tree growing</b><br><span class="small">Review flashcards or join a session today.</span></span></div>`;
 }
 function treeCard(st, big) {
   const nx = ztNext(st);
@@ -3121,6 +3122,10 @@ function townMap(st) {
   const dueN = ztQueueAll().length, fruit = myFruitKey(), h0 = M.hops[0];
   return `<div class="ztmap ${k}" style="aspect-ratio:${M.w}/${M.h}">
     ${ztImg(`town-${k}`, "ztbg")}
+    ${[["house", 21, 18, 43, 33, "a", "#/learn/cards", "Flashcard Center"], ["temple", 23, 19, 46, 36, "a", "#/learn/temple", "HSK Temple"],
+      ["library", 21, 18, 42, 34, "b", "library", "Library, opening soon"], ["callig", 21, 18, 42, 34, "b", "callig", "Calligraphy School, opening soon"]]
+      .map(([key, ox, oy, bw, bh, tag, to, label]) => { const [x, y] = M[key], st = `${at(x - ox, y - oy)};width:${pct(bw, M.w)};height:${pct(bh, M.h)}`;
+        return tag === "a" ? `<a class="zthit" href="${to}" style="${st}" aria-label="${label}"></a>` : `<button type="button" class="zthit" data-zt="soon" data-v="${to}" style="${st}" aria-label="${label}"></button>`; }).join("")}
     <div class="ztriver" style="top:${pct(M.river[0], M.h)};height:${pct(M.river[1], M.h)}" aria-hidden="true"><img class="px" src="icons/zt/river-${k}.png" alt="" draggable="false"></div>
     ${M.bushes.map(([x, y], i) => `<img class="px ztbush" src="icons/zt/bush.png" alt="" draggable="false" style="${at(x, y)};width:${pct(15, M.w)};animation-delay:-${(i * 0.7) % 3}s">`).join("")}
     <button type="button" class="zttreebtn" data-zt="sheet" style="${at(...M.tree)};width:${pct(42, M.w)}" aria-label="Your streak tree">${treeImg(st)}</button>
