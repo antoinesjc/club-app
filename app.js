@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=47";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=47";
-import { COUNTRIES } from "./countries.js?v=47";
+import { createClient } from "./vendor/supabase.js?v=48";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=48";
+import { COUNTRIES } from "./countries.js?v=48";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 50% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=47";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=48";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -1281,7 +1281,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=47"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=48"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1846,7 +1846,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=47");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=48");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2565,7 +2565,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=47").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=48").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -2580,7 +2580,7 @@ const PY_TONES = { ā: "a", á: "a", ǎ: "a", à: "a", ē: "e", é: "e", ě: "e"
   ō: "o", ó: "o", ǒ: "o", ò: "o", ū: "u", ú: "u", ǔ: "u", ù: "u", ǖ: "u", ǘ: "u", ǚ: "u", ǜ: "u", ü: "u", v: "u" };
 const pinyinKey = (s) => String(s || "").toLowerCase().replace(/[āáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜüv]/g, (c) => PY_TONES[c] || c).replace(/[^a-z]/g, "");
 const HAN = /[㐀-鿿]/;
-let vsugg = { el: null, input: null, items: [], active: -1, timer: 0, seq: 0 };
+let vsugg = { el: null, input: null, items: [], active: -1, timer: 0, seq: 0, more: false, q: "", loading: false };
 
 function vsuggClose() {
   vsugg.el?.remove();
@@ -2589,52 +2589,65 @@ function vsuggClose() {
   vsugg = { ...vsugg, el: null, input: null, items: [], active: -1 };
 }
 
-async function vsuggSearch(input) {
-  const q = input.value.trim(), k = input.dataset.k, seq = ++vsugg.seq;
-  let query = sb.from("hsk_words").select("id, level, hanzi, hanzi_trad, pinyin, meaning, pinyin_key").limit(40);
-  if (k === "hanzi") {
-    const han = [...q].filter((c) => HAN.test(c)).join("");
-    if (!han) return vsuggClose();
-    query = query.or(`hanzi.like.${han}*,hanzi_trad.like.${han}*`);
-  } else {
-    const key = pinyinKey(q);
-    if (key.length < 2) return vsuggClose();
-    query = query.like("pinyin_key", `${key}%`);
-  }
-  const { data } = await query;
-  if (seq !== vsugg.seq || document.activeElement !== input) return;
-  const han = [...q].filter((c) => HAN.test(c)).join(""), key = pinyinKey(q), plain = q.toLowerCase().replace(/\s+/g, "");
-  const LV = { "1": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7-9": 7 };
-  const score = (w) => k === "hanzi"
-    ? [w.hanzi === han || w.hanzi_trad === han ? 0 : 1, w.hanzi.length, LV[w.level]]
-    : [w.pinyin.toLowerCase().replace(/\s+/g, "") === plain ? 0 : w.pinyin_key === key ? 1 : 2, w.pinyin_key.length, LV[w.level]];
-  const items = (data || []).sort((a, b) => { const x = score(a), y = score(b); return x[0] - y[0] || x[1] - y[1] || x[2] - y[2]; }).slice(0, 6);
-  if (!items.length) return vsuggClose();
-  vsuggShow(input, items);
+const VS_PAGE = 6;
+async function vsuggFetch(q, kind, offset) {
+  const { data } = await sb.rpc("hsk_suggest", { p_q: q, p_kind: kind, p_limit: VS_PAGE + 1, p_offset: offset });
+  const rows = data || [];
+  return { rows: rows.slice(0, VS_PAGE), more: rows.length > VS_PAGE };
 }
 
-function vsuggShow(input, items) {
+async function vsuggSearch(input) {
+  const k = input.dataset.k, seq = ++vsugg.seq;
+  const q = k === "hanzi" ? [...input.value].filter((c) => HAN.test(c)).join("") : pinyinKey(input.value);
+  if (!q || (k === "pinyin" && q.length < 2)) return vsuggClose();
+  const { rows, more } = await vsuggFetch(q, k, 0);
+  if (seq !== vsugg.seq || document.activeElement !== input) return;
+  if (!rows.length) return vsuggClose();
+  vsuggShow(input, rows, more, q);
+}
+
+async function vsuggMore() {
+  if (!vsugg.el || vsugg.loading) return;
+  const { input, q, items } = vsugg, seq = vsugg.seq;
+  vsugg.loading = true;
+  const btn = vsugg.el.querySelector(".vsmore"); if (btn) btn.textContent = "Loading…";
+  const { rows, more } = await vsuggFetch(q, input.dataset.k, items.length);
+  if (seq !== vsugg.seq || vsugg.input !== input) return;
+  const keep = vsugg.active;
+  vsuggShow(input, items.concat(rows), more, q, true);
+  vsuggMove(0, keep < items.length ? keep : items.length); // land on the first new word
+}
+
+function vsuggShow(input, items, more, q, keepScroll) {
+  const listTop = vsugg.el?.scrollTop || 0;
   vsuggClose();
   const row = input.closest(".vedit"), i = input.dataset.vocab;
   const el = document.createElement("div");
   el.className = "vsugg"; el.id = `vsugg-${i}`; el.setAttribute("role", "listbox"); el.setAttribute("aria-label", "Suggested words");
-  el.innerHTML = items.map((w, j) => `<button type="button" class="vsopt" role="option" id="vsopt-${i}-${j}" data-j="${j}" tabindex="-1">
-    <b lang="zh">${esc(trad() ? w.hanzi_trad || w.hanzi : w.hanzi)}</b><span class="vsp">${esc(w.pinyin)}</span><span class="vsm">${esc(w.meaning)}</span><span class="vsl">HSK ${esc(w.level)}</span></button>`).join("")
+  el.innerHTML = `<div class="vslist">${items.map((w, j) => `<button type="button" class="vsopt" role="option" id="vsopt-${i}-${j}" data-j="${j}" tabindex="-1">
+    <b lang="zh">${esc(trad() ? w.hanzi_trad || w.hanzi : w.hanzi)}</b><span class="vsp">${esc(w.pinyin)}</span><span class="vsm">${esc(w.meaning)}</span><span class="vsl">HSK ${esc(w.level)}</span></button>`).join("")}</div>`
+    + (more ? `<button type="button" class="vsmore" id="vsopt-${i}-more" tabindex="-1">Show more words</button>` : "")
     + `<div class="vsfoot">From the HSK lists · ↑↓ then Enter, or tap</div>`;
   el.addEventListener("mousedown", (e) => e.preventDefault()); // keep focus in the input
-  el.addEventListener("click", (e) => { const b = e.target.closest(".vsopt"); if (b) vsuggPick(+b.dataset.j); });
+  el.addEventListener("click", (e) => {
+    if (e.target.closest(".vsmore")) return vsuggMore();
+    const b = e.target.closest(".vsopt"); if (b) vsuggPick(+b.dataset.j);
+  });
   row.after(el);
-  el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  if (keepScroll) el.querySelector(".vslist").scrollTop = listTop;
+  else el.scrollIntoView({ block: "nearest", behavior: "smooth" });
   input.setAttribute("aria-expanded", "true");
-  vsugg = { ...vsugg, el, input, items, active: -1 };
+  vsugg = { ...vsugg, el, input, items, more, q, active: -1, loading: false };
 }
 
-function vsuggMove(d) {
+function vsuggMove(d, to) {
   if (!vsugg.el) return;
-  const n = vsugg.items.length;
-  vsugg.active = (vsugg.active + d + n) % n;
-  vsugg.el.querySelectorAll(".vsopt").forEach((b, j) => b.setAttribute("aria-selected", j === vsugg.active ? "true" : "false"));
-  vsugg.input.setAttribute("aria-activedescendant", `vsopt-${vsugg.input.dataset.vocab}-${vsugg.active}`);
+  const n = vsugg.items.length + (vsugg.more ? 1 : 0); // the "Show more" button is the last stop
+  vsugg.active = to ?? (vsugg.active + d + n) % n;
+  const opts = [...vsugg.el.querySelectorAll(".vsopt, .vsmore")];
+  opts.forEach((b, j) => b.setAttribute("aria-selected", j === vsugg.active ? "true" : "false"));
+  opts[vsugg.active]?.scrollIntoView({ block: "nearest" });
+  vsugg.input.setAttribute("aria-activedescendant", opts[vsugg.active]?.id || "");
 }
 
 function vsuggPick(j) {
@@ -2661,7 +2674,7 @@ document.addEventListener("keydown", (e) => {
   if (!vsugg.el || e.target !== vsugg.input) return;
   if (e.key === "ArrowDown") { e.preventDefault(); vsuggMove(1); }
   else if (e.key === "ArrowUp") { e.preventDefault(); vsuggMove(-1); }
-  else if (e.key === "Enter" && vsugg.active >= 0) { e.preventDefault(); vsuggPick(vsugg.active); }
+  else if (e.key === "Enter" && vsugg.active >= 0) { e.preventDefault(); vsugg.active >= vsugg.items.length ? vsuggMore() : vsuggPick(vsugg.active); }
   else if (e.key === "Escape") { e.preventDefault(); vsuggClose(); }
 });
 document.addEventListener("focusout", (e) => { if (vsugg.input && e.target === vsugg.input) setTimeout(() => { if (document.activeElement !== vsugg.input) vsuggClose(); }, 120); });
