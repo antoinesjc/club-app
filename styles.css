@@ -830,3 +830,36 @@ details.custom.sbdet > summary b { color: #6b4423; }
 .rwxp { font-size: 34px; font-weight: 800; color: var(--green); background: var(--mint); border-radius: 20px; padding: 14px 22px; }
 @keyframes rwpop { from { transform: scale(.4); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .rwart { animation: none; } }
+/* Magical Forest + forest sign */
+.ztmap { container-type: inline-size; }
+.ztsignwrap { position: absolute; z-index: 3; display: block; }
+.ztsigntext, .ztforestsign { position: absolute; display: grid; place-items: center; text-align: center; color: #2b1708; font-family: "Press Start 2P", ui-monospace, monospace; line-height: 1.5; text-decoration: none; }
+.ztsigntext { left: 0; top: 0; }
+.ztsignwrap:hover img, .ztforestsign:hover { filter: brightness(1.08); }
+.ztforestsign { z-index: 3; }
+.ztforestsign:hover { color: #2b1708; }
+.ztfish { position: absolute; opacity: .3; pointer-events: none; animation: ztswim 10s ease-in-out infinite; }
+@keyframes ztswim { 0% { transform: translate(0, 0) scaleX(1); } 46% { transform: translate(var(--dx), var(--dy)) scaleX(1); } 50% { transform: translate(var(--dx), var(--dy)) scaleX(-1); } 96% { transform: translate(0, 0) scaleX(-1); } 100% { transform: translate(0, 0) scaleX(1); } }
+.ztmem { position: absolute; z-index: 2; padding: 0; border: 0; background: none; cursor: pointer; transition: left 1.4s linear, top 1.4s linear; }
+.ztmem img { transform-origin: 50% 100%; }
+.ztmem.flip img { transform: scaleX(-1); }
+.ztmem.hopping img { animation: zthop .35s ease-in-out infinite alternate; }
+.ztmem.sel { z-index: 4; }
+.ztmem.sel img { filter: drop-shadow(0 0 2px #fff) drop-shadow(0 0 5px #ffd95a); }
+.ztmname { position: absolute; left: 50%; top: 100%; transform: translateX(-50%); margin-top: 2px; background: rgba(43,42,58,.85); color: #fff; font-size: 11px; font-weight: 700; padding: 1px 5px; border-radius: 3px; white-space: nowrap; }
+.ztmem.me .ztmname { background: #ffd95a; color: #2b2a3a; }
+.ztempty { position: absolute; left: 50%; top: 52%; transform: translate(-50%, -50%); background: rgba(255,255,255,.92); border-radius: 14px; padding: 10px 14px; font-size: 14px; font-weight: 700; text-align: center; max-width: 70%; }
+.ztmcard { gap: 12px; }
+.ztmstats { display: flex; gap: 10px; }
+.ztmtree { flex: 1; display: flex; gap: 10px; align-items: center; border: 1px solid var(--line); border-radius: 16px; padding: 8px 10px; }
+.ztmtree .zttreeart { width: 56px; padding: 3px; }
+.ztmses { width: 110px; flex: none; border: 1px solid var(--line); border-radius: 16px; padding: 10px; display: flex; flex-direction: column; }
+.ztmses b { font-size: 22px; }
+.ztleafn { display: inline-flex; align-items: center; gap: 3px; font-weight: 800; color: #2d6b22; font-size: 16px; }
+.ztfrow { display: flex; align-items: center; gap: 12px; width: 100%; padding: 9px 0; border: 0; border-top: 1px solid var(--line); background: none; text-align: left; font: inherit; cursor: pointer; }
+.ztfrow:first-of-type { border-top: 0; }
+.ztmap.forest { border-color: #173b22; background: #2c6b3a; }
+@media (prefers-reduced-motion: reduce) { .ztfish, .ztmem, .ztmem img { animation: none !important; transition: none; } }
+.ztmcard .ztx { position: static; flex: none; }
+.zthead .zhsub { white-space: nowrap; }
+@media (max-width: 899px) { .zthead h1 { font-size: 26px; } }

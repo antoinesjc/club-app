@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=57";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=57";
-import { COUNTRIES } from "./countries.js?v=57";
+import { createClient } from "./vendor/supabase.js?v=58";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=58";
+import { COUNTRIES } from "./countries.js?v=58";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 50% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=57";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=58";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -1322,7 +1322,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=57"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=58"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1887,7 +1887,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=57");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=58");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2693,7 +2693,7 @@ addEventListener("hashchange", () => {
   if (route() !== "me") state.draft = null;
   if (route() !== "host") state.noteDraft.clear();
   if (state.lu && !(route() === "learn" && routeArg() === "cards")) state.lu.review = null;
-  if (state.lu) { state.lu.sheet = null; state.lu.word = null; state.lu.pick = null; }
+  if (state.lu) { state.lu.sheet = null; state.lu.word = null; state.lu.pick = null; if (state.lu.forest) state.lu.forest.sel = null; }
   render();
   document.getElementById("main")?.focus?.();
   scrollTo(0, 0);
@@ -2756,7 +2756,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=57").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=58").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -2876,10 +2876,10 @@ document.addEventListener("focusout", (e) => { if (vsugg.input && e.target === v
 // ---------------------------------------------------------------------------
 const ZT_MAP = {
   phone: { w: 98, h: 178, tree: [28, 39], temple: [70, 26], house: [26, 30], library: [25, 146], callig: [73, 146], plaza: [49, 73],
-    river: [89, 29], bridge: [44, 96, 11, 18], bushes: [[4, 4], [85, 63], [1, 71], [43, 2], [85, 111], [1, 113], [42, 164]],
+    river: [89, 29], bridge: [44, 96, 11, 18], fsign: [74, 82, 24], bushes: [[4, 4], [85, 63], [1, 71], [43, 2], [85, 111], [1, 113], [42, 164]],
     hops: [[8, 58], [12, 76], [64, 80], [74, 60], [58, 86], [26, 86]] },
   wide: { w: 196, h: 180, tree: [77, 66], temple: [141, 36], house: [52, 41], library: [32, 108], callig: [164, 108], plaza: [98, 100],
-    river: [129, 30], bridge: [93, 129, 11, 17], bushes: [[8, 6], [175, 61], [1, 59], [91, 4], [167, 159], [21, 159], [59, 71], [127, 69]],
+    river: [129, 30], bridge: [93, 129, 11, 17], fsign: [160, 10, 32], bushes: [[8, 6], [175, 61], [1, 59], [91, 4], [167, 159], [21, 159], [59, 71], [127, 69]],
     hops: [[58, 94], [62, 116], [120, 116], [124, 94], [104, 124], [76, 124]] },
 };
 const ZT_STAGES = [ // [en, simplified, traditional, first day]
@@ -3114,6 +3114,7 @@ function learnView() {
   const sub = routeArg();
   if (sub === "cards") return L.review ? reviewView() : cardsView();
   if (sub === "temple") return templeView();
+  if (sub === "forest") return forestView();
   return townView();
 }
 function ztHeader(st, back) {
@@ -3165,6 +3166,7 @@ function townMap(st) {
         return tag === "a" ? `<a class="zthit" href="${to}" style="${st}" aria-label="${label}"></a>` : `<button type="button" class="zthit" data-zt="soon" data-v="${to}" style="${st}" aria-label="${label}"></button>`; }).join("")}
     <div class="ztriver" style="top:${pct(M.river[0], M.h)};height:${pct(M.river[1], M.h)}" aria-hidden="true"><img class="px" src="icons/zt/river-${k}.png" alt="" draggable="false"></div>
     <img class="px ztbridge" src="icons/zt/bridge-${k}.png" alt="" draggable="false" style="${at(M.bridge[0], M.bridge[1])};width:${pct(M.bridge[2], M.w)}">
+    ${(() => { const [x, y, sz] = M.fsign, k = sz / 24; return `<a class="ztsignwrap" href="#/learn/forest" style="${at(x, y)};width:${pct(sz, M.w)}" aria-label="To the Magical Forest">${ztImg("sign-forest")}<span class="ztsigntext" style="width:${(16 / 24) * 100}%;height:${(11 / 18) * 100}%;font-size:${(k * 1.75 / M.w) * 100}cqw">MAGICAL<br>FOREST</span></a>`; })()}
     ${M.bushes.map(([x, y], i) => `<img class="px ztbush" src="icons/zt/bush.png" alt="" draggable="false" style="${at(x, y)};width:${pct(15, M.w)};animation-delay:-${(i * 0.7) % 3}s">`).join("")}
     <button type="button" class="zttreebtn" data-zt="sheet" style="${at(...M.tree)};width:${pct(42, M.w)}" aria-label="Your streak tree">${treeImg(st)}</button>
     ${st.wilted ? "" : `<button type="button" class="ztfruit" data-zt="cheer" style="${at(...h0)};width:${pct(18, M.w)}" aria-label="Your fruit"><span class="ztbubble" hidden></span>${ztImg("fruit-" + fruit)}</button>`}
@@ -3381,4 +3383,111 @@ document.addEventListener("keydown", (e) => {
   if (route() !== "learn" || !R || R.finished || e.target.closest("input, textarea, select")) return;
   if ((e.key === " " || e.key === "Enter") && !R.flipped) { e.preventDefault(); R.flipped = true; render(); }
   else if (R.flipped && ["1", "2", "3", "4"].includes(e.key)) { e.preventDefault(); ztGrade(+e.key - 1); }
+});
+
+
+// ---- Magical Forest (beta): members who opened the app in the last 24 hours --------------------
+const ZT_FOREST = {
+  phone: { w: 98, h: 178, c: [49, 103], r: [36, 38], sign: [2, 156], fish: [[66, 156, 16, 3, 9, 0], [78, 166, -14, -4, 11, -4], [84, 148, -10, 5, 8, -2]] },
+  wide: { w: 196, h: 180, c: [98, 100], r: [72, 46], sign: [4, 158], fish: [[146, 158, 24, 4, 10, 0], [168, 148, -20, 6, 12, -5], [160, 170, 18, -5, 9, -2], [182, 162, -16, -3, 11, -7]] },
+};
+state.lu.forest = { list: null, loading: false, at: 0, sel: null, view: lsGet("mz-forest-view") || "forest", pos: new Map() };
+async function forestLoad(force) {
+  const F = state.lu.forest;
+  if (F.loading || (!force && F.list && Date.now() - F.at < 120e3)) return;
+  F.loading = true;
+  const { data, error } = await sb.rpc("forest_members");
+  F.loading = false; F.at = Date.now();
+  F.list = error ? [] : data;
+  if (error) console.error(error);
+  if (route() === "learn" && routeArg() === "forest") render();
+}
+function forestSpot(k, id, fresh) {
+  const F = state.lu.forest, M = ZT_FOREST[k], key = k + id;
+  if (!fresh && F.pos.has(key)) return F.pos.get(key);
+  let best = null;
+  for (let t = 0; t < 30; t++) { // a free spot inside the clearing, away from the others
+    const a = Math.random() * 6.283, r = Math.sqrt(Math.random()) * 0.82;
+    const p = [M.c[0] + Math.cos(a) * M.r[0] * r - 8, M.c[1] + Math.sin(a) * M.r[1] * r - 10];
+    const near = [...F.pos.entries()].filter(([q]) => q.startsWith(k) && q !== key).some(([, o]) => Math.hypot(o[0] - p[0], o[1] - p[1]) < 15);
+    best = p; if (!near) break;
+  }
+  F.pos.set(key, best);
+  return best;
+}
+const forestMember = (id) => state.lu.forest.list?.find((m) => m.user_id === id);
+function forestMap(list) {
+  const k = wide() ? "wide" : "phone", M = ZT_FOREST[k], F = state.lu.forest, pct = (x, w) => `${(x / w) * 100}%`;
+  const at = (x, y) => `left:${pct(x, M.w)};top:${pct(y, M.h)}`;
+  const fish = M.fish.map(([x, y, dx, dy, t, d]) => `<img class="px ztfish" src="icons/zt/fish.png" alt="" draggable="false" style="${at(x, y)};width:${pct(8, M.w)};--dx:${(dx / 8) * 100}%;--dy:${(dy / 4) * 100}%;animation-duration:${t}s;animation-delay:${d}s">`).join("");
+  const members = list.map((m) => {
+    const [x, y] = forestSpot(k, m.user_id), me = m.user_id === state.user.id, f = ZT_FRUITS.has(m.fruit) ? m.fruit : "orange";
+    return `<button type="button" class="ztmem ${F.sel === m.user_id ? "sel" : ""} ${me ? "me" : ""}" data-zt="mem" data-id="${m.user_id}" data-k="${k}" style="${at(x, y)};width:${pct(16, M.w)}" aria-label="${esc(m.name || "Member")}">${ztImg("fruit-" + f)}<span class="ztmname">${esc((m.name || "Member").split(" ")[0])}${me ? " (you)" : ""}</span></button>`;
+  }).join("");
+  const [sx, sy] = M.sign;
+  return `<div class="ztmap forest ${k}" style="aspect-ratio:${M.w}/${M.h}">
+    ${ztImg(`forest-${k}`, "ztbg")}${fish}
+    <a class="ztforestsign" href="#/learn" style="${at(sx + 4, sy - 1)};width:${pct(23, M.w)};height:${pct(9, M.h)};font-size:${((k === "wide" ? 2.35 : 1.85) / M.w) * 100}cqw" aria-label="Back to Zest Town">ZEST TOWN</a>
+    ${members}
+    ${list.length ? "" : `<div class="ztempty">Nobody else has been here in the last 24 hours. Come back later!</div>`}
+  </div>`;
+}
+function forestCard(m) {
+  const p = { ...(state.profiles.get(m.user_id) || {}), id: m.user_id, fruit: m.fruit, bg: m.bg, country: m.country };
+  const b = state.board.find((x) => x.user_id === m.user_id), st = ztStage(m.streak), n = state.stats.get(m.user_id) || 0;
+  const me = m.user_id === state.user.id;
+  return `<div class="card ztmcard">
+    <div class="row" style="gap:12px;align-items:center">${avatar(p, 64)}
+      <div class="grow"><div style="font-size:20px;font-weight:800">${esc(m.name || "Member")}${me ? " (you)" : ""}</div>
+      <div class="small muted">${b ? `Level ${b.level} · ` : ""}here ${esc(ago(m.last_seen).toLowerCase())}</div></div>
+      <button type="button" class="ztx" data-zt="mem" data-id="" aria-label="Close">×</button></div>
+    <div class="ztmstats"><div class="ztmtree"><span class="zttreeart">${ztImg("tree-" + st)}</span><span><b class="ztleafn">${ZT_LEAF}${m.streak} day${m.streak === 1 ? "" : "s"}</b><br><span class="small muted">${esc(stageName(st))}</span></span></div>
+      <div class="ztmses"><b>${n}</b><span class="small muted">session${n === 1 ? "" : "s"} joined</span></div></div>
+    ${me ? "" : hongbaoGiveBlock(m.user_id) || `<p class="small muted" style="margin:0">Only members can send each other hongbaos.</p>`}
+    <a class="small" style="font-weight:800;text-align:center" href="#/member/${m.user_id}">See ${esc((m.name || "their").split(" ")[0])}'s profile ›</a>
+  </div>`;
+}
+function forestRows(list) {
+  return list.map((m) => `<button type="button" class="ztfrow" data-zt="mem" data-id="${m.user_id}">${avatar({ ...(state.profiles.get(m.user_id) || {}), id: m.user_id, fruit: m.fruit, bg: m.bg }, 40, { flag: false })}
+    <span class="grow"><b>${esc(m.name || "Member")}</b>${m.user_id === state.user.id ? " (you)" : ""}<br><span class="small muted">here ${esc(ago(m.last_seen).toLowerCase())}</span></span>
+    <span class="ztleafn">${ZT_LEAF}${m.streak}</span></button>`).join("");
+}
+function forestView() {
+  const F = state.lu.forest, st = ztStreak();
+  forestLoad();
+  const list = F.list || [];
+  const head = `${ztHeader(st, "Magical Forest <span class='zhsub'>魔法森林</span>")}
+    <p class="muted small" style="margin:-6px 0 0">${F.list ? `${list.length} member${list.length === 1 ? "" : "s"} opened the app in the last 24 hours.` : "Looking around the forest…"} ${list.length ? (wide() ? "Click one to see their streak or send a hongbao." : "Tap one to say hi.") : ""}</p>`;
+  const sel = F.sel && forestMember(F.sel);
+  const toggle = `<div class="seg ztseg" role="group" aria-label="Show the forest as"><button type="button" data-zt="fview" data-v="forest" aria-pressed="${F.view !== "list"}">Forest</button><button type="button" data-zt="fview" data-v="list" aria-pressed="${F.view === "list"}">List</button></div>`;
+  setTimeout(forestHop, 60);
+  if (F.view === "list") return `${head}${toggle}<div class="card" style="gap:0;padding:4px 14px">${forestRows(list) || `<p class="small muted">Nobody yet today.</p>`}</div>${sel ? (wide() ? `<div style="max-width:420px">${forestCard(sel)}</div>` : `<div class="ztover" data-zt="mem" data-id=""><div class="ztsheet" data-stop>${forestCard(sel)}</div></div>`) : ""}`;
+  if (wide()) return `${head}${toggle}<div class="ztwide">${forestMap(list)}<div class="ztside">${sel ? forestCard(sel) : `<div class="card"><p class="small muted" style="margin:0">Click a fruit to see their streak tree and send them a hongbao.</p></div>`}
+    ${list.length ? `<div class="card" style="gap:0;padding:6px 14px"><b style="padding:6px 0">Here today · ${list.length}</b>${forestRows(list)}</div>` : ""}</div></div>`;
+  return `${head}${toggle}${forestMap(list)}${sel ? `<div class="ztover" data-zt="mem" data-id=""><div class="ztsheet" data-stop>${forestCard(sel)}</div></div>` : ""}`;
+}
+let forestTimer = null;
+function forestHop() {
+  if (forestTimer || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  forestTimer = setInterval(() => {
+    const els = [...document.querySelectorAll(".ztmem")];
+    if (!els.length) { clearInterval(forestTimer); forestTimer = null; return; }
+    const el = els[Math.floor(Math.random() * els.length)];
+    if (el.classList.contains("sel")) return;
+    const k = el.dataset.k, M = ZT_FOREST[k], old = state.lu.forest.pos.get(k + el.dataset.id);
+    const [x, y] = forestSpot(k, el.dataset.id, true);
+    el.classList.toggle("flip", old && x < old[0]); el.classList.add("hopping");
+    el.style.left = `${(x / M.w) * 100}%`; el.style.top = `${(y / M.h) * 100}%`;
+    setTimeout(() => el.classList.remove("hopping"), 1500);
+  }, 1300);
+}
+document.addEventListener("click", (e) => {
+  const el = e.target.closest("[data-zt]");
+  if (!el) return;
+  const a = el.dataset.zt, F = state.lu.forest;
+  if (a === "mem") {
+    if (e.target.closest("[data-stop]") && !e.target.closest(".ztx") && el.classList.contains("ztover")) return;
+    if (e.target.closest(".hbcard, a")) return;
+    F.sel = el.dataset.id || null; render();
+  } else if (a === "fview") { F.view = el.dataset.v; lsSet("mz-forest-view", F.view); render(); }
 });
