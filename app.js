@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=51";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=51";
-import { COUNTRIES } from "./countries.js?v=51";
+import { createClient } from "./vendor/supabase.js?v=52";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=52";
+import { COUNTRIES } from "./countries.js?v=52";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 50% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=51";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=52";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -278,6 +278,7 @@ async function loadAll() {
   state.loaded = true;
   claimSeasonal();
   logOpen();
+  ztCheckBeta();
   if (!isHost()) {
     try {
       const lv = myLevel(), seen = +(localStorage.getItem("mz-level") || 0);
@@ -439,9 +440,9 @@ const hostLink = (s) => `#/host/${encodeURIComponent(s.id)}`;
 function nav() {
   const r = route() === "host" ? "sessions" : route() === "member" ? "members" : route();
   const item = (id, label, icon) => `<a href="#/${id}" ${r === id ? 'aria-current="page"' : ""}>${icon}<span>${label}</span></a>`;
-  return `<nav class="nav" aria-label="Main">
+  return `<nav class="nav ${isBeta() ? "five" : ""}" aria-label="Main">
     <div class="brand"><img src="icons/logo.png" alt=""><span>MANDARIN ZEST CLUB</span></div>
-    ${item("home", "Home", ICON.home)}${item("sessions", "My sessions", ICON.cal)}${item("notes", "My notes", ICON.notebook).replace("<a ", '<a class="deskonly" ')}${item("members", "Members", ICON.people)}${item("bootcamps", "Bootcamps", ICON.seedling).replace("<a ", '<a class="deskonly" ')}${item("me", "Me", ICON.me)}${item("settings", "Settings", ICON.gear).replace("<a ", '<a class="deskonly" ')}${isAdmin() ? item("admin", "Admin", ICON.shield).replace("<a ", '<a class="deskonly" ') : ""}
+    ${item("home", "Home", ICON.home)}${item("sessions", "My sessions", ICON.cal)}${item("notes", "My notes", ICON.notebook).replace("<a ", '<a class="deskonly" ')}${isBeta() ? item("learn", "Learning", ICON.tree).replace("</span></a>", '</span><i class="navbeta">BETA</i></a>') : ""}${item("members", "Members", ICON.people)}${item("bootcamps", "Bootcamps", ICON.seedling).replace("<a ", '<a class="deskonly" ')}${item("me", "Me", ICON.me)}${item("settings", "Settings", ICON.gear).replace("<a ", '<a class="deskonly" ')}${isAdmin() ? item("admin", "Admin", ICON.shield).replace("<a ", '<a class="deskonly" ') : ""}
     <a class="navchat" href="${DISCORD_CHAT}" target="_blank" rel="noopener">${ICON.chat}<span>Chat on Discord</span></a>
   </nav>`;
 }
@@ -450,7 +451,7 @@ function render() {
   if (!state.user) { app.innerHTML = loginView(); return; }
   if (!state.role) { app.innerHTML = notMemberView(); return; }
   if (!state.loaded) return;
-  const views = { home: homeView, sessions: mySessionsView, members: membersView, me: profileView, host: hostView, member: memberView, bootcamps: bootcampsView, unlocks: unlocksView, notes: notesView, settings: settingsView, admin: adminView };
+  const views = { home: homeView, sessions: mySessionsView, members: membersView, me: profileView, host: hostView, member: memberView, bootcamps: bootcampsView, unlocks: unlocksView, notes: notesView, settings: settingsView, admin: adminView, learn: learnView };
   const blocked = route() === "host" && !isHost();
   const view = blocked ? homeView : (views[route()] || homeView);
   app.innerHTML = `<div class="shell ${trad() ? "zh-trad" : ""}">${nav()}<main class="main" id="main">${view()}</main></div>${hongbaoOverlay()}${seasonalOverlay()}`;
@@ -1287,7 +1288,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=51"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=52"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1852,7 +1853,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=51");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=52");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2654,6 +2655,8 @@ async function toggleIn(id) {
 addEventListener("hashchange", () => {
   if (route() !== "me") state.draft = null;
   if (route() !== "host") state.noteDraft.clear();
+  if (state.lu && !(route() === "learn" && routeArg() === "cards")) state.lu.review = null;
+  if (state.lu) { state.lu.sheet = null; state.lu.word = null; state.lu.pick = null; }
   render();
   document.getElementById("main")?.focus?.();
   scrollTo(0, 0);
@@ -2716,7 +2719,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=51").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=52").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -2829,3 +2832,497 @@ document.addEventListener("keydown", (e) => {
   else if (e.key === "Escape") { e.preventDefault(); vsuggClose(); }
 });
 document.addEventListener("focusout", (e) => { if (vsugg.input && e.target === vsugg.input) setTimeout(() => { if (document.activeElement !== vsugg.input) vsuggClose(); }, 120); });
+
+// ---------------------------------------------------------------------------
+// Zest Town · Learning Universe (BETA: admins + people in beta_testers only)
+// Streak tree, HSK Temple and Flashcard Center. Art: icons/zt/*.png (pixel art, see the design canvas).
+// ---------------------------------------------------------------------------
+const ZT_MAP = {
+  phone: { w: 98, h: 132, tree: [28, 39], temple: [70, 26], house: [26, 30], plaza: [49, 73],
+    hops: [[8, 58], [12, 76], [64, 80], [74, 60], [58, 86], [26, 86]] },
+  wide: { w: 196, h: 180, tree: [77, 66], temple: [141, 36], house: [52, 41], plaza: [98, 100],
+    hops: [[40, 92], [56, 108], [124, 108], [142, 90], [112, 120], [70, 120]] },
+};
+const ZT_STAGES = [ // [en, simplified, traditional, first day]
+  ["Seed", "种子", "種子", 0], ["Sprout", "嫩芽", "嫩芽", 1], ["Seedling", "幼苗", "幼苗", 7], ["Sapling", "小树", "小樹", 30],
+  ["Young tree", "青年树", "青年樹", 90], ["Leafy tree", "茂盛树", "茂盛樹", 180], ["Blossom tree", "开花树", "開花樹", 270],
+  ["Fruiting tree", "结果树", "結果樹", 330], ["Orange tree", "橘子树", "橘子樹", 365],
+];
+const HSK_LEVELS = ["1", "2", "3", "4", "5", "6", "7-9"];
+const ZT_LEARNED = 3; // a word counts as learned after 3 good answers in a row, on different days
+const ZT_CHEERS = ["加油！", "你好！", "太棒了！", "我们走吧！", "好开心！", "学中文吧！"];
+const ZT_FLAME = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 2c1 4 6 6 6 12a6 6 0 0 1-12 0c0-3 2-5 3-6 0 2 1 3 2 3 0-4-1-6 1-9z" fill="#f37a48"/><path d="M12 12c1 2 3 3 3 5a3 3 0 0 1-6 0c0-1.5 1-2.5 1.5-3 .2 1 .8 1.5 1.5 1.5 0-1.5-.5-2.5 0-3.5z" fill="#ffd95a"/></svg>';
+const ZT_DROP = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 2.5C9 7 5.5 10.5 5.5 14.5a6.5 6.5 0 0 0 13 0C18.5 10.5 15 7 12 2.5z" fill="#4aa3df"/><path d="M9 14.5a3 3 0 0 0 3 3" stroke="#d6efff" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg>';
+ICON.tree = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="9" r="6"/><path d="M12 15v7M8 22h8M10 10l2 2 2-3"/></svg>';
+
+state.lu = {
+  loaded: false, loading: false, cards: [], days: [], hsk: new Map(), hskLoading: new Set(),
+  view: lsGet("mz-zt-view") || "town", lv: lsGet("mz-zt-lv") || "1", show: 300, pick: null, word: null,
+  sheet: null, review: null, perDay: +(lsGet("mz-zt-new") || 10),
+};
+const isBeta = () => isAdmin() || state.beta === true;
+const ztPad = (n) => String(n).padStart(2, "0");
+const dkey = (d) => `${d.getFullYear()}-${ztPad(d.getMonth() + 1)}-${ztPad(d.getDate())}`;
+const dayBack = (n) => { const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() - n); return dkey(d); };
+const todayKey = () => dayBack(0);
+const cardZh = (c) => (trad() ? c.hanzi_trad || c.hanzi : c.hanzi);
+const wordZh = (w) => (trad() ? w.hanzi_trad || w.hanzi : w.hanzi);
+const ztImg = (name, cls = "", alt = "") => `<img class="px ${cls}" src="icons/zt/${name}.png" alt="${esc(alt)}" draggable="false">`;
+const ZT_FRUITS = new Set(["orange", "apple", "peach", "strawberry", "lemon", "mango", "watermelon", "pineapple", "kiwi", "cherry", "coconut", "dragonfruit", "lychee", "pomelo", "starfruit", "guava", "passionfruit", "persimmon", "rambutan", "durian", "corn"]);
+const myFruitKey = () => (ZT_FRUITS.has(state.me?.fruit) ? state.me.fruit : "orange");
+
+async function ztCheckBeta() {
+  if (isAdmin()) { state.beta = true; return; }
+  const { data } = await sb.rpc("is_beta");
+  state.beta = data === true;
+  if (state.beta) render();
+}
+
+// Sessions you attended (or hosted) with published notes: their words become flashcards.
+function ztMySessionIds() {
+  const uid = state.user.id, out = new Set();
+  for (const [sid, set] of state.attendance) if (set.has(uid)) out.add(sid);
+  if (isHost()) for (const [sid, hid] of state.sessionHost || []) if (hid === uid) out.add(sid);
+  return out;
+}
+function ztSessionVocab() {
+  const ids = ztMySessionIds(), out = [];
+  for (const sid of ids) {
+    const n = state.notes.get(sid);
+    if (!n?.published_at) continue;
+    for (const v of n.vocab || []) if ((v.hanzi || "").trim()) out.push({ ...v, hanzi: v.hanzi.trim(), session_id: sid });
+  }
+  return out;
+}
+function ztSession(sid) { return [...state.sessions, ...(state.extraSessions || [])].find((s) => s.id === sid); }
+
+async function ztLoad(force) {
+  const L = state.lu;
+  if (L.loading || (L.loaded && !force)) return;
+  L.loading = true;
+  await Promise.resolve();
+  try {
+    const [c, d] = await Promise.all([
+      sb.from("learn_cards").select("*").order("created_at"),
+      sb.from("learn_days").select("day, kind, created_at"),
+    ]);
+    if (c.error) throw c.error;
+    L.cards = c.data; L.days = d.error ? [] : d.data;
+    // Older attended sessions (for titles in the Flashcard Center).
+    if (!state.notesLoaded) await loadNoteSessions();
+    await ztSyncSessionCards();
+    L.loaded = true;
+  } catch (e) {
+    console.error(e); L.error = true;
+  }
+  L.loading = false;
+  if (route() === "learn") render();
+}
+
+async function ztSyncSessionCards() {
+  const L = state.lu, have = new Set(L.cards.flatMap((c) => [c.hanzi, c.hanzi_trad].filter(Boolean)));
+  const fresh = [], seen = new Set();
+  for (const v of ztSessionVocab()) if (!have.has(v.hanzi) && !seen.has(v.hanzi)) { seen.add(v.hanzi); fresh.push(v); }
+  if (!fresh.length) return;
+  const list = fresh.map((v) => v.hanzi);
+  const [a, b] = await Promise.all([
+    sb.from("hsk_words").select("hanzi, hanzi_trad, level").in("hanzi", list),
+    sb.from("hsk_words").select("hanzi, hanzi_trad, level").in("hanzi_trad", list),
+  ]);
+  const hsk = new Map();
+  for (const w of [...(a.data || []), ...(b.data || [])]) { if (!hsk.has(w.hanzi)) hsk.set(w.hanzi, w); if (w.hanzi_trad && !hsk.has(w.hanzi_trad)) hsk.set(w.hanzi_trad, w); }
+  const rows = fresh.map((v) => {
+    const w = hsk.get(v.hanzi);
+    return { hanzi: w ? w.hanzi : v.hanzi, hanzi_trad: w?.hanzi_trad || null, pinyin: v.pinyin || "", meaning: v.meaning || "",
+      hsk_level: w?.level || null, session_id: v.session_id, source: "session" };
+  }).filter((r, i, arr) => !have.has(r.hanzi) && arr.findIndex((x) => x.hanzi === r.hanzi) === i);
+  if (!rows.length) return;
+  const { data, error } = await sb.from("learn_cards").upsert(rows, { onConflict: "user_id,hanzi", ignoreDuplicates: true }).select("*");
+  if (!error && data) L.cards.push(...data);
+}
+
+async function ztLoadLevel(lv) {
+  const L = state.lu;
+  if (L.hsk.has(lv) || L.hskLoading.has(lv)) return;
+  L.hskLoading.add(lv);
+  const rows = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await sb.from("hsk_words").select("id, level, num, hanzi, hanzi_trad, pinyin, meaning, types, sense")
+      .eq("level", lv).order("num").order("sense", { nullsFirst: true }).range(from, from + 999);
+    if (error) { L.hskLoading.delete(lv); toast("Couldn't load the HSK list. Check your connection."); return; }
+    rows.push(...data);
+    if (data.length < 1000) break;
+  }
+  L.hsk.set(lv, rows); L.hskLoading.delete(lv);
+  if (route() === "learn") render();
+}
+
+// ---- streak tree -----------------------------------------------------------
+function ztActiveDays() {
+  const days = new Map(); // key -> "session" | "game" | "water"
+  const mine = ztMySessionIds();
+  for (const s of [...state.sessions, ...(state.extraSessions || [])]) {
+    if (mine.has(s.id) && Date.parse(s.starts_at) <= Date.now()) days.set(dkey(new Date(s.starts_at)), "session");
+  }
+  for (const d of state.lu.days) {
+    if (d.kind === "water") { if (!days.has(d.day)) days.set(d.day, "water"); }
+    else if (days.get(d.day) !== "session") days.set(d.day, "game");
+  }
+  return days;
+}
+function ztWaterLeft() {
+  const now = new Date(), m = `${now.getFullYear()}-${ztPad(now.getMonth() + 1)}`;
+  return state.lu.days.some((d) => d.kind === "water" && dkey(new Date(d.created_at)).startsWith(m)) ? 0 : 1;
+}
+function ztStreak() {
+  const days = ztActiveDays(), doneToday = days.has(todayKey());
+  let n = 0;
+  for (let i = doneToday ? 0 : 1; days.has(dayBack(i)); i++) n++;
+  // Missed exactly yesterday, with a streak before it: the tree wilts (water saves it, once a month).
+  let lost = 0;
+  if (!days.has(dayBack(1)) && days.has(dayBack(2))) for (let i = 2; days.has(dayBack(i)); i++) lost++;
+  const restarted = lsGet("mz-zt-restart") === dayBack(1);
+  const wilted = lost > 0 && !restarted;
+  return { n, doneToday, lost, wilted, days, stage: ztStage(wilted ? lost : n) };
+}
+function ztStage(n) { let i = 0; ZT_STAGES.forEach((s, j) => { if (n >= s[3]) i = j; }); return i; }
+const stageName = (i) => `${ZT_STAGES[i][0]} ${trad() ? ZT_STAGES[i][2] : ZT_STAGES[i][1]}`;
+function ztNext(st) {
+  const i = ztStage(st.n);
+  if (i >= ZT_STAGES.length - 1) return { text: "Your tree is fully grown. Keep it alive!", pct: 100 };
+  const [en, , , day] = ZT_STAGES[i + 1], from = ZT_STAGES[i][3];
+  return { text: `Next: <b>${esc(en)}</b> on day ${day} (${day - st.n} day${day - st.n === 1 ? "" : "s"} to go)`, pct: Math.round(((st.n - from) / (day - from)) * 100) };
+}
+const treeImg = (st, cls = "") => (st.wilted ? ztImg("tree-dead", cls, "Your wilted tree") : ztImg(`tree-${st.stage}`, cls, stageName(st.stage)));
+
+// ---- flashcards: simple spaced repetition ----------------------------------
+const addDays = (n) => { const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() + n); return dkey(d); };
+function ztNewToday() { return +(lsGet("mz-zt-newdone-" + todayKey()) || 0); }
+function ztDeck(filter) {
+  const today = todayKey(), cards = state.lu.cards.filter(filter || (() => true));
+  const due = cards.filter((c) => c.reps > 0 && c.due <= today);
+  const fresh = cards.filter((c) => c.reps === 0);
+  return { cards, due, fresh, learning: due.filter((c) => c.interval_days <= 1) };
+}
+function ztQueueAll() {
+  const d = ztDeck(), room = Math.max(0, state.lu.perDay - ztNewToday());
+  return [...d.due, ...d.fresh.slice(0, room)];
+}
+function ztPreview(c, g) {
+  const iv = c.interval_days || 0, ease = c.ease || 2.5;
+  if (g === 0) return 0;
+  if (g === 1) return Math.max(1, Math.round(iv * 1.2));
+  if (g === 2) return iv === 0 ? 1 : iv === 1 ? 3 : Math.round(iv * ease);
+  return iv === 0 ? 3 : Math.round(iv * ease * 1.3);
+}
+const ivText = (n) => (n === 0 ? "now" : n === 1 ? "1 day" : n < 30 ? `${n} days` : `${Math.round(n / 30)} mo`);
+async function ztGrade(g) {
+  const R = state.lu.review; if (!R) return;
+  const c = R.queue[R.i]; if (!c) return;
+  const scheduled = c.reps === 0 || c.due <= todayKey();
+  if (scheduled) {
+    const iv = ztPreview(c, g), wasNew = c.reps === 0;
+    const upd = {
+      interval_days: iv, due: addDays(iv), reps: c.reps + 1, last_review: new Date().toISOString(),
+      ease: Math.max(1.3, Math.min(3.2, (c.ease || 2.5) + [-0.2, -0.15, 0, 0.15][g])),
+      good_streak: g >= 2 ? c.good_streak + 1 : g === 1 ? c.good_streak : 0,
+      lapses: c.lapses + (g === 0 && c.reps > 0 ? 1 : 0),
+    };
+    // Several good answers on the same day only count once towards "learned".
+    if (g >= 2 && c.last_review && dkey(new Date(c.last_review)) === todayKey()) upd.good_streak = c.good_streak;
+    Object.assign(c, upd);
+    if (wasNew) lsSet("mz-zt-newdone-" + todayKey(), String(ztNewToday() + 1));
+    sb.from("learn_cards").update(upd).eq("id", c.id).then(({ error }) => { if (error) toast("Couldn't save that card. Check your connection."); });
+  }
+  R.done++;
+  if (g === 0 && !R.again.has(c.id)) { R.again.add(c.id); R.queue.push(c); }
+  R.i++; R.flipped = false;
+  if (R.i >= R.queue.length) await ztFinish();
+  render();
+}
+async function ztFinish() {
+  const R = state.lu.review; R.finished = true;
+  if (R.done > 0 && !state.lu.days.some((d) => d.day === todayKey() && d.kind === "game")) {
+    const row = { day: todayKey(), kind: "game" };
+    const { error } = await sb.from("learn_days").upsert(row, { onConflict: "user_id,day,kind", ignoreDuplicates: true });
+    if (!error) { state.lu.days.push({ ...row, created_at: new Date().toISOString() }); R.counted = true; }
+  }
+}
+function ztStart(title, queue, cram) {
+  if (!queue.length) { toast("Nothing to review here right now."); return; }
+  state.lu.review = { title, queue: [...queue], i: 0, flipped: false, done: 0, again: new Set(), cram };
+  render(); scrollTo(0, 0);
+}
+
+// ---- word status for the HSK Temple ----------------------------------------
+function ztWordStatus() {
+  const m = new Map();
+  for (const v of ztSessionVocab()) m.set(v.hanzi, "seen");
+  for (const c of state.lu.cards) {
+    const s = c.good_streak >= ZT_LEARNED ? "learned" : "seen";
+    for (const h of [c.hanzi, c.hanzi_trad]) if (h && m.get(h) !== "learned") m.set(h, s);
+  }
+  return m;
+}
+const statusOf = (w, m) => m.get(w.hanzi) || (w.hanzi_trad && m.get(w.hanzi_trad)) || "none";
+
+// ---- views -----------------------------------------------------------------
+function learnView() {
+  if (!isBeta()) { location.hash = "#/home"; return homeView(); }
+  const L = state.lu;
+  if (!L.loaded) { ztLoad(); return `${ztHeader(null)}<p class="muted small">${L.error ? "Couldn't load Zest Town. Pull to refresh or try again later." : "Opening Zest Town…"}</p>`; }
+  const sub = routeArg();
+  if (sub === "cards") return L.review ? reviewView() : cardsView();
+  if (sub === "temple") return templeView();
+  return townView();
+}
+function ztHeader(st, back) {
+  const pills = st ? `<span class="ztpill flame ${st.wilted ? "off" : ""}" title="Streak">${ZT_FLAME}${st.wilted ? 0 : st.n}</span><span class="ztpill drop" title="Watering cans left this month">${ZT_DROP}${ztWaterLeft()}</span>` : "";
+  return `<header class="zthead">${back ? `<a class="ztback" href="#/learn">‹ Zest Town</a>` : `<div class="eyebrow">Learning Universe · 学习宇宙 <span class="betachip">BETA</span></div>`}
+    <div class="row between" style="align-items:center;gap:10px"><h1>${back || "Zest Town"}</h1><span class="row" style="gap:6px">${pills}</span></div></header>`;
+}
+function todayCard(st) {
+  return st.doneToday
+    ? `<div class="zttoday done">${ZT_FLAME}<span><b>Today counts!</b><br><span class="small">Your tree grows again tomorrow. Come back for day ${st.n + 1}.</span></span></div>`
+    : `<div class="zttoday">${ZT_FLAME}<span><b>Keep your tree growing</b><br><span class="small">Review flashcards or join a session today.</span></span></div>`;
+}
+function treeCard(st, big) {
+  const nx = ztNext(st);
+  return `<button type="button" class="card zttree ${big ? "big" : ""}" data-zt="sheet">
+    <span class="zttreeart ${st.wilted ? "dead" : ""}">${treeImg(st)}</span>
+    <span class="grow"><span class="eyebrow">Streak tree</span>
+      <span class="ztday">${st.wilted ? "Wilted" : `Day ${st.n}`}</span>
+      <span class="ztstage">${st.wilted ? `Your ${st.lost}-day tree needs water` : esc(stageName(st.stage))}</span>
+      ${st.wilted ? "" : `<span class="small muted">${nx.text}</span><span class="ztbar"><i style="width:${nx.pct}%"></i></span>`}
+    </span></button>`;
+}
+function placeCards(big) {
+  const d = ztDeck(), dueN = ztQueueAll().length, ws = ztWordStatus();
+  const lv = state.lu.lv, words = state.lu.hsk.get(lv);
+  let hskLine = `HSK ${lv}`;
+  if (words) { const learned = words.filter((w) => statusOf(w, ws) === "learned").length; hskLine = `HSK ${lv} · ${Math.round((learned / words.length) * 100)}% learned`; }
+  else ztLoadLevel(lv);
+  const card = (href, img, t, z, line, sub, btn) => `<a class="card ztplace ${big ? "big" : ""}" href="${href}"><span class="ztplaceart">${ztImg(img)}</span>
+    <span class="grow"><b>${t}</b> <span class="muted">${z}</span><br><span class="small">${line}</span><br><span class="small muted">${sub}</span></span><span class="btn small">${btn}</span></a>`;
+  return card("#/learn/cards", "house", "Flashcard Center", trad() ? "字卡中心" : "字卡中心", dueN ? `${dueN} card${dueN === 1 ? "" : "s"} to review today` : "All done for today", `${d.cards.length} in your deck`, "Review")
+    + card("#/learn/temple", "temple", "HSK Temple", trad() ? "漢語廟" : "汉语庙", hskLine, "Every HSK word, and how well you know it", "Explore");
+}
+function townMap(st) {
+  const k = wide() ? "wide" : "phone", M = ZT_MAP[k], pct = (x, w) => `${(x / w) * 100}%`;
+  const at = (x, y) => `left:${pct(x, M.w)};top:${pct(y, M.h)}`;
+  const dueN = ztQueueAll().length, fruit = myFruitKey(), h0 = M.hops[0];
+  return `<div class="ztmap ${k}" style="aspect-ratio:${M.w}/${M.h}">
+    ${ztImg(`town-${k}`, "ztbg")}
+    <button type="button" class="zttreebtn" data-zt="sheet" style="${at(...M.tree)};width:${pct(42, M.w)}" aria-label="Your streak tree">${treeImg(st)}</button>
+    ${st.wilted ? "" : `<button type="button" class="ztfruit" data-zt="cheer" style="${at(...h0)};width:${pct(18, M.w)}" aria-label="Your fruit"><span class="ztbubble" hidden></span>${ztImg("fruit-" + fruit)}</button>`}
+    <a class="ztlabel" href="#/learn/cards" style="${at(M.house[0], M.house[1] + 15)}">FLASHCARDS<span>字卡中心</span>${dueN ? `<em>${dueN} DUE</em>` : ""}</a>
+    <a class="ztlabel" href="#/learn/temple" style="${at(M.temple[0], M.temple[1] + 17)}">HSK TEMPLE<span>${trad() ? "漢語廟" : "汉语庙"}</span></a>
+    <button type="button" class="ztlabel day ${st.wilted ? "dead" : ""}" data-zt="sheet" style="${at(M.plaza[0], M.plaza[1] + 11)}">${st.wilted ? "WILTED" : `DAY ${st.n}`}</button>
+  </div>`;
+}
+function townView() {
+  const st = ztStreak(), L = state.lu, list = L.view === "list";
+  const toggle = `<div class="seg ztseg" role="group" aria-label="Show Zest Town as"><button type="button" data-zt="view" data-v="town" aria-pressed="${!list}">Town</button><button type="button" data-zt="view" data-v="list" aria-pressed="${list}">List</button></div>`;
+  let body;
+  if (list) body = `${treeCard(st, wide())}${todayCard(st)}<h2 style="margin:4px 0 0">Places</h2><div class="ztplaces">${placeCards(wide())}</div><p class="small muted" style="text-align:center">More places will open in Zest Town soon.</p>`;
+  else if (wide()) body = `<div class="ztwide">${townMap(st)}<div class="ztside">${treeCard(st)}${todayCard(st)}${placeCards()}</div></div>`;
+  else body = `${townMap(st)}${todayCard(st)}`;
+  setTimeout(ztHop, 50);
+  return `${ztHeader(st)}${toggle}${body}${L.sheet === "tree" ? treeSheet(st) : ""}${st.wilted && L.sheet !== "tree" ? wiltedModal(st) : ""}`;
+}
+function treeSheet(st) {
+  const nx = ztNext(st), now = new Date(), dow = (now.getDay() + 6) % 7;
+  const week = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d, i) => {
+    const k = dayBack(dow - i), kind = st.days.get(k), future = i > dow, today = i === dow;
+    const mark = kind === "water" ? ZT_DROP : kind ? "✓" : today ? "" : future ? "" : "·";
+    return `<span class="ztwk"><small>${d}</small><i class="${kind ? (kind === "water" ? "w" : "y") : today ? "t" : future ? "f" : "n"}">${mark}</i></span>`;
+  }).join("");
+  const w = ztWaterLeft();
+  return `<div class="ztover" data-zt="close"><div class="ztsheet" role="dialog" aria-label="Your streak tree" data-stop>
+    <button type="button" class="ztx" data-zt="close" aria-label="Close">×</button>
+    <div class="row" style="gap:14px;align-items:center"><span class="zttreeart lg ${st.wilted ? "dead" : ""}">${treeImg(st)}</span>
+      <div><div class="eyebrow">Your streak tree</div><div class="ztday">${st.wilted ? "Wilted" : `Day ${st.n}`}</div><div class="ztstage">${esc(stageName(st.stage))}</div>
+      ${st.wilted ? "" : `<div class="small muted" style="margin-top:6px">${nx.text}</div><span class="ztbar"><i style="width:${nx.pct}%"></i></span>`}</div></div>
+    <div class="card" style="gap:8px"><b>This week</b><div class="ztweek">${week}</div></div>
+    <div class="ztinfo"><div class="card"><b>What counts</b><span class="small">Joining a session, or playing a game in Zest Town (a flashcard review), once a day.</span></div>
+      <div class="card water">${ZT_DROP}<b>${w} watering can</b><span class="small">${w ? "left this month. If you miss a day, it brings your tree back." : "used this month. You get a new one on the 1st."}</span></div></div>
+    <details class="ztstages"><summary>All 9 stages</summary><div class="ztstagegrid">${ZT_STAGES.map((s, i) => `<span>${ztImg("tree-" + i)}<b>${esc(s[0])}</b><small>Day ${s[3]}${i < 8 ? "+" : ""}</small></span>`).join("")}</div></details>
+  </div></div>`;
+}
+function wiltedModal(st) {
+  const w = ztWaterLeft();
+  return `<div class="ztover center"><div class="ztmodal" role="dialog" aria-label="Your tree wilted">
+    <span class="zttreeart lg dead">${ztImg("tree-dead")}</span>
+    <h2>Oh no, your tree wilted!</h2>
+    <p>You missed yesterday, so your <b>${st.lost}-day streak</b> stopped.${w ? ` Water your tree to bring it back as a <b>${esc(ZT_STAGES[ztStage(st.lost)][0])}</b>.` : " You already used this month's watering can."}</p>
+    ${w ? `<button type="button" class="btn block water" data-zt="water">${ZT_DROP} Water it · 1 left this month</button>` : ""}
+    <button type="button" class="btn ghost block" data-zt="restart">Start again from a seed</button>
+    ${w ? `<p class="small muted" style="margin:0">No water left? Your tree goes back to a seed.</p>` : ""}
+  </div></div>`;
+}
+function cardsView() {
+  const d = ztDeck(), q = ztQueueAll(), room = Math.max(0, state.lu.perDay - ztNewToday());
+  const newN = Math.min(room, d.fresh.length), dueN = d.due.length;
+  // Sessions that gave you cards
+  const bySes = new Map();
+  for (const c of d.cards) if (c.session_id) { if (!bySes.has(c.session_id)) bySes.set(c.session_id, []); bySes.get(c.session_id).push(c); }
+  const ses = [...bySes.entries()].map(([sid, cs]) => ({ sid, cs, s: ztSession(sid) })).sort((a, b) => (b.s?.starts_at || "").localeCompare(a.s?.starts_at || ""));
+  const today = todayKey(), dueOf = (cs) => cs.filter((c) => c.reps === 0 || c.due <= today).length;
+  const lvCards = (lv) => d.cards.filter((c) => c.hsk_level === lv);
+  return `${ztHeader(ztStreak(), "Flashcard Center <span class='zhsub'>字卡中心</span>")}
+  <p class="muted small" style="margin-top:-6px">${d.cards.length} card${d.cards.length === 1 ? "" : "s"} in your deck. Words from your sessions are added for you.</p>
+  <div class="card ztreviewall"><span class="ztplaceart">${ztImg("house")}</span><div class="grow"><b style="font-size:18px">Review all</b>
+    <div class="small"><span style="color:#1f6fa3;font-weight:700">${newN} new</span> · <span style="color:var(--green);font-weight:700">${dueN} to review</span></div>
+    <button type="button" class="btn" data-zt="start-all" ${q.length ? "" : "disabled"}>${q.length ? `Start · about ${Math.max(1, Math.round(q.length * 0.25))} min` : "All done for today"}</button></div></div>
+  <div class="card"><div class="row between"><b>From a session</b><span class="small muted">${ses.length} session${ses.length === 1 ? "" : "s"}</span></div>
+    ${ses.length ? ses.map(({ sid, cs, s }) => { const n = dueOf(cs); return `<button type="button" class="ztrow" data-zt="start-ses" data-id="${esc(sid)}"><span class="grow"><b>${esc(s?.title || "Session")}</b><br><span class="small muted">${s ? esc(new Date(s.starts_at).toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" })) + " · " : ""}${cs.length} word${cs.length === 1 ? "" : "s"}</span></span><span class="small ${n ? "duec" : "muted"}">${n ? `${n} due` : "Practice"}</span><span class="chev">›</span></button>`; }).join("")
+      : `<p class="small muted" style="margin:0">When a host publishes notes for a session you joined, its words appear here.</p>`}</div>
+  <div class="card"><div class="row between"><b>By HSK level</b><a class="small" href="#/learn/temple">+ Add words in the HSK Temple</a></div>
+    <div class="ztlvgrid">${HSK_LEVELS.map((lv) => { const cs = lvCards(lv), n = dueOf(cs); return `<button type="button" class="ztlv" data-zt="start-lv" data-v="${lv}" ${cs.length ? "" : "disabled"}><b>HSK ${lv}</b><small>${cs.length} card${cs.length === 1 ? "" : "s"}</small><small class="${n ? "duec" : ""}">${n ? `${n} due` : "—"}</small></button>`; }).join("")}</div></div>
+  <div class="card row between" style="flex-direction:row;align-items:center"><span><b>New cards a day</b><br><span class="small muted">How many new words Review all adds each day.</span></span>
+    <span class="row" style="gap:8px;align-items:center"><button type="button" class="ztstep" data-zt="per" data-v="-1" aria-label="Fewer">−</button><b style="min-width:24px;text-align:center">${state.lu.perDay}</b><button type="button" class="ztstep" data-zt="per" data-v="1" aria-label="More">+</button></span></div>`;
+}
+function reviewView() {
+  const R = state.lu.review;
+  if (R.finished) {
+    const st = ztStreak();
+    return `${ztHeader(st, "Flashcard Center <span class='zhsub'>字卡中心</span>")}
+    <div class="card ztdone"><span class="zttreeart lg">${treeImg(st)}</span><h2>太棒了！ Well done</h2>
+      <p>You reviewed <b>${R.done} card${R.done === 1 ? "" : "s"}</b>.${R.counted || st.doneToday ? " Today counts for your streak tree." : ""}</p>
+      <div class="row" style="gap:8px;flex-wrap:wrap;justify-content:center"><button type="button" class="btn" data-zt="end">Back to the Flashcard Center</button><a class="btn ghost" href="#/learn" data-zt="end">Go to Zest Town</a></div></div>`;
+  }
+  const c = R.queue[R.i], s = c.session_id && ztSession(c.session_id);
+  const src = c.source === "session" && s ? `From “${esc(s.title)}”` : c.hsk_level ? `HSK ${esc(c.hsk_level)}` : "";
+  const g = [["Again", 0, "again"], ["Hard", 1, "hard"], ["Good", 2, "good"], ["Easy", 3, "easy"]];
+  const scheduled = c.reps === 0 || c.due <= todayKey();
+  return `${ztHeader(null, esc(R.title))}
+  <div class="ztprog"><span>${Math.min(R.i + 1, R.queue.length)} / ${R.queue.length}</span><span class="ztbar"><i style="width:${(R.i / R.queue.length) * 100}%"></i></span><button type="button" class="link small" data-zt="end">Stop</button></div>
+  <button type="button" class="ztcard ${R.flipped ? "flipped" : ""}" data-zt="flip" aria-label="${R.flipped ? "Answer shown" : "Show the answer"}">
+    ${c.reps === 0 ? `<span class="ztnew">New</span>` : ""}
+    <span class="ztzh">${esc(cardZh(c))}</span>
+    ${R.flipped ? `<span class="ztpy">${esc(c.pinyin)}</span><span class="ztmean">${esc(c.meaning)}</span>${src ? `<span class="small muted">${src}</span>` : ""}` : `<span class="small muted">Say it out loud, then tap to check</span>`}
+  </button>
+  ${R.flipped ? `<div class="ztgrades">${g.map(([t, v, cls]) => `<button type="button" class="${cls}" data-zt="grade" data-v="${v}"><b>${t}</b><small>${scheduled ? ivText(ztPreview(c, v)) : "practice"}</small></button>`).join("")}</div>`
+    : `<button type="button" class="btn block" data-zt="flip">Show answer</button>`}
+  ${R.cram && !scheduled ? `<p class="small muted" style="text-align:center">Practice mode: cards that aren't due yet keep their schedule.</p>` : ""}`;
+}
+function templeView() {
+  const L = state.lu, lv = L.lv, words = L.hsk.get(lv), ws = ztWordStatus();
+  if (!words) ztLoadLevel(lv);
+  const pills = HSK_LEVELS.map((l) => `<button type="button" class="ztlvpill" data-zt="lv" data-v="${l}" aria-pressed="${l === lv}">HSK ${l}</button>`).join("");
+  let main = `<p class="muted small">Loading HSK ${lv}…</p>`, side = "";
+  if (words) {
+    const cnt = { learned: 0, seen: 0, none: 0 };
+    for (const w of words) cnt[statusOf(w, ws)]++;
+    const T = words.length, pc = (n) => (n / T) * 100;
+    const inDeck = new Set(L.cards.flatMap((c) => [c.hanzi, c.hanzi_trad].filter(Boolean)));
+    const tiles = words.slice(0, L.show).map((w) => {
+      const s = statusOf(w, ws), z = wordZh(w), picked = L.pick?.has(w.id), owned = inDeck.has(w.hanzi);
+      return `<button type="button" class="zttile ${s} ${z.length > 2 ? "long" : ""} ${L.word === w.id ? "sel" : ""}" data-zt="${L.pick ? "tick" : "word"}" data-id="${w.id}" ${L.pick && owned ? "disabled" : ""} aria-label="${esc(z)} ${esc(w.pinyin)}">${esc(z)}${L.pick ? `<i class="tk ${picked || owned ? "on" : ""}"></i>` : ""}</button>`;
+    }).join("");
+    const wsel = L.word && words.find((w) => w.id === L.word);
+    if (wsel) {
+      const s = statusOf(wsel, ws), owned = inDeck.has(wsel.hanzi);
+      side = `<div class="card ztword" ${wide() ? "" : 'role="dialog"'}><div class="row between" style="align-items:flex-start"><span><span class="ztwz">${esc(wordZh(wsel))}</span> <span class="ztwp">${esc(wsel.pinyin)}</span></span>
+        <button type="button" class="ztx" data-zt="word" data-id="" aria-label="Close">×</button></div>
+        <div>${esc(wsel.meaning)}</div><div class="small muted">HSK ${esc(wsel.level)}${wsel.types ? " · " + esc(wsel.types) : ""}${wsel.hanzi_trad && wsel.hanzi_trad !== wsel.hanzi ? ` · ${trad() ? "简" : "繁"} ${esc(trad() ? wsel.hanzi : wsel.hanzi_trad)}` : ""}</div>
+        <span class="ztst ${s}">${s === "learned" ? "Learned" : s === "seen" ? "Seen" : "Not yet"}</span>
+        ${owned ? `<span class="small muted">In your flashcards</span>` : `<button type="button" class="btn" data-zt="add-word" data-id="${wsel.id}">+ Add to my flashcards</button>`}</div>`;
+    }
+    main = `<div class="card" style="gap:8px"><div class="row between"><b>HSK ${lv} · ${T.toLocaleString()} words</b><b style="color:var(--green)">${Math.round(pc(cnt.learned))}% learned</b></div>
+      <div class="ztlvbar"><i class="l" style="width:${pc(cnt.learned)}%"></i><i class="s" style="width:${pc(cnt.seen)}%"></i></div>
+      <div class="ztlegend"><span><i class="l"></i>Learned ${cnt.learned}</span><span><i class="s"></i>Seen ${cnt.seen}</span><span><i class="n"></i>Not yet ${cnt.none}</span></div></div>
+      <div class="row between" style="align-items:center"><span class="small muted">${L.pick ? "Tick the words to add" : "Tap a word to see it"}</span>
+        <button type="button" class="ztselbtn ${L.pick ? "on" : ""}" data-zt="pick">${L.pick ? "Cancel" : "Select words"}</button></div>
+      <div class="zttiles">${tiles}</div>
+      ${T > L.show ? `<button type="button" class="btn ghost block" data-zt="more">Show more (${(T - L.show).toLocaleString()} left)</button>` : ""}
+      ${L.pick ? `<div class="ztselbar"><span>${L.pick.size} word${L.pick.size === 1 ? "" : "s"} selected</span><button type="button" class="btn" data-zt="add-picked" ${L.pick.size ? "" : "disabled"}>Add to flashcards</button></div>` : ""}`;
+  }
+  const head = `<div class="ztthead"><span class="ztplaceart">${ztImg("temple")}</span><span class="small muted">Every HSK word, and how well you know it.<br>Grey: not met yet · light green: seen · dark green: learned.</span></div>`;
+  return `${ztHeader(ztStreak(), `HSK Temple <span class='zhsub'>${trad() ? "漢語廟" : "汉语庙"}</span>`)}${head}<div class="ztlvpills">${pills}</div>
+    ${wide() && side ? `<div class="ztcols"><div class="grow" style="min-width:0;display:flex;flex-direction:column;gap:12px">${main}</div><div class="ztsidecol">${side}</div></div>` : `${main}${side ? `<div class="ztwordsheet">${side}</div>` : ""}`}`;
+}
+
+async function ztAddWords(ws) {
+  const have = new Set(state.lu.cards.map((c) => c.hanzi));
+  const rows = ws.filter((w) => !have.has(w.hanzi)).map((w) => ({ hanzi: w.hanzi, hanzi_trad: w.hanzi_trad, pinyin: w.pinyin, meaning: w.meaning, hsk_level: w.level, source: "hsk" }))
+    .filter((r, i, a) => a.findIndex((x) => x.hanzi === r.hanzi) === i);
+  if (!rows.length) return 0;
+  const { data, error } = await sb.from("learn_cards").upsert(rows, { onConflict: "user_id,hanzi", ignoreDuplicates: true }).select("*");
+  if (error) { toast("Couldn't add those words. Check your connection."); return 0; }
+  state.lu.cards.push(...data);
+  return data.length;
+}
+
+// Fruit hopping around the plaza
+let ztHopTimer = null, ztHopAt = 0;
+function ztHop() {
+  if (ztHopTimer || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  ztHopTimer = setInterval(() => {
+    const f = document.querySelector(".ztfruit"), map = f?.closest(".ztmap");
+    if (!f) { clearInterval(ztHopTimer); ztHopTimer = null; return; }
+    if (f.classList.contains("talk")) return;
+    const M = ZT_MAP[map.classList.contains("wide") ? "wide" : "phone"];
+    const prev = M.hops[ztHopAt % M.hops.length];
+    ztHopAt = (ztHopAt + 1 + Math.floor(Math.random() * 2)) % M.hops.length;
+    const [x, y] = M.hops[ztHopAt];
+    f.classList.toggle("flip", x < prev[0]);
+    f.classList.add("hopping");
+    f.style.left = `${(x / M.w) * 100}%`; f.style.top = `${(y / M.h) * 100}%`;
+    setTimeout(() => f.classList.remove("hopping"), 1500);
+  }, 2600);
+}
+
+document.addEventListener("click", async (e) => {
+  const el = e.target.closest("[data-zt]");
+  if (!el) return;
+  if (el.dataset.zt === "close" && e.target.closest("[data-stop]") && !e.target.closest(".ztx")) return; // clicks inside the sheet
+  const L = state.lu, a = el.dataset.zt;
+  if (a === "view") { L.view = el.dataset.v; lsSet("mz-zt-view", L.view); render(); }
+  else if (a === "sheet") { L.sheet = "tree"; render(); }
+  else if (a === "close") { L.sheet = null; render(); }
+  else if (a === "cheer") {
+    const b = el.querySelector(".ztbubble"); el.classList.add("talk");
+    b.textContent = ZT_CHEERS[Math.floor(Math.random() * ZT_CHEERS.length)]; b.hidden = false;
+    setTimeout(() => { b.hidden = true; el.classList.remove("talk"); }, 1800);
+  } else if (a === "water") {
+    el.disabled = true;
+    const row = { day: dayBack(1), kind: "water" };
+    const { error } = await sb.from("learn_days").insert(row);
+    if (error) { toast(/already used/.test(error.message) ? "You already used your watering can this month." : "Couldn't water your tree. Check your connection."); el.disabled = false; return; }
+    L.days.push({ ...row, created_at: new Date().toISOString() });
+    toast("Your tree is back! 💧"); render();
+  } else if (a === "restart") { lsSet("mz-zt-restart", dayBack(1)); render(); }
+  else if (a === "lv") { L.lv = el.dataset.v; lsSet("mz-zt-lv", L.lv); L.show = 300; L.word = null; render(); }
+  else if (a === "more") { L.show += 600; render(); }
+  else if (a === "word") { L.word = el.dataset.id ? +el.dataset.id : null; render(); }
+  else if (a === "pick") { L.pick = L.pick ? null : new Set(); L.word = null; render(); }
+  else if (a === "tick") { const id = +el.dataset.id; L.pick.has(id) ? L.pick.delete(id) : L.pick.add(id); keepForm(() => render()); }
+  else if (a === "add-word" || a === "add-picked") {
+    const words = L.hsk.get(L.lv) || [];
+    const list = a === "add-word" ? words.filter((w) => w.id === +el.dataset.id) : words.filter((w) => L.pick.has(w.id));
+    el.disabled = true;
+    const n = await ztAddWords(list);
+    if (a === "add-picked") L.pick = null;
+    toast(n ? `Added ${n} word${n === 1 ? "" : "s"} to your flashcards.` : "Those words are already in your flashcards.");
+    render();
+  } else if (a === "start-all") ztStart("Review all", ztQueueAll());
+  else if (a === "start-ses") {
+    const cs = L.cards.filter((c) => c.session_id === el.dataset.id), s = ztSession(el.dataset.id), t = todayKey();
+    const due = cs.filter((c) => c.reps === 0 || c.due <= t);
+    ztStart(s?.title || "Session", due.length ? due : cs, !due.length);
+  } else if (a === "start-lv") {
+    const cs = L.cards.filter((c) => c.hsk_level === el.dataset.v), t = todayKey();
+    const due = cs.filter((c) => c.reps === 0 || c.due <= t);
+    ztStart(`HSK ${el.dataset.v}`, due.length ? due : cs, !due.length);
+  } else if (a === "flip") { if (L.review && !L.review.flipped) { L.review.flipped = true; render(); } }
+  else if (a === "grade") await ztGrade(+el.dataset.v);
+  else if (a === "end") { L.review = null; if (el.tagName !== "A") render(); }
+  else if (a === "per") { L.perDay = Math.max(0, Math.min(50, L.perDay + +el.dataset.v * 5)); lsSet("mz-zt-new", String(L.perDay)); render(); }
+});
+document.addEventListener("keydown", (e) => {
+  const R = state.lu.review;
+  if (route() !== "learn" || !R || R.finished || e.target.closest("input, textarea, select")) return;
+  if ((e.key === " " || e.key === "Enter") && !R.flipped) { e.preventDefault(); R.flipped = true; render(); }
+  else if (R.flipped && ["1", "2", "3", "4"].includes(e.key)) { e.preventDefault(); ztGrade(+e.key - 1); }
+});
