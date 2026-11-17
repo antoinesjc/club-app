@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=49";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=49";
-import { COUNTRIES } from "./countries.js?v=49";
+import { createClient } from "./vendor/supabase.js?v=50";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=50";
+import { COUNTRIES } from "./countries.js?v=50";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 50% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=49";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=50";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -1282,7 +1282,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=49"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=50"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1847,7 +1847,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=49");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=50");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2153,7 +2153,7 @@ function activityAdmin() {
     <div class="actbars" role="img" aria-label="Members who opened the app each day over the last 30 days">${d.map((x, i) =>
       `<div class="actbar${i === d.length - 1 ? " now" : ""}" style="height:${Math.max(2, (x.members / max) * 100)}%" title="${esc(dfmt(x.day))}: ${x.members} member${x.members === 1 ? "" : "s"}, ${x.opens} open${x.opens === 1 ? "" : "s"}"></div>`).join("")}</div>
     <div class="row between small muted"><span>${d[0] ? esc(dfmt(d[0].day)) : ""}</span><span>${d[15] ? esc(dfmt(d[15].day)) : ""}</span><span>Today</span></div>
-    ${a.at && !d.some((x) => x.opens) ? `<p class="small muted" style="margin:0">App opens are recorded from 17 Nov 2026, so the chart fills in from today.</p>` : ""}</section>`;
+    </section>`;
   const q = a.q.trim().toLowerCase();
   const rows = ms.filter((m) => (a.filter === "all" || actStatus(m.last_seen) === a.filter) && (!q || String(m.name || "").toLowerCase().includes(q)))
     .sort((x, y) => new Date(y.last_seen || 0) - new Date(x.last_seen || 0));
@@ -2168,7 +2168,7 @@ function activityAdmin() {
         <span class="row" style="gap:6px"><i class="actdot ${st}" aria-label="${st}"></i>${esc(ago(m.last_seen))}</span>
         <span class="muted">${esc(DEVICE_LABEL[m.device] || "—")}</span><span>${m.opens_7d}</span><span>${m.sessions_30d}</span><span>${m.imin_7d}</span>
         <span class="green" style="font-weight:700">${m.xp_month > 0 ? "+" : ""}${m.xp_month}</span><span class="${m.notif ? "green" : "muted"}" style="font-weight:700">${m.notif ? "On" : "Off"}</span></a>`; }).join("") || `<p class="small muted" style="padding:12px">No member here.</p>`}</div>
-    <p class="small muted" style="margin:6px 0 0">Active: opened the app in the last 7 days · Quiet: 7 to 14 days · Inactive: 14+ days. Until members open the app again, “last seen” is their last sign-in.</p></section>`;
+    <p class="small muted" style="margin:6px 0 0">Last seen = the last time they used the app (counted to within about an hour). Active: used the app in the last 7 days · Quiet: 7 to 14 days · Inactive: 14+ days. The device shows from 17 Nov.</p></section>`;
   const gchip = (k, l) => `<button type="button" class="actchip" data-act="adm-group" data-v="${k}" aria-pressed="${a.group === k}">${l}</button>`;
   const feed = `<section class="card actfeed"><div class="row between"><h2 style="margin:0">Live activity</h2><button type="button" class="linkbtn" data-act="adm-refresh">Refresh</button></div>
     <div class="row" style="gap:6px;flex-wrap:wrap">${gchip("all", "Everything")}${gchip("sessions", "Sessions")}${gchip("learning", "Learning")}${gchip("community", "Community")}</div>
@@ -2711,7 +2711,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=49").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=50").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
