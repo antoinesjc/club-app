@@ -26,3 +26,7 @@ grant select on public.hsk_words to authenticated;
 alter table public.hsk_words alter column types drop default;
 alter table public.hsk_words alter column types type text using array_to_string(types, ', ');
 alter table public.hsk_words alter column types set default '';
+
+-- Traditional characters (Taiwan standard forms) for each HSK word.
+alter table public.hsk_words add column hanzi_trad text not null default '';
+alter table public.hsk_words alter column hanzi_trad drop default;
