@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=50";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=50";
-import { COUNTRIES } from "./countries.js?v=50";
+import { createClient } from "./vendor/supabase.js?v=51";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=51";
+import { COUNTRIES } from "./countries.js?v=51";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 50% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=50";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=51";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -1126,15 +1126,13 @@ function membersView() {
   const lb = state.membersTab === "lb";
   return `
   <header><div class="eyebrow">Mandarin Zest Club</div><h1>Members</h1></header>
-  <a class="chatcard" href="${DISCORD_CHAT}" target="_blank" rel="noopener">${ICON.chat}
-    <span class="grow"><b>Chat on Discord</b><br><span class="small">Say hi, ask questions, practise between sessions</span></span>
-    <span aria-hidden="true" style="font-size:20px">↗</span></a>
   <div class="tabs" role="tablist">
     <button type="button" role="tab" aria-selected="${lb}" data-act="mtab" data-v="lb">Leaderboard</button>
     <button type="button" role="tab" aria-selected="${state.membersTab === "all"}" data-act="mtab" data-v="all">Everyone</button>
     <button type="button" role="tab" aria-selected="${state.membersTab === "map"}" data-act="mtab" data-v="map">Map</button>
   </div>
-  ${lb ? leaderboard() : state.membersTab === "map" ? mapView() : directory()}`;
+  ${lb ? leaderboard() : state.membersTab === "map" ? mapView() : directory()}
+  <a class="chatcard thin" href="${DISCORD_CHAT}" target="_blank" rel="noopener">${ICON.chat}<b class="grow">Chat on Discord</b><span aria-hidden="true">↗</span></a>`;
 }
 
 const memberLink = (id) => `#/member/${id}`;
@@ -1160,14 +1158,21 @@ function leaderboard() {
   const podium = `<div class="podium">${order.map((p, i) => p ? linkOrDiv(p.user_id, "", `
       ${avatar(p, sizes[i])}<b>${esc(p.name || "Member")}</b>
       <div class="step" style="height:${heights[i]}px;background:${colors[i]}"><span class="n">${ranks[i]}</span><span class="small">${p[k]} XP</span></div>`) : "<div></div>").join("")}</div>`;
-  const rest = list.slice(3).map((r, i) => linkOrDiv(r.user_id, `lbrow${r.user_id === state.user.id ? " me" : ""}`, `
+  const LB_MAX = 10; // podium + places 4 to 10
+  const rest = list.slice(3, LB_MAX).map((r, i) => linkOrDiv(r.user_id, `lbrow${r.user_id === state.user.id ? " me" : ""}`, `
       <span class="rk">${i + 4}</span>${avatar(row(r), 40)}
       <div class="grow"><b>${esc(r.name || "Member")}${r.user_id === state.user.id ? " (you)" : ""}</b><div class="small muted">Level ${r.level}</div></div>
       <b>${r[k]} XP</b>`)).join("");
   const mine = myRank(period);
+  // A member outside the top 10 still sees where they stand.
+  const meIdx = list.findIndex((r) => r.user_id === state.user.id);
+  const meRow = meIdx >= LB_MAX ? `<div class="lbgap" aria-hidden="true">···</div>` + linkOrDiv(list[meIdx].user_id, "lbrow me", `
+      <span class="rk">${meIdx + 1}</span>${avatar(row(list[meIdx]), 40)}
+      <div class="grow"><b>${esc(list[meIdx].name || "Member")} (you)</b><div class="small muted">Level ${list[meIdx].level}</div></div>
+      <b>${list[meIdx][k]} XP</b>`) : "";
   return `${periods}
   ${podium}
-  <div class="stack" style="gap:6px">${rest}</div>
+  <div class="stack" style="gap:6px">${rest}${meRow}</div>
   ${!isHost() && mine && mine <= 3 ? `<p class="small" style="text-align:center;margin:0"><b>You're #${mine}!</b></p>` : ""}
   <p class="small muted" style="margin:0">+${XP_SESSION} XP per session · +${XP_STREAK} XP every 4 weeks in a row · XP for bootcamps · +${XP_HONGBAO} XP per hongbao received. Hosts don't take part.</p>`;
 }
@@ -1282,7 +1287,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=50"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=51"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1847,7 +1852,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=50");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=51");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2711,7 +2716,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=50").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=51").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {

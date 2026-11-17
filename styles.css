@@ -659,3 +659,6 @@ details.custom.sbdet > summary b { color: #6b4423; }
 .feedrow { display: flex; gap: 10px; padding: 9px 0; border-top: 1px solid #f4ece4; font-size: 13.5px; line-height: 1.4; }
 .feedrow a { color: inherit; text-decoration: none; }
 .privnote { margin: 4px 2px 0; }
+.chatcard.thin { padding: 0 16px; min-height: 46px; gap: 10px; font-size: 15px; }
+.chatcard.thin svg { width: 20px; height: 20px; }
+.lbgap { text-align: center; color: #a3968d; font-weight: 800; letter-spacing: 3px; line-height: 1; }
