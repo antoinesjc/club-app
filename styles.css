@@ -882,3 +882,5 @@ details.custom.sbdet > summary b { color: #6b4423; }
 .vtick.on { background: var(--green); border-color: var(--green); }
 .vtick.on::after { content: "✓"; color: #fff; font-weight: 800; }
 .vtick.done { border: 0; background: var(--mint); color: var(--green); font-weight: 800; cursor: default; }
+.btn.green { background: var(--green); color: #fff; }
+.btn.green:hover { background: var(--green-ink); color: #fff; }

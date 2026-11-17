@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=62";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=62";
-import { COUNTRIES } from "./countries.js?v=62";
+import { createClient } from "./vendor/supabase.js?v=63";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=63";
+import { COUNTRIES } from "./countries.js?v=63";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 50% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=62";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=63";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -943,13 +943,13 @@ function noteAddBar(s, vocab, A, inDeck) {
   if (!left.length) return `<div class="noteadd done">✓ All ${words.length} words are in your flashcards</div>`;
   if (A?.mode === "pick") return `<div class="noteadd pick"><span class="grow small">${A.picked.size ? `${A.picked.size} word${A.picked.size === 1 ? "" : "s"} chosen` : "Tick the words to add"}</span>
     <button type="button" class="btn ghost small" data-zt="note-add" data-v="cancel" data-id="${sid}">Cancel</button>
-    <button type="button" class="btn small" data-zt="note-add" data-v="picked" data-id="${sid}" ${A.picked.size ? "" : "disabled"}>Add ${A.picked.size || ""} to flashcards</button></div>`;
+    <button type="button" class="btn green small" data-zt="note-add" data-v="picked" data-id="${sid}" ${A.picked.size ? "" : "disabled"}>Add ${A.picked.size || ""} to flashcards</button></div>`;
   if (A?.mode === "menu") return `<div class="noteadd menu" role="group" aria-label="Add to flashcards">
     <button type="button" data-zt="note-add" data-v="all" data-id="${sid}"><b>Add all words</b><span>${left.length} word${left.length === 1 ? "" : "s"}</span></button>
     <button type="button" data-zt="note-add" data-v="hsk" data-id="${sid}" ${hskLeft.length ? "" : "disabled"}><b>Add HSK words only</b><span>${hskLeft.length ? `${hskLeft.length} on the HSK lists` : "None on the HSK lists"}</span></button>
     <button type="button" data-zt="note-add" data-v="pick" data-id="${sid}"><b>Choose words…</b><span>Tick the ones you want</span></button>
     <button type="button" class="link small" data-zt="note-add" data-v="cancel" data-id="${sid}">Cancel</button></div>`;
-  return `<div class="row" style="gap:8px;align-items:center;flex-wrap:wrap"><button type="button" class="btn ghost" data-zt="note-add" data-v="menu" data-id="${sid}">＋ Add to flashcards</button>
+  return `<div class="row" style="gap:8px;align-items:center;flex-wrap:wrap"><button type="button" class="btn green" data-zt="note-add" data-v="menu" data-id="${sid}">＋ Add to flashcards</button>
     ${left.length < words.length ? `<span class="small muted">${words.length - left.length} of ${words.length} already in your flashcards</span>` : ""}</div>`;
 }
 async function noteAddWords(sid, items) {
@@ -1377,7 +1377,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=62"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=63"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1942,7 +1942,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=62");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=63");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2811,7 +2811,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=62").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=63").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
