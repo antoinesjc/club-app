@@ -607,3 +607,18 @@ details.custom.sbdet > summary b { color: #6b4423; }
   .ideaover { align-items: center; padding: 16px; }
   .ideasheet { width: min(560px, 100%); border-radius: 26px; padding: 22px 24px; }
 }
+
+/* Session notes: HSK word suggestions under a vocabulary row */
+.vsugg { margin: -2px 0 6px; border: 1px solid #e3d6cb; border-radius: 14px; background: #fff; box-shadow: 0 10px 24px rgba(42,36,32,.12); overflow: hidden; }
+.vsopt { display: grid; grid-template-columns: minmax(70px, auto) minmax(80px, auto) 1fr auto; gap: 10px; align-items: baseline; width: 100%; min-height: 44px; padding: 8px 12px; border: 0; border-bottom: 1px solid #f4ece4; background: none; text-align: left; font: inherit; font-size: 14px; color: var(--ink, #2a2420); cursor: pointer; }
+.vsopt b { font-size: 18px; font-weight: 700; }
+.vsopt .vsp { color: var(--orange-ink, #a8431a); font-weight: 600; }
+.vsopt .vsm { color: #5c4f47; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.vsopt .vsl { font-size: 11.5px; font-weight: 700; color: #1b6f1b; background: #e9f6e9; border-radius: 999px; padding: 2px 8px; white-space: nowrap; }
+.vsopt:hover, .vsopt[aria-selected="true"] { background: #f2faf2; }
+.vsfoot { padding: 6px 12px; font-size: 11.5px; color: #8a7d74; background: #fbf7f2; }
+@media (max-width: 520px) {
+  .vsopt { grid-template-columns: auto 1fr auto; grid-template-areas: "z p l" "m m m"; row-gap: 2px; padding: 8px 12px; }
+  .vsopt b { grid-area: z; } .vsopt .vsp { grid-area: p; } .vsopt .vsl { grid-area: l; }
+  .vsopt .vsm { grid-area: m; font-size: 13px; }
+}

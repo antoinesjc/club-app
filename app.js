@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=46";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=46";
-import { COUNTRIES } from "./countries.js?v=46";
+import { createClient } from "./vendor/supabase.js?v=47";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=47";
+import { COUNTRIES } from "./countries.js?v=47";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 50% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=46";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=47";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -1059,8 +1059,8 @@ function hostView() {
       <span class="small ${n?.published_at ? "" : "muted"}" style="${n?.published_at ? "color:var(--green);font-weight:700" : ""}">${n?.published_at ? "Published · editable" : n ? "Draft: only hosts see it" : "Not started"}</span></div>
     <div class="vhead small muted"><span>汉字</span><span>Pinyin</span><span>Meaning</span><span></span></div>
     <div class="stack" style="gap:6px">${d.vocab.map((v, i) => `<div class="vedit">
-      <input class="input" aria-label="Word ${i + 1}, characters" data-vocab="${i}" data-k="hanzi" value="${esc(v.hanzi)}" placeholder="汉字" lang="zh">
-      <input class="input" aria-label="Word ${i + 1}, pinyin" data-vocab="${i}" data-k="pinyin" value="${esc(v.pinyin)}" placeholder="pinyin">
+      <input class="input" aria-label="Word ${i + 1}, characters" data-vocab="${i}" data-k="hanzi" value="${esc(v.hanzi)}" placeholder="汉字" lang="zh" autocomplete="off" aria-autocomplete="list" aria-expanded="false" aria-controls="vsugg-${i}">
+      <input class="input" aria-label="Word ${i + 1}, pinyin" data-vocab="${i}" data-k="pinyin" value="${esc(v.pinyin)}" placeholder="pinyin" autocomplete="off" aria-autocomplete="list" aria-expanded="false" aria-controls="vsugg-${i}">
       <input class="input" aria-label="Word ${i + 1}, meaning" data-vocab="${i}" data-k="meaning" value="${esc(v.meaning)}" placeholder="meaning">
       <button type="button" class="xbtn" data-act="vocab-del" data-i="${i}" aria-label="Remove word ${i + 1}">×</button></div>`).join("")}</div>
     <button type="button" class="linkbtn" data-act="vocab-add" style="align-self:flex-start">+ Add a word</button>
@@ -1281,7 +1281,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=46"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=47"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1846,7 +1846,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=46");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=47");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2565,9 +2565,103 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=46").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=47").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && state.idea?.open) { state.idea = null; render(); }
 });
+
+// ---------------------------------------------------------------------------
+// Session notes: word suggestions from the HSK lists while a host types characters or pinyin.
+// Picking one fills characters (in the host's script), pinyin and meaning.
+// ---------------------------------------------------------------------------
+const PY_TONES = { ā: "a", á: "a", ǎ: "a", à: "a", ē: "e", é: "e", ě: "e", è: "e", ī: "i", í: "i", ǐ: "i", ì: "i",
+  ō: "o", ó: "o", ǒ: "o", ò: "o", ū: "u", ú: "u", ǔ: "u", ù: "u", ǖ: "u", ǘ: "u", ǚ: "u", ǜ: "u", ü: "u", v: "u" };
+const pinyinKey = (s) => String(s || "").toLowerCase().replace(/[āáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜüv]/g, (c) => PY_TONES[c] || c).replace(/[^a-z]/g, "");
+const HAN = /[㐀-鿿]/;
+let vsugg = { el: null, input: null, items: [], active: -1, timer: 0, seq: 0 };
+
+function vsuggClose() {
+  vsugg.el?.remove();
+  vsugg.input?.setAttribute("aria-expanded", "false");
+  vsugg.input?.removeAttribute("aria-activedescendant");
+  vsugg = { ...vsugg, el: null, input: null, items: [], active: -1 };
+}
+
+async function vsuggSearch(input) {
+  const q = input.value.trim(), k = input.dataset.k, seq = ++vsugg.seq;
+  let query = sb.from("hsk_words").select("id, level, hanzi, hanzi_trad, pinyin, meaning, pinyin_key").limit(40);
+  if (k === "hanzi") {
+    const han = [...q].filter((c) => HAN.test(c)).join("");
+    if (!han) return vsuggClose();
+    query = query.or(`hanzi.like.${han}*,hanzi_trad.like.${han}*`);
+  } else {
+    const key = pinyinKey(q);
+    if (key.length < 2) return vsuggClose();
+    query = query.like("pinyin_key", `${key}%`);
+  }
+  const { data } = await query;
+  if (seq !== vsugg.seq || document.activeElement !== input) return;
+  const han = [...q].filter((c) => HAN.test(c)).join(""), key = pinyinKey(q), plain = q.toLowerCase().replace(/\s+/g, "");
+  const LV = { "1": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7-9": 7 };
+  const score = (w) => k === "hanzi"
+    ? [w.hanzi === han || w.hanzi_trad === han ? 0 : 1, w.hanzi.length, LV[w.level]]
+    : [w.pinyin.toLowerCase().replace(/\s+/g, "") === plain ? 0 : w.pinyin_key === key ? 1 : 2, w.pinyin_key.length, LV[w.level]];
+  const items = (data || []).sort((a, b) => { const x = score(a), y = score(b); return x[0] - y[0] || x[1] - y[1] || x[2] - y[2]; }).slice(0, 6);
+  if (!items.length) return vsuggClose();
+  vsuggShow(input, items);
+}
+
+function vsuggShow(input, items) {
+  vsuggClose();
+  const row = input.closest(".vedit"), i = input.dataset.vocab;
+  const el = document.createElement("div");
+  el.className = "vsugg"; el.id = `vsugg-${i}`; el.setAttribute("role", "listbox"); el.setAttribute("aria-label", "Suggested words");
+  el.innerHTML = items.map((w, j) => `<button type="button" class="vsopt" role="option" id="vsopt-${i}-${j}" data-j="${j}" tabindex="-1">
+    <b lang="zh">${esc(trad() ? w.hanzi_trad || w.hanzi : w.hanzi)}</b><span class="vsp">${esc(w.pinyin)}</span><span class="vsm">${esc(w.meaning)}</span><span class="vsl">HSK ${esc(w.level)}</span></button>`).join("")
+    + `<div class="vsfoot">From the HSK lists · ↑↓ then Enter, or tap</div>`;
+  el.addEventListener("mousedown", (e) => e.preventDefault()); // keep focus in the input
+  el.addEventListener("click", (e) => { const b = e.target.closest(".vsopt"); if (b) vsuggPick(+b.dataset.j); });
+  row.after(el);
+  el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  input.setAttribute("aria-expanded", "true");
+  vsugg = { ...vsugg, el, input, items, active: -1 };
+}
+
+function vsuggMove(d) {
+  if (!vsugg.el) return;
+  const n = vsugg.items.length;
+  vsugg.active = (vsugg.active + d + n) % n;
+  vsugg.el.querySelectorAll(".vsopt").forEach((b, j) => b.setAttribute("aria-selected", j === vsugg.active ? "true" : "false"));
+  vsugg.input.setAttribute("aria-activedescendant", `vsopt-${vsugg.input.dataset.vocab}-${vsugg.active}`);
+}
+
+function vsuggPick(j) {
+  const w = vsugg.items[j], input = vsugg.input;
+  if (!w || !input) return;
+  const i = input.dataset.vocab, val = { hanzi: trad() ? w.hanzi_trad || w.hanzi : w.hanzi, pinyin: w.pinyin, meaning: w.meaning };
+  for (const k of ["hanzi", "pinyin", "meaning"]) {
+    const f = document.querySelector(`[data-vocab="${i}"][data-k="${k}"]`);
+    if (f) { f.value = val[k]; f.dispatchEvent(new Event("input", { bubbles: true })); }
+  }
+  vsuggClose();
+  // Jump to the next empty row's characters so the host can keep going.
+  const next = document.querySelector(`[data-vocab="${+i + 1}"][data-k="hanzi"]`);
+  if (next && !next.value) next.focus(); else document.querySelector(`[data-vocab="${i}"][data-k="meaning"]`)?.focus();
+}
+
+document.addEventListener("input", (e) => {
+  const el = e.target;
+  if (!el.dataset?.vocab || !["hanzi", "pinyin"].includes(el.dataset.k) || !e.isTrusted) return;
+  clearTimeout(vsugg.timer);
+  vsugg.timer = setTimeout(() => vsuggSearch(el), 180);
+});
+document.addEventListener("keydown", (e) => {
+  if (!vsugg.el || e.target !== vsugg.input) return;
+  if (e.key === "ArrowDown") { e.preventDefault(); vsuggMove(1); }
+  else if (e.key === "ArrowUp") { e.preventDefault(); vsuggMove(-1); }
+  else if (e.key === "Enter" && vsugg.active >= 0) { e.preventDefault(); vsuggPick(vsugg.active); }
+  else if (e.key === "Escape") { e.preventDefault(); vsuggClose(); }
+});
+document.addEventListener("focusout", (e) => { if (vsugg.input && e.target === vsugg.input) setTimeout(() => { if (document.activeElement !== vsugg.input) vsuggClose(); }, 120); });
