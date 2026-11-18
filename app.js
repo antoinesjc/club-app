@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=68";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=68";
-import { COUNTRIES } from "./countries.js?v=68";
+import { createClient } from "./vendor/supabase.js?v=69";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=69";
+import { COUNTRIES } from "./countries.js?v=69";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=68";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=69";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -475,7 +475,7 @@ function nav() {
   const item = (id, label, icon) => `<a href="#/${id}" ${r === id ? 'aria-current="page"' : ""}>${icon}<span>${label}</span></a>`;
   return `<nav class="nav ${isBeta() ? "five" : ""}" aria-label="Main">
     <div class="brand"><img src="icons/logo.png" alt=""><span>MANDARIN ZEST CLUB</span></div>
-    ${item("home", "Home", ICON.home)}${item("sessions", "My sessions", ICON.cal)}${item("notes", "My notes", ICON.notebook).replace("<a ", '<a class="deskonly" ')}${isBeta() ? item("learn", "Learning", ICON.tree).replace("</span></a>", '</span><i class="navbeta">BETA</i></a>') : ""}${item("members", "Members", ICON.people)}${item("bootcamps", "Bootcamps", ICON.seedling).replace("<a ", '<a class="deskonly" ')}${item("me", "Me", ICON.me)}${item("settings", "Settings", ICON.gear).replace("<a ", '<a class="deskonly" ')}${isAdmin() ? item("admin", "Admin", ICON.shield).replace("<a ", '<a class="deskonly" ') : ""}
+    ${item("home", "Home", ICON.home)}${item("sessions", "My sessions", ICON.cal)}${item("notes", "My notes", ICON.notebook).replace("<a ", '<a class="deskonly" ')}${isBeta() ? item("learn", "Learning", ICON.tree) : ""}${item("members", "Members", ICON.people)}${item("bootcamps", "Bootcamps", ICON.seedling).replace("<a ", '<a class="deskonly" ')}${item("me", "Me", ICON.me)}${item("settings", "Settings", ICON.gear).replace("<a ", '<a class="deskonly" ')}${isAdmin() ? item("admin", "Admin", ICON.shield).replace("<a ", '<a class="deskonly" ') : ""}
     <a class="navchat" href="${DISCORD_CHAT}" target="_blank" rel="noopener">${ICON.chat}<span>Chat on Discord</span></a>
   </nav>`;
 }
@@ -1381,7 +1381,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=68"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=69"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1948,7 +1948,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=68");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=69");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2818,7 +2818,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=68").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=69").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -2933,7 +2933,7 @@ document.addEventListener("keydown", (e) => {
 document.addEventListener("focusout", (e) => { if (vsugg.input && e.target === vsugg.input) setTimeout(() => { if (document.activeElement !== vsugg.input) vsuggClose(); }, 120); });
 
 // ---------------------------------------------------------------------------
-// Zest Town · Learning Universe (BETA: admins + people in beta_testers only)
+// Zest Town · Learning Universe (live for all members since 18 Nov 2026; is_beta() on the server is the off switch)
 // Streak tree, HSK Temple and Flashcard Center. Art: icons/zt/*.png (pixel art, see the design canvas).
 // ---------------------------------------------------------------------------
 const ZT_MAP = {
@@ -2962,7 +2962,8 @@ state.lu = {
   view: lsGet("mz-zt-view") || "town", lv: lsGet("mz-zt-lv") || "1", show: 300, pick: null, word: null,
   sheet: null, review: null, perDay: +(lsGet("mz-zt-new") || 10),
 };
-const isBeta = () => isAdmin() || state.beta === true;
+// Learning (Zest Town) is live for everyone; is_beta() on the server can switch it off again.
+const isBeta = () => isAdmin() || state.beta !== false;
 const ztPad = (n) => String(n).padStart(2, "0");
 const dkey = (d) => `${d.getFullYear()}-${ztPad(d.getMonth() + 1)}-${ztPad(d.getDate())}`;
 const dayBack = (n) => { const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() - n); return dkey(d); };
@@ -2975,9 +2976,10 @@ const myFruitKey = () => (ZT_FRUITS.has(state.me?.fruit) ? state.me.fruit : "ora
 
 async function ztCheckBeta() {
   if (isAdmin()) { state.beta = true; return; }
-  const { data } = await sb.rpc("is_beta");
-  state.beta = data === true;
-  if (state.beta) render();
+  const { data, error } = await sb.rpc("is_beta");
+  if (error) return; // keep it on if the check can't run
+  const on = data === true;
+  if (on !== state.beta) { state.beta = on; render(); }
 }
 
 // Sessions you attended (or hosted) with published notes: their words become flashcards.
@@ -3183,7 +3185,7 @@ function learnView() {
 }
 function ztHeader(st, back) {
   const pills = st ? `<span class="ztpill leaf ${st.wilted ? "off" : ""}" title="Streak (days in a row)">${ZT_LEAF}${st.wilted ? 0 : st.n}</span><span class="ztpill drop" title="Watering cans left this month">${ZT_DROP}${ztWaterLeft()}</span>` : "";
-  return `<header class="zthead">${back ? `<a class="ztback" href="#/learn">‹ Zest Town</a>` : `<div class="eyebrow">Learning Universe · ${trad() ? "學習宇宙" : "学习宇宙"} <span class="betachip">BETA</span></div>`}
+  return `<header class="zthead">${back ? `<a class="ztback" href="#/learn">‹ Zest Town</a>` : `<div class="eyebrow">Learning Universe · ${trad() ? "學習宇宙" : "学习宇宙"}</div>`}
     <div class="row between" style="align-items:center;gap:10px"><h1>${back || "Zest Town"}</h1><span class="row" style="gap:6px">${pills}</span></div></header>`;
 }
 function todayCard(st) {
