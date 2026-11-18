@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=73";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=73";
-import { COUNTRIES } from "./countries.js?v=73";
+import { createClient } from "./vendor/supabase.js?v=74";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=74";
+import { COUNTRIES } from "./countries.js?v=74";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=73";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=74";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -1381,7 +1381,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=73"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=74"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1948,7 +1948,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=73");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=74");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2818,7 +2818,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=73").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=74").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -3666,3 +3666,20 @@ document.addEventListener("click", async (e) => {
 });
 
 document.addEventListener("click", (e) => { const a = e.target.closest("[data-scroll]"); if (a) state.scrollTo = a.dataset.scroll; }, true);
+
+// ---- Stay up to date: an app left open in the background keeps running old code until it reloads.
+// When the app comes back to the screen (or every 30 min), check the published version and reload if it changed,
+// unless the member is in the middle of something (a review, a form, an open pop-up).
+const APP_BUILD = "v=74";
+async function checkForUpdate() {
+  try {
+    const txt = await (await fetch("sw.js", { cache: "no-store" })).text();
+    const live = (txt.match(/mz-club-v(\d+)/) || [])[1];
+    if (!live || `v=${live}` === APP_BUILD) return;
+    const busy = state.lu?.review || document.querySelector(".hbover, .ztover, form input:focus, textarea:focus") || state.noteDraft?.size;
+    if (busy) return;
+    location.reload();
+  } catch { /* offline: try again later */ }
+}
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") checkForUpdate(); });
+setInterval(checkForUpdate, 30 * 60e3);
