@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=76";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=76";
-import { COUNTRIES } from "./countries.js?v=76";
+import { createClient } from "./vendor/supabase.js?v=77";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=77";
+import { COUNTRIES } from "./countries.js?v=77";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=76";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=77";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -39,7 +39,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=76"; // bump with the other ?v= numbers
+const APP_BUILD = "v=77"; // bump with the other ?v= numbers
 const state = {
   user: null,
   role: null,
@@ -1382,7 +1382,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=76"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=77"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1949,7 +1949,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=76");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=77");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2823,7 +2823,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=76").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=77").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -3011,12 +3011,18 @@ async function ztLoad(force) {
   L.loading = true;
   await Promise.resolve();
   try {
-    const [c, d] = await Promise.all([
-      sb.from("learn_cards").select("*").order("created_at"),
-      sb.from("learn_days").select("day, kind, created_at"),
-    ]);
-    if (c.error) throw c.error;
-    L.cards = c.data; L.days = d.error ? [] : d.data;
+    // The server returns at most 1,000 rows per request, and a deck with whole HSK levels is bigger: load it page by page.
+    const loadCards = async () => {
+      const all = [];
+      for (let from = 0; ; from += 1000) {
+        const { data, error } = await sb.from("learn_cards").select("*").order("created_at").order("id").range(from, from + 999);
+        if (error) throw error;
+        all.push(...data);
+        if (data.length < 1000) return all;
+      }
+    };
+    const [cards, d] = await Promise.all([loadCards(), sb.from("learn_days").select("day, kind, created_at")]);
+    L.cards = cards; L.days = d.error ? [] : d.data;
     // Older attended sessions (for titles in the Flashcard Center).
     if (!state.notesLoaded) await loadNoteSessions();
     // Session words are NOT added automatically: members add them from the notes (Add to flashcards).
@@ -3409,8 +3415,10 @@ async function ztMarkKnown(words, known) {
   let n = 0;
   if (have.length) {
     const ids = have.map((w) => byHanzi.get(w.hanzi).id);
-    const { error } = await sb.from("learn_cards").update(upd).in("id", ids);
-    if (error) { toast("Couldn't save that. Check your connection."); return 0; }
+    for (let i = 0; i < ids.length; i += 150) { // small batches: the ids go in the address
+      const { error } = await sb.from("learn_cards").update(upd).in("id", ids.slice(i, i + 150));
+      if (error) { toast("Couldn't save that. Check your connection."); return n; }
+    }
     for (const id of ids) Object.assign(L.cards.find((c) => c.id === id), upd);
     n += ids.length;
   }
