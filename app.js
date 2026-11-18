@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=70";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=70";
-import { COUNTRIES } from "./countries.js?v=70";
+import { createClient } from "./vendor/supabase.js?v=71";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=71";
+import { COUNTRIES } from "./countries.js?v=71";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=70";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=71";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -1381,7 +1381,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=70"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=71"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1948,7 +1948,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=70");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=71");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2818,7 +2818,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=70").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=71").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -3363,7 +3363,8 @@ function templeView() {
         return left ? `<button type="button" class="btn ghost small ztaddall" data-zt="add-level">＋ Add all ${left === new Set(words.map((w) => w.hanzi)).size ? "" : "remaining "}${left.toLocaleString()} HSK ${lv} words to my flashcards</button>`
           : `<span class="small" style="color:var(--green);font-weight:800">✓ All HSK ${lv} words are in your flashcards</span>`; })()}</div>
       <div class="row between" style="align-items:center"><span class="small muted">${L.pick ? "Tick words, then add them or mark them as known" : "Tap a word to see it"}</span>
-        <button type="button" class="ztselbtn ${L.pick ? "on" : ""}" data-zt="pick">${L.pick ? "Cancel" : "Select words"}</button></div>
+        <span class="row" style="gap:6px">${L.pick ? (() => { const avail = words.filter((w) => statusOf(w, ws) !== "learned").length, all = avail && L.pick.size >= avail;
+          return `<button type="button" class="ztselbtn" data-zt="pick-all" data-v="${all ? "none" : "all"}" ${avail ? "" : "disabled"}>${all ? "Clear all" : "Select all"}</button>`; })() : ""}<button type="button" class="ztselbtn ${L.pick ? "on" : ""}" data-zt="pick">${L.pick ? "Cancel" : "Select words"}</button></span></div>
       <div class="zttiles">${tiles}</div>
       ${T > L.show ? `<button type="button" class="btn ghost block" data-zt="more">Show more (${(T - L.show).toLocaleString()} left)</button>` : ""}
       ${L.pick ? `<div class="ztselbar"><span class="ztselcount">${L.pick.size} word${L.pick.size === 1 ? "" : "s"} selected</span><span class="ztselbtns"><button type="button" class="btn ghost small" data-zt="know-picked" ${L.pick.size ? "" : "disabled"}>✓ I know them</button><button type="button" class="btn small" data-zt="add-picked" ${L.pick.size ? "" : "disabled"}>Add to flashcards</button></span></div>` : ""}`;
@@ -3456,6 +3457,11 @@ document.addEventListener("click", async (e) => {
   else if (a === "more") { L.show += 600; render(); }
   else if (a === "word") { L.word = el.dataset.id ? +el.dataset.id : null; render(); }
   else if (a === "pick") { L.pick = L.pick ? null : new Set(); L.word = null; render(); }
+  else if (a === "pick-all") {
+    const ws = ztWordStatus(), words = L.hsk.get(L.lv) || [];
+    L.pick = new Set(el.dataset.v === "all" ? words.filter((w) => statusOf(w, ws) !== "learned").map((w) => w.id) : []);
+    render();
+  }
   else if (a === "tick") { const id = +el.dataset.id; L.pick.has(id) ? L.pick.delete(id) : L.pick.add(id); keepForm(() => render()); }
   else if (a === "add-word" || a === "add-picked") {
     const words = L.hsk.get(L.lv) || [];
