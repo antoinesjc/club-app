@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=69";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=69";
-import { COUNTRIES } from "./countries.js?v=69";
+import { createClient } from "./vendor/supabase.js?v=70";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=70";
+import { COUNTRIES } from "./countries.js?v=70";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=69";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=70";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -1381,7 +1381,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=69"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=70"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1948,7 +1948,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=69");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=70");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2818,7 +2818,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=69").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=70").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -3014,7 +3014,7 @@ async function ztLoad(force) {
     L.cards = c.data; L.days = d.error ? [] : d.data;
     // Older attended sessions (for titles in the Flashcard Center).
     if (!state.notesLoaded) await loadNoteSessions();
-    await ztSyncSessionCards();
+    // Session words are NOT added automatically: members add them from the notes (Add to flashcards).
     L.loaded = true;
   } catch (e) {
     console.error(e); L.error = true;
@@ -3294,13 +3294,13 @@ function cardsView() {
   const today = todayKey(), dueOf = (cs) => cs.filter((c) => c.reps === 0 || c.due <= today).length;
   const lvCards = (lv) => d.cards.filter((c) => (lv === "none" ? !c.hsk_level : c.hsk_level === lv));
   return `${ztHeader(ztStreak(), "Flashcard Center <span class='zhsub'>字卡中心</span>")}
-  <p class="muted small" style="margin-top:-6px">${d.cards.length} card${d.cards.length === 1 ? "" : "s"} in your deck. Words from your sessions are added for you.</p>
+  <p class="muted small" style="margin-top:-6px">${d.cards.length} card${d.cards.length === 1 ? "" : "s"} in your deck. Add words from your session notes (Add to flashcards) or from the HSK Temple.</p>
   <div class="card ztreviewall"><span class="ztplaceart">${ztImg("house")}</span><div class="grow"><b style="font-size:18px">Review all</b>
     <div class="small"><span style="color:#1f6fa3;font-weight:700">${newN} new</span> · <span style="color:var(--green);font-weight:700">${dueN} to review</span></div>
     <button type="button" class="btn" data-zt="start-all" ${q.length ? "" : "disabled"}>${q.length ? `Start · about ${Math.max(1, Math.round(q.length * 0.25))} min` : "All done for today"}</button></div></div>
   <div class="card"><div class="row between"><b>From a session</b><span class="small muted">${ses.length} session${ses.length === 1 ? "" : "s"}</span></div>
     ${ses.length ? ses.map(({ sid, cs, s }) => { const n = dueOf(cs); return `<button type="button" class="ztrow" data-zt="start-ses" data-id="${esc(sid)}"><span class="grow"><b>${esc(s?.title || "Session")}</b><br><span class="small muted">${s ? esc(new Date(s.starts_at).toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" })) + " · " : ""}${cs.length} word${cs.length === 1 ? "" : "s"}</span></span><span class="small ${n ? "duec" : "muted"}">${n ? `${n} due` : "Practice"}</span><span class="chev">›</span></button>`; }).join("")
-      : `<p class="small muted" style="margin:0">When a host publishes notes for a session you joined, its words appear here.</p>`}</div>
+      : `<p class="small muted" style="margin:0">Open the notes of a session and tap <b>Add to flashcards</b> to practise its words here.</p><a class="small" style="font-weight:800" href="${wide() ? "#/notes" : "#/sessions"}">${wide() ? "Go to my notes ›" : "Go to my sessions ›"}</a>`}</div>
   <div class="card"><div class="row between"><b>By HSK level</b><a class="small" href="#/learn/temple">+ Add words in the HSK Temple</a></div>
     <div class="ztlvgrid">${[...HSK_LEVELS, "none"].map((lv) => { const cs = lvCards(lv), n = dueOf(cs); return `<button type="button" class="ztlv ${lv === "none" ? "other" : ""}" data-zt="start-lv" data-v="${lv}" ${cs.length ? "" : "disabled"}><b>${lv === "none" ? "Not in HSK" : `HSK ${lv}`}</b><small>${cs.length} card${cs.length === 1 ? "" : "s"}</small><small class="${n ? "duec" : ""}">${n ? `${n} due` : "—"}</small></button>`; }).join("")}</div><p class="small muted" style="margin:0">“Not in HSK”: words from your sessions that aren’t on the official HSK lists.</p></div>
   <div class="card row between" style="flex-direction:row;align-items:center"><span><b>New cards a day</b><br><span class="small muted">How many new words Review all adds each day.</span></span>
