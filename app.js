@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=66";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=66";
-import { COUNTRIES } from "./countries.js?v=66";
+import { createClient } from "./vendor/supabase.js?v=67";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=67";
+import { COUNTRIES } from "./countries.js?v=67";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=66";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=67";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -1268,7 +1268,7 @@ function leaderboard() {
   ${podium}
   <div class="stack" style="gap:6px">${rest}${meRow}</div>
   ${!isHost() && mine && mine <= 3 ? `<p class="small" style="text-align:center;margin:0"><b>You're #${mine}!</b></p>` : ""}
-  <p class="small muted" style="margin:0">+${XP_SESSION} XP per session · +${XP_STREAK} XP every 4 weeks in a row · XP for bootcamps · +${XP_HONGBAO} XP per hongbao received. Hosts don't take part.</p>`;
+  <p class="small muted" style="margin:0">+${XP_SESSION} XP per session · +${XP_STREAK} XP every 4 weeks in a row · XP for bootcamps · +${XP_HONGBAO} XP per hongbao received${isBeta() ? " · +1 XP a day for a Zest Town game · +2 XP every 10 days of your streak tree" : ""}. Hosts don't take part.</p>`;
 }
 
 function directory() {
@@ -1354,7 +1354,7 @@ function unlocksView() {
   <header><div class="eyebrow">Avatar customization</div><h1>How to unlock avatars &amp; stickers</h1></header>
   <section class="card" style="gap:10px">
     <h2>Fruit avatars: level up</h2>
-    <p class="small muted" style="margin:0;line-height:1.5">You start with three fruits. Each new level unlocks another one. You earn XP by joining sessions (+${XP_SESSION}), coming 4 weeks in a row (+${XP_STREAK}), bootcamps and hongbaos from other members (+${XP_HONGBAO}).</p>
+    <p class="small muted" style="margin:0;line-height:1.5">You start with three fruits. Each new level unlocks another one. You earn XP by joining sessions (+${XP_SESSION}), coming 4 weeks in a row (+${XP_STREAK}), bootcamps and hongbaos from other members (+${XP_HONGBAO})${isBeta() ? ". In Zest Town: +1 XP a day for playing a game, and +2 XP every 10 days of your streak tree" : ""}.</p>
     <div class="unlockgrid">${FRUITS.map((f) => `<div class="unlockitem">${avatar({ bg: "#fdf1ea" }, 40, { flag: false, fruit: f.key, locked: !isHost() && f.level > myLevel() })}<span class="small"><b>Lv ${f.level}</b><br>${esc(zh(f.zh))}</span></div>`).join("")}</div>
   </section>
   <section class="card" style="gap:10px">
@@ -1381,7 +1381,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=66"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=67"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1568,11 +1568,13 @@ function activityBlock(id) {
   const dfmt = (d) => d.toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" });
   const icon = (r) => r.kind === "sticker" && stickerInfo(r.title) ? `<span class="stkbig" style="--z:34px">${stickerSvg(r.title)}</span>`
     : r.kind === "avatar" ? `<span class="acticon" style="background:#e0f4e0">${fruitSvg(r.title)}</span>`
-    : `<span class="acticon k-${r.kind}" aria-hidden="true">${{ session: "课", streak: "4", bootcamp: "营", bonus: "+", hongbao: "红" }[r.kind] || "+"}</span>`;
+    : `<span class="acticon k-${r.kind}" aria-hidden="true">${{ session: "课", streak: "4", bootcamp: "营", bonus: "+", hongbao: "红", game: "玩", tree: "树" }[r.kind] || "+"}</span>`;
   const label = (r) => r.kind === "session" ? esc(r.title)
     : r.kind === "sticker" ? `Sticker · ${esc(stickerInfo(r.title)?.en || r.title)}`
     : r.kind === "avatar" ? `Special avatar · ${esc(fruitInfo(r.title).en || r.title)}`
     : r.kind === "streak" ? "Streak bonus · 4 weeks in a row"
+    : r.kind === "game" ? "Zest Town game"
+    : r.kind === "tree" ? "Streak tree bonus · 10 days in a row"
     : r.kind === "hongbao" ? "Hongbao 红包" : esc(r.title);
   const sub = (r) => [dfmt(new Date(r.at)),
     r.kind === "session" && r.detail ? `host ${esc(r.detail)}` : r.kind === "hongbao" && r.detail ? `from ${esc(r.detail)}` : r.detail ? esc(r.detail) : "",
@@ -1946,7 +1948,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=66");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=67");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2816,7 +2818,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=66").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=67").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -3307,6 +3309,7 @@ function reviewView() {
     return `${ztHeader(st, "Flashcard Center <span class='zhsub'>字卡中心</span>")}
     <div class="card ztdone"><span class="zttreeart lg">${treeImg(st)}</span><h2>太棒了！ Well done</h2>
       <p>You reviewed <b>${R.done} card${R.done === 1 ? "" : "s"}</b>.${R.counted || st.doneToday ? " Today counts for your streak tree." : ""}</p>
+      ${R.counted && !isHost() ? `<div class="ztxp"><span>+1 XP</span>${st.n > 0 && st.n % 10 === 0 ? `<span class="bonus">+2 XP · ${st.n}-day streak bonus</span>` : ""}</div>` : st.doneToday && !isHost() ? `<p class="small muted" style="margin:0">You already got today's game XP. Come back tomorrow!</p>` : ""}
       <div class="row" style="gap:8px;flex-wrap:wrap;justify-content:center"><button type="button" class="btn" data-zt="end">Back to the Flashcard Center</button><a class="btn ghost" href="#/learn" data-zt="end">Go to Zest Town</a></div></div>`;
   }
   const c = R.queue[R.i], s = c.session_id && ztSession(c.session_id);

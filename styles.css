@@ -902,3 +902,6 @@ details.custom.sbdet > summary b { color: #6b4423; }
 .ztnotif:hover { color: var(--ink); border-color: #f37a48; }
 .ztnotif svg { width: 22px; height: 22px; flex: none; color: #c2410c; }
 .ztnotif .chev { font-size: 22px; color: var(--faint); }
+.ztxp { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; animation: rwpop .5s cubic-bezier(.3,1.6,.5,1); }
+.ztxp span { background: var(--mint); color: var(--green); font-weight: 800; border-radius: 999px; padding: 6px 14px; font-size: 15px; }
+.ztxp span.bonus { background: #2f7a25; color: #fff; }
