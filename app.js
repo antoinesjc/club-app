@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=65";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=65";
-import { COUNTRIES } from "./countries.js?v=65";
+import { createClient } from "./vendor/supabase.js?v=66";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=66";
+import { COUNTRIES } from "./countries.js?v=66";
 const XP_HONGBAO = 30;
-const MEMBER_CODE = "MZCLUB_8634D";                    // 50% off materials in the shop (Antoine, 24 Oct 2026)
+const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=65";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=66";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -1381,7 +1381,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=65"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=66"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1906,7 +1906,7 @@ function profileView() {
       <button type="button" class="codechip" data-act="copy-code" aria-label="Copy discount code ${MEMBER_CODE}"><code>${MEMBER_CODE}</code><span aria-hidden="true">⧉</span></button>
       <a href="${SHOP_URL}" target="_blank" rel="noopener" style="font-weight:700;font-size:14.5px">Mandarin Zest shop ↗</a>
     </div>
-    <span class="small muted">50% off all Mandarin Zest materials. Enter the code at checkout.</span>
+    <span class="small muted">70% off all Mandarin Zest materials. Enter the code at checkout.</span>
   </section>
   <div class="mobonly" style="display:contents">${notificationsCard()}<p class="small muted privnote">Privacy: the Club team can see when you last opened the app and your Club activity (sessions, XP, stickers), only to keep the Club running well. It’s never shared.</p></div>
   ${installHint(true)}
@@ -1946,7 +1946,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=65");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=66");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2816,7 +2816,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=65").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=66").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
