@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=71";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=71";
-import { COUNTRIES } from "./countries.js?v=71";
+import { createClient } from "./vendor/supabase.js?v=72";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=72";
+import { COUNTRIES } from "./countries.js?v=72";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=71";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=72";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -1381,7 +1381,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=71"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=72"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1948,7 +1948,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=71");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=72");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2818,7 +2818,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=71").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=72").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -3154,7 +3154,10 @@ async function ztFinish() {
 }
 function ztStart(title, queue, cram) {
   if (!queue.length) { toast("Nothing to review here right now."); return; }
-  state.lu.review = { title, queue: [...queue], i: 0, flipped: false, done: 0, again: new Set(), cram };
+  // Shuffle (Fisher-Yates) so cards never come in list order; due reviews first, then new cards.
+  const shuffle = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const due = shuffle(queue.filter((c) => c.reps > 0)), fresh = shuffle(queue.filter((c) => c.reps === 0));
+  state.lu.review = { title, queue: [...due, ...fresh], i: 0, flipped: false, done: 0, again: new Set(), cram };
   render(); scrollTo(0, 0);
 }
 
