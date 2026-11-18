@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=67";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=67";
-import { COUNTRIES } from "./countries.js?v=67";
+import { createClient } from "./vendor/supabase.js?v=68";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=68";
+import { COUNTRIES } from "./countries.js?v=68";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=67";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=68";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -1381,7 +1381,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=67"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=68"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1948,7 +1948,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=67");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=68");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2818,7 +2818,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=67").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=68").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -3161,7 +3161,9 @@ function ztWordStatus() {
   const m = new Map();
   for (const v of ztSessionVocab()) m.set(v.hanzi, "seen");
   for (const c of state.lu.cards) {
-    const s = c.good_streak >= ZT_LEARNED ? "learned" : "seen";
+    // A card added from the HSK Temple only counts as "seen" once it has been reviewed at least once.
+    const s = c.good_streak >= ZT_LEARNED ? "learned" : c.reps > 0 || c.source === "session" ? "seen" : null;
+    if (!s) continue;
     for (const h of [c.hanzi, c.hanzi_trad]) if (h && m.get(h) !== "learned") m.set(h, s);
   }
   return m;
@@ -3354,12 +3356,15 @@ function templeView() {
     }
     main = `<div class="card" style="gap:8px"><div class="row between"><b>HSK ${lv} · ${T.toLocaleString()} words</b><b style="color:var(--green)">${Math.round(pc(cnt.learned))}% learned</b></div>
       <div class="ztlvbar"><i class="l" style="width:${pc(cnt.learned)}%"></i><i class="s" style="width:${pc(cnt.seen)}%"></i></div>
-      <div class="ztlegend"><span><i class="l"></i>Learned ${cnt.learned}</span><span><i class="s"></i>Seen ${cnt.seen}</span><span><i class="n"></i>Not yet ${cnt.none}</span></div></div>
+      <div class="ztlegend"><span><i class="l"></i>Learned ${cnt.learned}</span><span><i class="s"></i>Seen ${cnt.seen}</span><span><i class="n"></i>Not yet ${cnt.none}</span></div>
+      ${(() => { const left = new Set(words.filter((w) => !inDeck.has(w.hanzi)).map((w) => w.hanzi)).size;
+        return left ? `<button type="button" class="btn ghost small ztaddall" data-zt="add-level">＋ Add all ${left === new Set(words.map((w) => w.hanzi)).size ? "" : "remaining "}${left.toLocaleString()} HSK ${lv} words to my flashcards</button>`
+          : `<span class="small" style="color:var(--green);font-weight:800">✓ All HSK ${lv} words are in your flashcards</span>`; })()}</div>
       <div class="row between" style="align-items:center"><span class="small muted">${L.pick ? "Tick words, then add them or mark them as known" : "Tap a word to see it"}</span>
         <button type="button" class="ztselbtn ${L.pick ? "on" : ""}" data-zt="pick">${L.pick ? "Cancel" : "Select words"}</button></div>
       <div class="zttiles">${tiles}</div>
       ${T > L.show ? `<button type="button" class="btn ghost block" data-zt="more">Show more (${(T - L.show).toLocaleString()} left)</button>` : ""}
-      ${L.pick ? `<div class="ztselbar"><span>${L.pick.size} word${L.pick.size === 1 ? "" : "s"} selected</span><span class="row" style="gap:6px"><button type="button" class="btn ghost small" data-zt="know-picked" ${L.pick.size ? "" : "disabled"}>✓ I know them</button><button type="button" class="btn small" data-zt="add-picked" ${L.pick.size ? "" : "disabled"}>Add to flashcards</button></span></div>` : ""}`;
+      ${L.pick ? `<div class="ztselbar"><span class="ztselcount">${L.pick.size} word${L.pick.size === 1 ? "" : "s"} selected</span><span class="ztselbtns"><button type="button" class="btn ghost small" data-zt="know-picked" ${L.pick.size ? "" : "disabled"}>✓ I know them</button><button type="button" class="btn small" data-zt="add-picked" ${L.pick.size ? "" : "disabled"}>Add to flashcards</button></span></div>` : ""}`;
   }
   const head = `<div class="ztthead"><span class="ztplaceart">${ztImg("temple")}</span><span class="small muted">Every HSK word, and how well you know it.<br>Grey: not met yet · light green: seen · dark green: learned.</span></div>`;
   return `${ztHeader(ztStreak(), `HSK Temple <span class='zhsub'>${trad() ? "漢語廟" : "汉语庙"}</span>`)}${head}<div class="ztlvpills">${pills}</div>
@@ -3371,10 +3376,13 @@ async function ztAddWords(ws) {
   const rows = ws.filter((w) => !have.has(w.hanzi)).map((w) => ({ hanzi: w.hanzi, hanzi_trad: w.hanzi_trad, pinyin: w.pinyin, meaning: w.meaning, hsk_level: w.level, source: "hsk" }))
     .filter((r, i, a) => a.findIndex((x) => x.hanzi === r.hanzi) === i);
   if (!rows.length) return 0;
-  const { data, error } = await sb.from("learn_cards").upsert(rows, { onConflict: "user_id,hanzi", ignoreDuplicates: true }).select("*");
-  if (error) { toast("Couldn't add those words. Check your connection."); return 0; }
-  state.lu.cards.push(...data);
-  return data.length;
+  let n = 0;
+  for (let i = 0; i < rows.length; i += 400) {
+    const { data, error } = await sb.from("learn_cards").upsert(rows.slice(i, i + 400), { onConflict: "user_id,hanzi", ignoreDuplicates: true }).select("*");
+    if (error) { toast("Couldn't add all of those words. Check your connection."); return n; }
+    state.lu.cards.push(...data); n += data.length;
+  }
+  return n;
 }
 
 // "I already know this word": a learned card due in 30 days (so it still comes back once in a while).
@@ -3454,6 +3462,14 @@ document.addEventListener("click", async (e) => {
     const n = await ztAddWords(list);
     if (a === "add-picked") L.pick = null;
     toast(n ? `Added ${n} word${n === 1 ? "" : "s"} to your flashcards.` : "Those words are already in your flashcards.");
+    render();
+  } else if (a === "add-level") {
+    const words = L.hsk.get(L.lv) || [], have = new Set(L.cards.map((c) => c.hanzi));
+    const left = words.filter((w) => !have.has(w.hanzi));
+    if (left.length > 50 && !confirm(`Add ${left.length.toLocaleString()} HSK ${L.lv} words to your flashcards?\n\nThey'll come in a few at a time: ${L.perDay} new cards a day (you can change this in the Flashcard Center).`)) return;
+    el.disabled = true; el.textContent = "Adding…";
+    const n = await ztAddWords(left);
+    toast(n ? `Added ${n.toLocaleString()} HSK ${L.lv} words to your flashcards.` : "They're already in your flashcards.");
     render();
   } else if (a === "know" || a === "know-picked" || a === "unknow") {
     const words = L.hsk.get(L.lv) || [];

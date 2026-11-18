@@ -905,3 +905,15 @@ details.custom.sbdet > summary b { color: #6b4423; }
 .ztxp { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; animation: rwpop .5s cubic-bezier(.3,1.6,.5,1); }
 .ztxp span { background: var(--mint); color: var(--green); font-weight: 800; border-radius: 999px; padding: 6px 14px; font-size: 15px; }
 .ztxp span.bonus { background: #2f7a25; color: #fff; }
+/* iOS: keep the pixel icons' space while they repaint after a re-render (no layout jump) */
+.ztplaceart { aspect-ratio: 46 / 36; display: grid; place-items: center; overflow: hidden; }
+.ztplaceart img { width: 100%; height: 100%; object-fit: contain; }
+.zttreeart { aspect-ratio: 42 / 46; display: grid; place-items: center; }
+.zttreeart img { width: 100%; height: auto; }
+/* selection bar: wraps nicely on phones */
+.ztselbar { flex-wrap: wrap; border-radius: 18px; padding: 10px 10px 10px 16px; row-gap: 8px; }
+.ztselcount { font-size: 14px; }
+.ztselbtns { display: flex; gap: 6px; flex: 1 1 auto; justify-content: flex-end; }
+.ztselbtns .btn { white-space: nowrap; }
+@media (max-width: 480px) { .ztselbtns { flex-basis: 100%; } .ztselbtns .btn { flex: 1; } }
+.ztaddall { align-self: flex-start; margin-top: 2px; border-color: var(--green); color: var(--green); }
