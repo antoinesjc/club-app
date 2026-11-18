@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=74";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=74";
-import { COUNTRIES } from "./countries.js?v=74";
+import { createClient } from "./vendor/supabase.js?v=75";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=75";
+import { COUNTRIES } from "./countries.js?v=75";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=74";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=75";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -39,6 +39,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
+const APP_BUILD = "v=75"; // bump with the other ?v= numbers
 const state = {
   user: null,
   role: null,
@@ -1381,7 +1382,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=74"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=75"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1910,7 +1911,7 @@ function profileView() {
     </div>
     <span class="small muted">70% off all Mandarin Zest materials. Enter the code at checkout.</span>
   </section>
-  <div class="mobonly" style="display:contents">${notificationsCard()}<p class="small muted privnote">Privacy: the Club team can see when you last opened the app and your Club activity (sessions, XP, stickers), only to keep the Club running well. It’s never shared.</p></div>
+  <div class="mobonly" style="display:contents">${notificationsCard()}<p class="small muted privnote">Privacy: the Club team can see when you last opened the app and your Club activity (sessions, XP, stickers), only to keep the Club running well. It’s never shared.</p><p class="small muted privnote">App version ${APP_BUILD.slice(2)} · <button type="button" class="linkbtn" data-act="app-reload">Check for updates</button></p></div>
   ${installHint(true)}
   <div class="row between">
     <span class="small muted">${esc(state.user.email)}</span>
@@ -1948,7 +1949,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=74");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=75");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2026,6 +2027,7 @@ async function downloadNotesPdf(sid) {
 function settingsView() {
   return `<header><div class="eyebrow">Mandarin Zest Club</div><h1>Settings</h1></header>
   ${notificationsCard()}
+  <p class="small muted privnote">App version ${APP_BUILD.slice(2)} · <button type="button" class="linkbtn" data-act="app-reload">Check for updates</button></p>
   <p class="small muted privnote">Privacy: the Club team can see when you last opened the app and your Club activity (sessions, XP, stickers), only to keep the Club running well. It’s never shared.</p>`;
 }
 
@@ -2593,6 +2595,9 @@ document.addEventListener("click", async (e) => {
     state.bootAsk = null; state.bootJust = el.dataset.k; render();
   } else if (act === "hb-give") {
     el.disabled = true; await giveHongbao(el.dataset.id); el.disabled = false;
+  } else if (act === "app-reload") {
+    const reg = await navigator.serviceWorker?.getRegistration(); if (reg) await reg.update().catch(() => {});
+    location.reload();
   } else if (act === "reward-ok") {
     state.rewardQueue.shift(); render();
   } else if (act === "seasonal-ok") {
@@ -2818,7 +2823,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=74").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=75").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -3670,7 +3675,6 @@ document.addEventListener("click", (e) => { const a = e.target.closest("[data-sc
 // ---- Stay up to date: an app left open in the background keeps running old code until it reloads.
 // When the app comes back to the screen (or every 30 min), check the published version and reload if it changed,
 // unless the member is in the middle of something (a review, a form, an open pop-up).
-const APP_BUILD = "v=74";
 async function checkForUpdate() {
   try {
     const txt = await (await fetch("sw.js", { cache: "no-store" })).text();
@@ -3678,8 +3682,13 @@ async function checkForUpdate() {
     if (!live || `v=${live}` === APP_BUILD) return;
     const busy = state.lu?.review || document.querySelector(".hbover, .ztover, form input:focus, textarea:focus") || state.noteDraft?.size;
     if (busy) return;
+    // Install the new service worker first, then reload once (never loop if the update isn't ready yet).
+    const reg = await navigator.serviceWorker?.getRegistration();
+    if (reg) { await reg.update().catch(() => {}); await new Promise((r) => setTimeout(r, 2500)); }
+    if (sessionStorage.getItem("mz-reloaded") === live) return;
+    sessionStorage.setItem("mz-reloaded", live);
     location.reload();
-  } catch { /* offline: try again later */ }
+  } catch { /* offline or storage blocked: try again later */ }
 }
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") checkForUpdate(); });
 setInterval(checkForUpdate, 30 * 60e3);

@@ -1,13 +1,13 @@
 // Keeps the app shell available offline, and shows Club notifications.
 // Data always comes from the network.
-const VERSION = "mz-club-v74";
+const VERSION = "mz-club-v75";
 const SHELL = [
-  "./", "index.html", "styles.css?v=74", "app.js?v=74", "fruits.js?v=74", "hosts-art.js?v=74", "countries.js?v=74", "stickers.js?v=74", "worldmap.js?v=74",
-  "vendor/supabase.js?v=74", "manifest.webmanifest", "icons/logo.png", "icons/mascot.svg", "icons/icon-192.png", "icons/badge-96.png",
+  "./", "index.html", "styles.css?v=75", "app.js?v=75", "fruits.js?v=75", "hosts-art.js?v=75", "countries.js?v=75", "stickers.js?v=75", "worldmap.js?v=75",
+  "vendor/supabase.js?v=75", "manifest.webmanifest", "icons/logo.png", "icons/mascot.svg", "icons/icon-192.png", "icons/badge-96.png",
 ];
 
 self.addEventListener("install", (e) => {
-  e.waitUntil(caches.open(VERSION).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(VERSION).then((c) => c.addAll(SHELL.map((u) => new Request(u, { cache: "no-cache" })))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener("activate", (e) => {
@@ -21,8 +21,13 @@ self.addEventListener("fetch", (e) => {
   const url = new URL(e.request.url);
   if (e.request.method !== "GET" || url.origin !== location.origin) return;
   // Network first, so updates show up right away; cache as a fallback.
+  // Page loads ("navigate") can't be re-fetched with options (it throws, and we fell back to the cached page,
+  // so phones kept an old version). Fetch them by URL instead.
+  const net = e.request.mode === "navigate"
+    ? fetch(url.href, { cache: "no-cache", credentials: "same-origin" })
+    : fetch(e.request, { cache: "no-cache" }); // always ask the server, so files never mix versions
   e.respondWith(
-    fetch(e.request, { cache: "no-cache" }) // always ask the server, so files never mix versions
+    net
       .then((res) => {
         if (res.ok) {
           const copy = res.clone();
