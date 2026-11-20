@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=82";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=82";
-import { COUNTRIES } from "./countries.js?v=82";
+import { createClient } from "./vendor/supabase.js?v=83";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=83";
+import { COUNTRIES } from "./countries.js?v=83";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=82";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=83";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -39,7 +39,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=82"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=83"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -1382,7 +1382,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=82"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=83"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1719,7 +1719,7 @@ function draft() {
 }
 
 const STICKER_ICON = `<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M12 5H31L43 17V36A7 7 0 0 1 36 43H12A7 7 0 0 1 5 36V12A7 7 0 0 1 12 5Z" fill="#f37a48" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"/><path d="M31 5V13A4 4 0 0 0 35 17H43Z" fill="#ffd9c2" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><polygon points="22,17 24.4,22.8 30.6,23.2 25.8,27.2 27.3,33.3 22,30 16.7,33.3 18.2,27.2 13.4,23.2 19.6,22.8" fill="#fff"/></svg>`;
-// ---------- Sticker collection: the Sticker Gallery 貼紙館 in Zest Town (#/learn/gallery); Me keeps a shortcut ----------
+// ---------- Sticker collection: the Sticker Gallery 貼紙館 in Zest Town (#/learn/gallery) ----------
 function sbGot() { return new Set(isHost() ? STICKERS.map((t) => t.key) : myStickers()); }
 function sbCount() {
   const got = sbGot(), inBook = STICKER_PAGES.flatMap((p) => p.keys);
@@ -1751,12 +1751,12 @@ function galleryView() {
       <span class="grow"><b style="font-size:17px">Your sticker collection</b><br><span class="small muted">Stickers can't be bought: you earn them in bootcamps, Club life, achievements and special events.</span></span></div>
     <div class="galbook">${stickerBookBody()}</div>`;
 }
-function stickerBook() { // Me page: a shortcut to the Sticker Gallery (the full book when Zest Town is off)
+function stickerBook() { // Me page: nothing while Zest Town is on (the full book only when Zest Town is off)
   const { n, total } = sbCount();
   if (!isBeta()) return `<details class="custom sbdet"${state.bookOpen ? " open" : ""}>
     <summary><span class="custicon sbicon" aria-hidden="true">${STICKER_ICON}</span><span class="grow"><b>My sticker collection</b><span class="small muted">${n} of ${total} collected · ${zh(["贴纸册", "貼紙冊"])}</span></span><span class="chev" aria-hidden="true">›</span></summary>
     <div class="custbody">${stickerBookBody()}</div></details>`;
-  return `<a class="custom sbdet sblink" href="#/learn/gallery"><span class="sbgalart" aria-hidden="true">${ztImg("gallery")}</span><span class="grow"><b>My sticker collection</b><span class="small muted">${n} of ${total} collected · in the Sticker Gallery ${trad() ? "貼紙館" : "贴纸馆"} in Zest Town</span></span><span class="chev" aria-hidden="true">›</span></a>`;
+  return ""; // the collection lives in the Sticker Gallery in Zest Town
 }
 
 // ---------------------------------------------------------------------------
@@ -1963,7 +1963,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=82");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=83");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2837,7 +2837,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=82").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=83").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
