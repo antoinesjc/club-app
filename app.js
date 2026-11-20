@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=85";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=85";
-import { COUNTRIES } from "./countries.js?v=85";
+import { createClient } from "./vendor/supabase.js?v=86";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=86";
+import { COUNTRIES } from "./countries.js?v=86";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=85";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=86";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -39,7 +39,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=85"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=86"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -1382,7 +1382,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=85"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=86"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1963,7 +1963,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=85");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=86");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2842,7 +2842,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=85").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=86").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -3778,8 +3778,21 @@ async function libContent(id) {
   const [c, pr] = await Promise.all([sb.from("library_book_content").select("content").eq("book_id", id).maybeSingle(), sb.from("library_progress").select("state").eq("book_id", id).maybeSingle()]);
   S.contentLoading = null;
   if (c.error || !c.data) { toast("Couldn't open this book. Check your connection."); location.hash = "#/learn/library"; return; }
-  S.content.set(id, c.data.content); S.progress.set(id, pr.data?.state || {});
+  try { S.content.set(id, await libUnpack(c.data.content)); } catch { toast("Couldn't open this book. Please update the app."); location.hash = "#/learn/library"; return; }
+  S.progress.set(id, pr.data?.state || {});
   render();
+}
+// Stored compressed: {gz: base64 of gzipped {s: book, tmap: "简簡体體…"}}; the traditional version is made here, character by character.
+async function libUnpack(c) {
+  if (!c.gz) return c;
+  const bytes = Uint8Array.from(atob(c.gz), (ch) => ch.charCodeAt(0));
+  const { s, tmap } = await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"))).json();
+  const m = new Map(); for (let i = 0; i < tmap.length; i += 2) m.set(tmap[i], tmap[i + 1]);
+  const cv = (x) => x.replace(/[\u4e00-\u9fff]/g, (ch) => m.get(ch) || ch);
+  const deep = (o) => typeof o === "string" ? cv(o) : Array.isArray(o) ? o.map(deep) : o && typeof o === "object" ? Object.fromEntries(Object.entries(o).map(([k, v]) => [cv(k), deep(v)])) : o;
+  const t = deep(s);
+  for (const k of Object.keys(s.dict)) t.dict[cv(k)].s = k;
+  return { s, t };
 }
 const libBook = (id) => { const c = libState().content.get(id); return c && (trad() ? c.t : c.s); };
 const libProg = (id) => libState().progress.get(id) || {};
