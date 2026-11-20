@@ -24,6 +24,26 @@ async function stripe(method: "GET" | "POST", path: string, params: Record<strin
   return body;
 }
 
+// The book's Stripe payment link -> its price, so in-app sales land on the same Stripe product (looked up once, then saved).
+async function priceOf(book: Obj): Promise<string | null> {
+  if (book.stripe_price) return book.stripe_price;
+  if (!book.stripe_link) return null;
+  let after = "";
+  for (let page = 0; page < 20; page++) {
+    const r = await stripe("GET", "payment_links", { limit: "100", ...(after ? { starting_after: after } : {}) });
+    const link = r.data.find((l: Obj) => l.url === book.stripe_link);
+    if (link) {
+      const items = await stripe("GET", `payment_links/${link.id}/line_items`, { limit: "1" });
+      const price = items.data?.[0]?.price?.id ?? null;
+      if (price) await admin.from("library_books").update({ stripe_price: price }).eq("id", book.id);
+      return price;
+    }
+    if (!r.has_more || !r.data.length) break;
+    after = r.data[r.data.length - 1].id;
+  }
+  return null;
+}
+
 async function unlockIfPaid(s: Obj): Promise<string | null> {
   const user = s.metadata?.user_id, book = s.metadata?.book_id;
   if (!user || !book || s.payment_status !== "paid") return null;
@@ -52,13 +72,16 @@ Deno.serve(async (req) => {
       const { data: pk } = await admin.rpc("app_secret", { p_name: "stripe_publishable" });
       const embedded = !!pk && body.embedded !== false;
       const back = `${APP_URL}/#/learn/library?paid={CHECKOUT_SESSION_ID}`;
+      const price = await priceOf(book).catch((e) => { console.error("price lookup", e); return null; });
       const s = await stripe("POST", "checkout/sessions", {
         mode: "payment",
         "line_items[0][quantity]": "1",
-        "line_items[0][price_data][currency]": book.currency,
-        "line_items[0][price_data][unit_amount]": String(book.price_cents),
-        "line_items[0][price_data][product_data][name]": `${book.title_zh ? book.title_zh + " · " : ""}${book.title} (Club app book)`,
-        "line_items[0][price_data][product_data][description]": book.subtitle ?? "Digital book in the Mandarin Zest Club app",
+        ...(price ? { "line_items[0][price]": price } : {
+          "line_items[0][price_data][currency]": book.currency,
+          "line_items[0][price_data][unit_amount]": String(book.price_cents),
+          "line_items[0][price_data][product_data][name]": `${book.title_zh ? book.title_zh + " · " : ""}${book.title} (Club app book)`,
+          "line_items[0][price_data][product_data][description]": book.subtitle ?? "Digital book in the Mandarin Zest Club app",
+        }),
         client_reference_id: user.id,
         customer_email: user.email ?? "",
         "metadata[user_id]": user.id,

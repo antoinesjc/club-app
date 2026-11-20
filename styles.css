@@ -1067,3 +1067,5 @@ details.custom.sbdet > summary b { color: #6b4423; }
 .lpart span { color: #c2410c; }
 .lcheck { max-width: 520px; }
 #lcheckout { min-height: 360px; }
+.lcount2 { display: flex; align-items: center; gap: 12px; background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 10px 14px; }
+.lcountn { min-width: 46px; height: 46px; padding: 0 8px; border-radius: 14px; background: #6b4423; color: #fff; font-size: 24px; font-weight: 800; display: grid; place-items: center; }

@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=87";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=87";
-import { COUNTRIES } from "./countries.js?v=87";
+import { createClient } from "./vendor/supabase.js?v=88";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=88";
+import { COUNTRIES } from "./countries.js?v=88";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=87";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=88";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -39,7 +39,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=87"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=88"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -1382,7 +1382,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=87"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=88"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1963,7 +1963,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=87");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=88");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2842,7 +2842,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=87").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=88").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -3898,7 +3898,7 @@ function libShelfView() {
   const shown = mine.filter((b) => !lv || b.level === lv);
   const chips = `<div class="lchips" role="group" aria-label="Filter by HSK level"><button type="button" data-lib="lv" data-v="" aria-pressed="${!lv}">All</button>${LIB_LEVELS.map((l) => {
     const n = mine.filter((b) => b.level === l).length;
-    return `<button type="button" data-lib="lv" data-v="${l}" aria-pressed="${lv === l}" ${n ? "" : "class=\"empty\""}>HSK ${l}${n ? ` <span>${n}</span>` : ""}</button>`; }).join("")}</div>`;
+    return `<button type="button" data-lib="lv" data-v="${l}" aria-pressed="${lv === l}" ${n ? "" : "class=\"empty\""}>HSK ${l}</button>`; }).join("")}</div>`;
   const per = wide() ? 5 : 3, rows = [];
   for (let i = 0; i < Math.max(shown.length, 1); i += per) rows.push(shown.slice(i, i + per));
   if (rows.length < 2) rows.push([]);
@@ -3907,7 +3907,9 @@ function libShelfView() {
   const shelf = `<div class="lshelf">${rows.map((r) => `<div class="lrow">${r.map(book).join("")}</div>`).join("")}</div>`;
   const empty = !mine.length ? `<div class="card lempty"><b>Your shelf is empty</b><span class="small muted">Books you buy in the Bookshop appear here, ready to read in the app.</span><button type="button" class="btn" data-lib="tab" data-v="shop">Visit the Bookshop</button></div>`
     : !shown.length ? `<p class="small muted">No books for HSK ${esc(lv)} on your shelf yet. <button type="button" class="linkbtn" data-lib="tab" data-v="shop">See the Bookshop</button></p>` : "";
-  return `${chips}${shelf}${empty}`;
+  const total = S.books.length, have = S.books.filter((b) => S.owned.has(b.id)).length;
+  const count = `<div class="lcount2"><span class="lcountn">${have}</span><span><b>${have === 1 ? "book" : "books"} collected</b><br><span class="small muted">${total > have ? `${total - have} more in the Bookshop` : `You have every book. ${trad() ? "太厲害了！" : "太厉害了！"}`}${isAdmin() && !have ? " · as an admin you can read them all" : ""}</span></span></div>`;
+  return `${count}${chips}${shelf}${empty}`;
 }
 function libShopView() {
   const S = libState(), lv = S.lv, books = S.books.filter((b) => !lv || b.level === lv);
