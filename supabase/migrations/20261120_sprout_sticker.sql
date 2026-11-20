@@ -3,5 +3,5 @@ create or replace function public.sticker_ok(k text) returns boolean language sq
 as $$ select k in ('boba', 'tones', 'lantern', 'dumpling', 'brush', 'mooncake', 'phone', 'heart', 'medal', 'founder', 'turkey', 'sprout') $$;
 
 insert into public.bootcamp_rewards (bootcamp, xp, sticker)
-values ('https://www.mandarinzest.com/complete-beginner-bootcamp', 150, 'sprout')
+values ('https://www.mandarinzest.com/complete-beginner-bootcamp', 50, 'sprout')
 on conflict (bootcamp) do update set xp = excluded.xp, sticker = excluded.sticker, updated_at = now();
