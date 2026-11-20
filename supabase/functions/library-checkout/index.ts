@@ -1,5 +1,5 @@
 // Library Bookshop: Stripe Checkout for a book, and unlocking it once Stripe says it's paid.
-// Called by the app with the member's login (verify_jwt on).
+// Called by the app with the member's login (checked here with auth.getUser; verify_jwt off so the CORS preflight passes).
 //   { action: "create", book_id }      -> { client_secret, publishable_key } (embedded in the app) or { url } (Stripe page)
 //   { action: "verify", session_id? }  -> checks this member's started checkouts, unlocks paid books -> { owned, unlocked }
 import { createClient } from "npm:@supabase/supabase-js@2";
