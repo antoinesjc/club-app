@@ -19,6 +19,15 @@ export const STICKERS = [
       </g>`,
   },
   {
+    key: "sprout", how: "Finish the Complete Beginner Bootcamp.", zh: ["幼苗", "幼苗"], en: "Sprout", bootcamp: "beginner",
+    svg: `<path d="M32 40 V24" stroke="#3f8f2f" stroke-width="4" stroke-linecap="round"/>
+      <path d="M32 28 C24 28 15 23 13 12 C24 11 31 17 32 28z" fill="#6cc04a" stroke="#2f6b22" stroke-width="2.2" stroke-linejoin="round"/>
+      <path d="M32 25 C38 25 47 21 50 11 C40 9 33 14 32 25z" fill="#8fd65f" stroke="#2f6b22" stroke-width="2.2" stroke-linejoin="round"/>
+      <path d="M17 39 h30 l-4 18 a4 4 0 0 1 -4 3 h-14 a4 4 0 0 1 -4 -3z" fill="#e2632f" stroke="#7a2f12" stroke-width="2.4" stroke-linejoin="round"/>
+      <path d="M14.5 39 h35" stroke="#7a2f12" stroke-width="4.5" stroke-linecap="round"/>
+      <path d="M22 45 l1.5 9" stroke="#fff" stroke-width="2.2" stroke-linecap="round" opacity=".5"/>`,
+  },
+  {
     key: "lantern", how: "Given during special sessions and initiatives.", zh: ["灯笼", "燈籠"], en: "Lantern", bootcamp: "festival",
     svg: `<path d="M32 2 v6" stroke="#6b4a2b" stroke-width="2.6" stroke-linecap="round"/>
       <rect x="22" y="7" width="20" height="6" rx="2" fill="#f2b631"/>
