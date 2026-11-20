@@ -89,7 +89,7 @@ Deno.serve(async (req) => {
         "metadata[kind]": "club-library",
         "payment_intent_data[metadata][book_id]": book.id,
         "payment_intent_data[metadata][kind]": "club-library",
-        ...(embedded ? { ui_mode: "embedded", return_url: back } : { success_url: back, cancel_url: `${APP_URL}/#/learn/library?shop=1` }),
+        ...(embedded ? { ui_mode: "embedded_page", redirect_on_completion: "if_required", return_url: back } : { success_url: back, cancel_url: `${APP_URL}/#/learn/library?shop=1` }),
       });
       await admin.from("library_checkouts").insert({ session_id: s.id, user_id: user.id, book_id: book.id });
       return json(embedded ? { client_secret: s.client_secret, publishable_key: pk, session_id: s.id } : { url: s.url, session_id: s.id });
