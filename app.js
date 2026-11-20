@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=86";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=86";
-import { COUNTRIES } from "./countries.js?v=86";
+import { createClient } from "./vendor/supabase.js?v=87";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=87";
+import { COUNTRIES } from "./countries.js?v=87";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=86";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=87";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -39,7 +39,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=86"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=87"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -1382,7 +1382,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=86"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=87"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1963,7 +1963,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=86");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=87");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2842,7 +2842,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=86").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=87").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -3292,7 +3292,7 @@ function townMap(st) {
     ${st.wilted ? "" : `<button type="button" class="ztfruit" data-zt="cheer" style="${at(...h0)};width:${pct(18, M.w)}" aria-label="Your fruit"><span class="ztbubble" hidden></span>${ztImg("fruit-" + fruit)}</button>`}
     <a class="ztlabel" href="#/learn/cards" style="${at(M.house[0], M.house[1] + 15)}" aria-label="Flashcard Center, ${dueN} due">FLASHCARDS${dueN ? `<em>${dueN}</em>` : ""}</a>
     <a class="ztlabel" href="#/learn/temple" style="${at(M.temple[0], M.temple[1] + 17)}" aria-label="HSK Temple">HSK TEMPLE</a>
-    <a class="ztlabel gal" href="#/learn/gallery" style="${at(M.gallery[0], M.gallery[1] + 15)}" aria-label="Sticker Gallery, ${sbCount().n} of ${sbCount().total} stickers">STICKER GALLERY<em>${sbCount().n}/${sbCount().total}</em></a>
+    <a class="ztlabel gal" href="#/learn/gallery" style="${at(M.gallery[0], M.gallery[1] + 15)}" aria-label="Sticker Gallery">STICKER GALLERY</a>
     ${libOpen() ? `<a class="ztlabel lib" href="#/learn/library" style="${at(M.library[0], M.library[1] + 15)}" aria-label="Library (beta)">LIBRARY<em>BETA</em></a>`
       : `<button type="button" class="ztlabel soon" data-zt="soon" data-v="library" style="${at(M.library[0], M.library[1] + 15)}" aria-label="Library, opening soon">LIBRARY<em>SOON</em></button>`}
     <button type="button" class="ztlabel soon" data-zt="soon" data-v="callig" style="${at(M.callig[0], M.callig[1] + 15)}" aria-label="Calligraphy School, opening soon">CALLIGRAPHY<em>SOON</em></button>
@@ -3757,7 +3757,7 @@ setInterval(checkForUpdate, 30 * 60e3);
 const LIB_LEVELS = ["1", "2", "3", "4", "5", "6", "7-9"];
 const libOpen = () => isAdmin(); // beta: the Library opens for admins only
 function libState() {
-  if (!state.lib) state.lib = { books: null, owned: new Set(), content: new Map(), progress: new Map(), tab: "shelf", lv: lsGet("mz-lib-lv") || "", py: lsGet("mz-lib-py") || "new" };
+  if (!state.lib) state.lib = { books: null, owned: new Set(), content: new Map(), progress: new Map(), tab: "shelf", lv: lsGet("mz-lib-lv") || "", py: lsGet("mz-lib-py") === "on" ? "on" : "off" };
   return state.lib;
 }
 async function libLoad(force) {
@@ -3783,14 +3783,21 @@ async function libContent(id) {
   render();
 }
 // Stored compressed: {gz: base64 of gzipped {s: book, tmap: "简簡体體…"}}; the traditional version is made here, character by character.
+const LIB_HOW = [
+  "A graded reader is a story written at your level, so you can read Chinese as a whole piece, not as a series of exercises. It builds fluency and trains your eye to recognise words in context.",
+  "Tap any word in the story to see its pinyin, meaning and HSK level, and add it to your flashcards. Turn pinyin on above the text if you need it. Each chapter ends with its new words and a quick check.",
+  "Suggested method: first just read, without stopping. Then read again with the word list. Then read the dialogues aloud and give each character a voice.",
+];
+const LIB_FIXED = new Set(["bank", "choice"]); // exercises with one right answer, checked by the app
 async function libUnpack(c) {
-  if (!c.gz) return c;
+  const fixed = (b) => { b.exercises = (b.exercises || []).filter((x) => LIB_FIXED.has(x.kind)); return b; };
+  if (!c.gz) return { s: fixed(c.s), t: fixed(c.t) };
   const bytes = Uint8Array.from(atob(c.gz), (ch) => ch.charCodeAt(0));
   const { s, tmap } = await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"))).json();
   const m = new Map(); for (let i = 0; i < tmap.length; i += 2) m.set(tmap[i], tmap[i + 1]);
   const cv = (x) => x.replace(/[\u4e00-\u9fff]/g, (ch) => m.get(ch) || ch);
   const deep = (o) => typeof o === "string" ? cv(o) : Array.isArray(o) ? o.map(deep) : o && typeof o === "object" ? Object.fromEntries(Object.entries(o).map(([k, v]) => [cv(k), deep(v)])) : o;
-  const t = deep(s);
+  fixed(s); const t = deep(s);
   for (const k of Object.keys(s.dict)) t.dict[cv(k)].s = k;
   return { s, t };
 }
@@ -3822,10 +3829,8 @@ function libReadCount(id) { const r = libGet(id, "read") || {}; return Object.va
 function libTok(t, d, opts = {}) {
   const e = d[t];
   if (!e) return esc(t);
-  const isNew = opts.newSet?.has(t), ruby = opts.py === "all" ? e.p : opts.py !== "off" && isNew && !opts.seen?.has(t) ? e.p : "";
-  if (isNew) opts.seen?.add(t);
-  const inner = ruby ? `<ruby>${esc(t)}<rt>${esc(ruby)}</rt></ruby>` : esc(t);
-  return `<span class="lw${isNew ? " new" : ""}" data-lw="${esc(t)}" role="button" tabindex="0">${inner}</span>`;
+  const inner = opts.py === "on" && e.p ? `<ruby>${esc(t)}<rt>${esc(e.p)}</rt></ruby>` : esc(t);
+  return `<span class="lw" data-lw="${esc(t)}" role="button" tabindex="0">${inner}</span>`;
 }
 const libLine = (toks, d, opts) => toks.map((t) => libTok(t, d, opts)).join("");
 function libWordEntry(book, w) {
@@ -3938,7 +3943,7 @@ function libBookView(meta) {
       <div class="lprog"><i style="width:${(nRead / c.chapters.length) * 100}%"></i></div><span class="small">${nRead} of ${c.chapters.length} chapters read</span>
       ${nRead < c.chapters.length ? `<a class="btn" href="${base}/ch/${c.chapters.findIndex((_, i) => !read[i])}">${nRead ? "Continue reading" : "Start reading"}</a>` : `<a class="btn ghost" href="${base}/ex/0">Practise with the exercises</a>`}
     </div></div>
-    <details class="card lhow"${how} data-lib-how="${esc(id)}"><summary><b>How this book works</b></summary>${c.how.map((p) => `<p class="small">${esc(p)}</p>`).join("")}</details>
+    <details class="card lhow"${how} data-lib-how="${esc(id)}"><summary><b>How this book works</b></summary>${LIB_HOW.map((p) => `<p class="small">${esc(p)}</p>`).join("")}</details>
     <section class="lsec"><h2>Meet the characters <span class="zhsub">人物</span></h2><div class="lchars">${c.chars.map((ch) => `<div class="lchar"><img src="icons/books/${esc(id)}-${esc(ch.key)}.png" alt=""><b>${esc(ch.zh)}${ch.py ? ` <span class="small muted">${esc(ch.py)}</span>` : ""}</b><span class="small muted">${esc(ch.desc)}</span></div>`).join("")}</div></section>
     <section class="lsec"><h2>Part 1 · The story</h2><div class="card llist">${c.chapters.map((ch, i) => row(`${base}/ch/${i}`, `<span class="lzh">${LIB_NUM[i] ? `第${LIB_NUM[i]}章 ` : ""}${esc(ch.zh)}</span>`, `${esc(ch.en)} · about ${ch.mins} min · ${ch.words.length} new words`, read[i])).join("")}</div></section>
     ${c.culture?.length ? `<section class="lsec"><h2>Part 2 · Cultural background</h2><div class="card llist">${row(`${base}/culture`, "China's population, marriage pressure and dating culture", c.culture.map((s) => esc(s.h)).join(" · "), libGet(id, "cultureSeen"))}</div></section>` : ""}
@@ -3953,13 +3958,13 @@ function libPager(base, sec, i, n, labels) {
 }
 function libPyToggle() {
   const v = libState().py;
-  return `<div class="lpyseg" role="group" aria-label="Pinyin above words"><span class="small muted">Pinyin</span>${[["new", "New words"], ["all", "All"], ["off", "Off"]].map(([k, l]) => `<button type="button" data-lib="py" data-v="${k}" aria-pressed="${v === k}">${l}</button>`).join("")}</div>`;
+  return `<div class="lpyseg" role="group" aria-label="Pinyin above words"><span class="small muted">Pinyin</span>${[["on", "On"], ["off", "Off"]].map(([k, l]) => `<button type="button" data-lib="py" data-v="${k}" aria-pressed="${v === k}">${l}</button>`).join("")}</div>`;
 }
 function libChapterView(meta, i) {
   const id = meta.id, c = libBook(id), ch = c.chapters[i]; if (!ch) { location.hash = `#/learn/library/${id}`; return ""; }
-  const base = `#/learn/library/${encodeURIComponent(id)}`, newSet = new Set(ch.words), seen = new Set(), py = libState().py;
+  const base = `#/learn/library/${encodeURIComponent(id)}`, py = libState().py;
   const num = LIB_NUM[i] || i + 1;
-  const text = ch.paras.map((p) => `<p>${libLine(p, c.dict, { newSet, seen, py })}</p>`).join("");
+  const text = ch.paras.map((p) => `<p>${libLine(p, c.dict, { py })}</p>`).join("");
   const words = ch.words.map((w) => libWordRow(c, w)).join("");
   const notIn = ch.words.filter((w) => !libInDeck(c, w)).length;
   const check = ch.check.map((q, k) => {

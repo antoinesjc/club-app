@@ -995,9 +995,7 @@ details.custom.sbdet > summary b { color: #6b4423; }
 @media (min-width: 900px) { .ltext { font-size: 22px; max-width: 760px; } }
 .lw { cursor: pointer; border-radius: 4px; }
 .lw:hover { background: #fdf0e8; }
-.lw.new { background: #fde3d4; font-weight: 700; padding: 0 1px; }
-.lw ruby rt { font-size: 11px; font-weight: 500; color: #c2410c; font-family: var(--font); letter-spacing: 0; }
-.lw:not(.new) ruby rt { color: var(--faint); }
+.lw ruby rt { font-size: 10px; font-weight: 500; color: #c2410c; font-family: var(--font); letter-spacing: 0; }
 .lwrow { display: flex; align-items: center; gap: 8px; padding: 9px 0; border-bottom: 1px solid #f3e8e0; }
 .lwrow:last-child { border-bottom: 0; }
 .lwmain { flex: 1; display: grid; grid-template-columns: minmax(78px, auto) 1fr; column-gap: 12px; text-align: left; border: 0; background: none; padding: 0; cursor: pointer; min-width: 0; }
