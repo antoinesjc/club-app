@@ -19,7 +19,7 @@ export const STICKERS = [
       </g>`,
   },
   {
-    key: "sprout", how: "Finish the Complete Beginner Bootcamp.", zh: ["幼苗", "幼苗"], en: "Sprout", bootcamp: "beginner",
+    key: "sprout", how: "Finish the Complete Beginner Bootcamp, or keep a 10-day streak in Zest Town.", zh: ["幼苗", "幼苗"], en: "Sprout", bootcamp: "beginner",
     svg: `<path d="M32 40 V24" stroke="#3f8f2f" stroke-width="4" stroke-linecap="round"/>
       <path d="M32 28 C24 28 15 23 13 12 C24 11 31 17 32 28z" fill="#6cc04a" stroke="#2f6b22" stroke-width="2.2" stroke-linejoin="round"/>
       <path d="M32 25 C38 25 47 21 50 11 C40 9 33 14 32 25z" fill="#8fd65f" stroke="#2f6b22" stroke-width="2.2" stroke-linejoin="round"/>
@@ -112,7 +112,7 @@ export function stickerForBootcamp(title) {
 // except "founder" (only the founding members can ever get it, so it stays out of the book and its count).
 // Stickers in MYSTERY_STICKERS show as a grey "?" until collected (no unlock info given).
 export const STICKER_PAGES = [
-  { en: "Bootcamps", zh: ["训练营", "訓練營"], color: "#f37a48", keys: ["boba", "tones", "brush"] },
+  { en: "Bootcamps", zh: ["训练营", "訓練營"], color: "#f37a48", keys: ["boba", "tones", "brush", "sprout"] },
   { en: "Club life", zh: ["社团生活", "社團生活"], color: "#1b6f1b", keys: ["phone", "heart"] },
   { en: "Achievements", zh: ["成就", "成就"], color: "#c98d12", keys: ["medal"] },
   { en: "Festivals & events", zh: ["节日活动", "節日活動"], color: "#a63d6b", keys: ["turkey", "lantern", "mooncake", "dumpling"] },
