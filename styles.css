@@ -1069,3 +1069,29 @@ details.custom.sbdet > summary b { color: #6b4423; }
 #lcheckout { min-height: 360px; }
 .lcount2 { display: flex; align-items: center; gap: 12px; background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 10px 14px; }
 .lcountn { min-width: 46px; height: 46px; padding: 0 8px; border-radius: 14px; background: #6b4423; color: #fff; font-size: 24px; font-weight: 800; display: grid; place-items: center; }
+/* owl librarian (icons/zt/owl.png: 3 frames, normal / blink / wave) */
+.ltop { display: flex; align-items: flex-end; gap: 14px; }
+.ltopl { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.ltopl .seg { align-self: flex-start; min-width: 220px; }
+.lowlwrap { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; flex: none; }
+.lowl { border: 0; background: none; padding: 0; cursor: pointer; }
+.lowlpx { display: block; width: 84px; height: 102px; background: url(icons/zt/owl.png) 0 0 / 300% 100% no-repeat; image-rendering: pixelated; animation: owlidle 5s steps(1) infinite, owlbob 2.4s ease-in-out infinite; }
+.lowl.talk .lowlpx { animation: owltalk .5s steps(1) 4, owlbob 2.4s ease-in-out infinite; }
+@media (min-width: 900px) { .lowlpx { width: 112px; height: 136px; } }
+@keyframes owlidle { 0%, 78% { background-position-x: 0% } 79%, 83% { background-position-x: 50% } 84%, 90% { background-position-x: 0% } 91%, 97% { background-position-x: 100% } 98%, 100% { background-position-x: 0% } }
+@keyframes owltalk { 0% { background-position-x: 100% } 50% { background-position-x: 0% } }
+@keyframes owlbob { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-3px) } }
+.lowltip { background: #2b2a3a; color: #fff; font-size: 11px; font-weight: 800; border-radius: 6px; padding: 2px 8px; }
+.lbubble { position: absolute; z-index: 6; width: min(320px, calc(100vw - 32px)); right: 0; top: calc(100% + 8px); background: #fff; border: 2.5px solid #2b2a3a; border-radius: 16px; padding: 12px 14px; box-shadow: 0 4px 0 rgba(43,42,58,.15); text-align: left; animation: hbfade .2s ease-out; }
+.lbubble::before { content: ""; position: absolute; right: 34px; top: -11px; border: 9px solid transparent; border-bottom: 10px solid #2b2a3a; border-top: 0; }
+.lbz { font-size: 19px; font-weight: 700; line-height: 1.35; font-family: "Noto Sans SC", "Noto Sans TC", var(--font); }
+.zh-trad .lbz { font-family: "Noto Sans TC", var(--font); }
+.lbp { color: #c2410c; font-size: 12.5px; margin-top: 3px; }
+.lbe { font-size: 13px; color: var(--muted); margin-top: 4px; }
+.lbr { font-size: 11.5px; color: var(--faint); margin-top: 6px; font-weight: 700; }
+@media (min-width: 900px) {
+  .lbubble { right: calc(100% + 14px); top: 4px; width: 330px; }
+  .lbubble::before { right: -11px; top: 30px; border: 9px solid transparent; border-left: 10px solid #2b2a3a; border-right: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .lowlpx { animation: none !important; } }
+@media (min-width: 900px) { .ltopl { max-width: 540px; } .lowlwrap { margin-left: auto; } }

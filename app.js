@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=89";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=89";
-import { COUNTRIES } from "./countries.js?v=89";
+import { createClient } from "./vendor/supabase.js?v=90";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=90";
+import { COUNTRIES } from "./countries.js?v=90";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=89";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=90";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -39,7 +39,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=89"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=90"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -1382,7 +1382,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=89"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=90"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1963,7 +1963,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=89");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=90");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2842,7 +2842,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=89").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=90").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -3888,7 +3888,8 @@ function libHomeView() {
   const S = libState(), shop = S.tab === "shop";
   const tabs = `<div class="seg ztseg" role="group" aria-label="Library"><button type="button" data-lib="tab" data-v="shelf" aria-pressed="${!shop}">My shelf</button><button type="button" data-lib="tab" data-v="shop" aria-pressed="${shop}">Bookshop</button></div>`;
   const beta = isAdmin() ? `<div class="lbeta">Beta · only admins can open the Library for now. You can read every book; the Bookshop takes real payments.</div>` : "";
-  return `${ztHeader(ztStreak(), libTitle())}${beta}${tabs}${shop ? libShopView() : libShelfView()}`;
+  const owl = `<div class="lowlwrap"><button type="button" class="lowl" data-lib="owl" aria-label="Talk to the owl librarian"><span class="lowlpx" aria-hidden="true"></span></button><span class="lowltip">${trad() ? "館長" : "馆长"}</span></div>`;
+  return `${ztHeader(ztStreak(), libTitle())}${beta}<div class="ltop"><div class="ltopl">${tabs}${shop ? "" : libCounter()}</div>${owl}</div>${shop ? libShopView() : libShelfView()}`;
 }
 function libCover(b, cls = "") {
   return `<span class="lcover ${cls}" style="--c:${esc(b.color || "#f37a48")}">${b.cover ? `<img src="${esc(b.cover)}" alt="" loading="lazy">` : `<b>${esc(b.title_zh || b.title)}</b>`}<span class="lhsk">HSK ${esc(b.level)}</span></span>`;
@@ -3908,9 +3909,11 @@ function libShelfView() {
   const shelf = `<div class="lshelf">${rows.map((r) => `<div class="lrow">${r.map(book).join("")}</div>`).join("")}</div>`;
   const empty = !mine.length ? `<div class="card lempty"><b>Your shelf is empty</b><span class="small muted">Books you buy in the Bookshop appear here, ready to read in the app.</span><button type="button" class="btn" data-lib="tab" data-v="shop">Visit the Bookshop</button></div>`
     : !shown.length ? `<p class="small muted">No books for HSK ${esc(lv)} on your shelf yet. <button type="button" class="linkbtn" data-lib="tab" data-v="shop">See the Bookshop</button></p>` : "";
-  const total = S.books.length, have = S.books.filter((b) => S.owned.has(b.id)).length;
-  const count = `<div class="lcount2"><span class="lcountn">${have}</span><span><b>${have === 1 ? "book" : "books"} collected</b><br><span class="small muted">${total > have ? `${total - have} more in the Bookshop` : `You have every book. ${trad() ? "太厲害了！" : "太厉害了！"}`}${isAdmin() && !have ? " · as an admin you can read them all" : ""}</span></span></div>`;
-  return `${count}${chips}${shelf}${empty}`;
+  return `${chips}${shelf}${empty}`;
+}
+function libCounter() {
+  const S = libState(), total = S.books.length, have = S.books.filter((b) => S.owned.has(b.id)).length;
+  return `<div class="lcount2"><span class="lcountn">${have}</span><span><b>${have === 1 ? "book" : "books"} collected</b><br><span class="small muted">${total > have ? `${total - have} more in the Bookshop` : `You have every book. ${trad() ? "太厲害了！" : "太厉害了！"}`}${isAdmin() && !have ? " · as an admin you can read them all" : ""}</span></span></div>`;
 }
 function libShopView() {
   const S = libState(), lv = S.lv, books = S.books.filter((b) => !lv || b.level === lv);
@@ -4099,6 +4102,28 @@ function libWordsView(meta) {
     ${c.chapters.map((ch, i) => `<section class="lsec"><h2>Chapter ${i + 1} · <span class="lzh">${esc(ch.zh)}</span></h2><div class="card llist">${ch.words.map((w) => libWordRow(c, w)).join("")}</div></section>`).join("")}`;
 }
 
+// ---- the owl librarian: tap for a line from the Analects 論語 ----
+const OWL_QUOTES = [
+  ["学而时习之，不亦说乎？", "學而時習之，不亦說乎？", "Xué ér shí xí zhī, bú yì yuè hū?", "Is it not a joy to learn and to practise what you have learned?", "1.1"],
+  ["温故而知新，可以为师矣。", "溫故而知新，可以為師矣。", "Wēn gù ér zhī xīn, kěyǐ wéi shī yǐ.", "Review the old to discover the new, and you can teach others.", "2.11"],
+  ["学而不思则罔，思而不学则殆。", "學而不思則罔，思而不學則殆。", "Xué ér bù sī zé wǎng, sī ér bù xué zé dài.", "Learning without thinking is lost; thinking without learning is dangerous.", "2.15"],
+  ["知之为知之，不知为不知，是知也。", "知之為知之，不知為不知，是知也。", "Zhī zhī wéi zhī zhī, bù zhī wéi bù zhī, shì zhī yě.", "To know what you know and admit what you don't: that is knowledge.", "2.17"],
+  ["敏而好学，不耻下问。", "敏而好學，不恥下問。", "Mǐn ér hào xué, bù chǐ xià wèn.", "Quick and eager to learn, never ashamed to ask.", "5.15"],
+  ["知之者不如好之者，好之者不如乐之者。", "知之者不如好之者，好之者不如樂之者。", "Zhī zhī zhě bùrú hào zhī zhě, hào zhī zhě bùrú lè zhī zhě.", "Knowing it is not as good as loving it; loving it is not as good as enjoying it.", "6.20"],
+  ["三人行，必有我师焉。", "三人行，必有我師焉。", "Sān rén xíng, bì yǒu wǒ shī yān.", "When three walk together, one of them can be my teacher.", "7.22"],
+  ["学如不及，犹恐失之。", "學如不及，猶恐失之。", "Xué rú bù jí, yóu kǒng shī zhī.", "Learn as if you could never catch up, and fear losing what you have.", "8.17"],
+];
+let owlT = null;
+function owlTalk() {
+  const S = libState(), wrap = document.querySelector(".lowlwrap"); if (!wrap) return;
+  S.q = ((S.q ?? Math.floor(Math.random() * OWL_QUOTES.length)) + 1) % OWL_QUOTES.length;
+  const [zs, zt, py, en, ref] = OWL_QUOTES[S.q];
+  wrap.querySelector(".lbubble")?.remove();
+  wrap.insertAdjacentHTML("beforeend", `<div class="lbubble" role="status"><div class="lbz">${trad() ? zt : zs}</div><div class="lbp">${esc(py)}</div><div class="lbe">${esc(en)}</div><div class="lbr">— ${trad() ? "孔子《論語》" : "孔子《论语》"} ${ref}</div></div>`);
+  wrap.querySelector(".lowl").classList.add("talk");
+  clearTimeout(owlT); owlT = setTimeout(() => { wrap.querySelector(".lbubble")?.remove(); wrap.querySelector(".lowl")?.classList.remove("talk"); }, 9000);
+}
+
 // ---- buying ----
 async function libCall(body) {
   const { data: { session } } = await sb.auth.getSession();
@@ -4153,6 +4178,7 @@ document.addEventListener("click", async (e) => {
   else if (a === "lv") { S.lv = d.v; lsSet("mz-lib-lv", d.v); render(); }
   else if (a === "py") { S.py = d.v; lsSet("mz-lib-py", d.v); render(); }
   else if (a === "buy") libBuy(d.id);
+  else if (a === "owl") owlTalk();
   else if (a === "checkoutclose") libCloseCheckout();
   else if (a === "popclose") document.querySelector(".lpopover")?.remove();
   else if (a === "addword" || a === "addall") {
