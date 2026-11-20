@@ -733,7 +733,7 @@ details.custom.sbdet > summary b { color: #6b4423; }
 .ztbar { display: block; height: 8px; border-radius: 99px; background: #efe5da; overflow: hidden; margin-top: 4px; flex: 1; }
 .ztbar i { display: block; height: 100%; background: var(--green); border-radius: 99px; }
 .ztplaces { display: flex; flex-direction: column; gap: 12px; }
-@media (min-width: 900px) { .ztplaces { flex-direction: row; } .ztplaces .ztplace { flex: 1; } }
+@media (min-width: 900px) { .ztplaces { display: grid; grid-template-columns: 1fr 1fr; } .ztplaces .ztplace { min-width: 0; } }
 .ztplace { flex-direction: row; align-items: center; gap: 12px; text-decoration: none; color: inherit; }
 .ztplace:hover { border-color: #cfe3c8; color: inherit; }
 .ztplaceart { width: 76px; flex: none; background: #8fcf5a; border-radius: 12px; padding: 6px; }
