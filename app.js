@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=81";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=81";
-import { COUNTRIES } from "./countries.js?v=81";
+import { createClient } from "./vendor/supabase.js?v=82";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=82";
+import { COUNTRIES } from "./countries.js?v=82";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=81";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=82";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -39,7 +39,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=81"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=82"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -317,7 +317,7 @@ function rewardOverlay() {
     const i = stickerInfo(r.key);
     art = `<span class="stkbig" style="--z:84px">${stickerSvg(r.key)}</span>`;
     title = "New sticker!";
-    body = `You got the <b>${esc(i?.en || r.key)}</b> sticker. Wear it on your avatar in Me → Avatar customization.`;
+    body = `You got the <b>${esc(i?.en || r.key)}</b> sticker. It's now in your Sticker Gallery in Zest Town. Wear it on your avatar in Me → Avatar customization.`;
   } else if (r.kind === "avatar") {
     art = `<span class="av" style="--s:84px;--bg-av:#e0f4e0"><span class="disc">${fruitSvg(r.key)}</span></span>`;
     title = "New character unlocked!";
@@ -1382,7 +1382,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=81"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=82"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1718,12 +1718,15 @@ function draft() {
   return state.draft;
 }
 
-// ---------- Sticker collection book (Me page, under Avatar customization) ----------
 const STICKER_ICON = `<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M12 5H31L43 17V36A7 7 0 0 1 36 43H12A7 7 0 0 1 5 36V12A7 7 0 0 1 12 5Z" fill="#f37a48" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"/><path d="M31 5V13A4 4 0 0 0 35 17H43Z" fill="#ffd9c2" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><polygon points="22,17 24.4,22.8 30.6,23.2 25.8,27.2 27.3,33.3 22,30 16.7,33.3 18.2,27.2 13.4,23.2 19.6,22.8" fill="#fff"/></svg>`;
-function stickerBook() {
-  const got = new Set(isHost() ? STICKERS.map((t) => t.key) : myStickers());
-  const inBook = STICKER_PAGES.flatMap((p) => p.keys);
-  const total = inBook.length, n = inBook.filter((k) => got.has(k)).length, pct = Math.round((n / total) * 100);
+// ---------- Sticker collection: the Sticker Gallery 貼紙館 in Zest Town (#/learn/gallery); Me keeps a shortcut ----------
+function sbGot() { return new Set(isHost() ? STICKERS.map((t) => t.key) : myStickers()); }
+function sbCount() {
+  const got = sbGot(), inBook = STICKER_PAGES.flatMap((p) => p.keys);
+  return { n: inBook.filter((k) => got.has(k)).length, total: inBook.length };
+}
+function stickerBookBody() {
+  const got = sbGot(), { n, total } = sbCount(), pct = Math.round((n / total) * 100);
   const slot = (k, i) => {
     const t = stickerInfo(k), name = `${t.en} ${zh(t.zh)}`;
     if (got.has(k)) return `<div class="sbslot got"${tipAttrs(name, t.how)}><span class="stkbig" style="--r:${[-4, 3, -2, 5, -3, 2][i % 6]}deg">${stickerSvg(k)}</span><b>${esc(t.en)}</b></div>`;
@@ -1734,15 +1737,26 @@ function stickerBook() {
     <span class="sbcount" aria-label="${p.keys.filter((k) => got.has(k)).length} of ${p.keys.length} collected">${p.keys.filter((k) => got.has(k)).length}/${p.keys.length}</span>
     <div class="sbgrid">${p.keys.map(slot).join("")}</div></section>`;
   const half = Math.ceil(STICKER_PAGES.length / 2);
-  return `<details class="custom sbdet"${state.bookOpen ? " open" : ""}>
-    <summary><span class="custicon sbicon" aria-hidden="true">${STICKER_ICON}</span><span class="grow"><b>My sticker collection</b><span class="small muted">${n} of ${total} collected · ${zh(["贴纸册", "貼紙冊"])}</span></span><span class="chev" aria-hidden="true">›</span></summary>
-    <div class="custbody"><section class="sbook" aria-label="My sticker collection">
+  return `<section class="sbook" aria-label="My sticker collection">
     <div class="sbhead"><div class="sbtotal">${n} of ${total} collected</div>
       <div class="sbbar" role="progressbar" aria-valuemin="0" aria-valuemax="${total}" aria-valuenow="${n}" aria-label="Stickers collected"><i style="width:${pct}%"></i></div>
       <span class="sbpct">${pct}%</span></div>
     <div class="sbleaves"><div class="sbleaf">${STICKER_PAGES.slice(0, half).map(page).join("")}</div><div class="sbleaf">${STICKER_PAGES.slice(half).map(page).join("")}</div></div>
-    <p class="sbnote">${wide() ? "Hover over" : "Tap"} a grey sticker to see how to get it. Question marks are surprises, given at special events.${isHost() ? " Hosts have them all; members see their own collection." : ""}</p>
-  </section></div></details>`;
+    <p class="sbnote">${wide() ? "Hover over" : "Tap"} a grey sticker to see how to get it. Question marks are surprises, given at special events. Wear a sticker on your avatar from Me → Avatar customization.${isHost() ? " Hosts have them all; members see their own collection." : ""}</p>
+  </section>`;
+}
+function galleryView() {
+  return `${ztHeader(ztStreak(), `Sticker Gallery <span class='zhsub'>${trad() ? "貼紙館" : "贴纸馆"}</span>`)}
+    <div class="row galhead" style="gap:12px;align-items:center"><span class="ztplaceart">${ztImg("gallery")}</span>
+      <span class="grow"><b style="font-size:17px">Your sticker collection</b><br><span class="small muted">Stickers can't be bought: you earn them in bootcamps, Club life, achievements and special events.</span></span></div>
+    <div class="galbook">${stickerBookBody()}</div>`;
+}
+function stickerBook() { // Me page: a shortcut to the Sticker Gallery (the full book when Zest Town is off)
+  const { n, total } = sbCount();
+  if (!isBeta()) return `<details class="custom sbdet"${state.bookOpen ? " open" : ""}>
+    <summary><span class="custicon sbicon" aria-hidden="true">${STICKER_ICON}</span><span class="grow"><b>My sticker collection</b><span class="small muted">${n} of ${total} collected · ${zh(["贴纸册", "貼紙冊"])}</span></span><span class="chev" aria-hidden="true">›</span></summary>
+    <div class="custbody">${stickerBookBody()}</div></details>`;
+  return `<a class="custom sbdet sblink" href="#/learn/gallery"><span class="sbgalart" aria-hidden="true">${ztImg("gallery")}</span><span class="grow"><b>My sticker collection</b><span class="small muted">${n} of ${total} collected · in the Sticker Gallery ${trad() ? "貼紙館" : "贴纸馆"} in Zest Town</span></span><span class="chev" aria-hidden="true">›</span></a>`;
 }
 
 // ---------------------------------------------------------------------------
@@ -1949,7 +1963,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=81");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=82");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2823,7 +2837,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=81").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=82").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -2942,11 +2956,11 @@ document.addEventListener("focusout", (e) => { if (vsugg.input && e.target === v
 // Streak tree, HSK Temple and Flashcard Center. Art: icons/zt/*.png (pixel art, see the design canvas).
 // ---------------------------------------------------------------------------
 const ZT_MAP = {
-  phone: { w: 98, h: 178, tree: [28, 39], temple: [70, 26], house: [26, 30], library: [25, 146], callig: [73, 146], plaza: [49, 73],
-    river: [89, 29], bridge: [44, 96, 11, 18], fsign: [74, 82, 24], bushes: [[4, 4], [85, 63], [1, 71], [43, 2], [85, 111], [1, 113], [42, 164]],
+  phone: { w: 98, h: 222, tree: [28, 39], temple: [70, 26], house: [26, 30], library: [25, 146], callig: [73, 146], gallery: [49, 200], plaza: [49, 73],
+    river: [89, 29], bridge: [44, 96, 11, 18], fsign: [74, 82, 24], bushes: [[4, 4], [85, 63], [1, 71], [43, 2], [85, 111], [1, 113], [6, 196], [80, 192]],
     hops: [[8, 58], [12, 76], [64, 80], [74, 60], [58, 86], [26, 86]] },
-  wide: { w: 196, h: 180, tree: [77, 66], temple: [141, 36], house: [52, 41], library: [32, 108], callig: [164, 108], plaza: [98, 100],
-    river: [129, 30], bridge: [93, 129, 11, 17], fsign: [160, 150, 32], bushes: [[8, 6], [175, 61], [1, 59], [91, 4], [176, 8], [21, 159], [59, 71], [127, 69]],
+  wide: { w: 196, h: 180, tree: [77, 66], temple: [141, 36], house: [52, 41], library: [32, 108], callig: [164, 108], gallery: [96, 30], plaza: [98, 100],
+    river: [129, 30], bridge: [93, 129, 11, 17], fsign: [160, 150, 32], bushes: [[8, 6], [175, 61], [1, 59], [176, 8], [21, 159], [59, 71], [127, 69]],
     hops: [[58, 94], [62, 116], [120, 116], [124, 94], [104, 124], [76, 124]] },
 };
 const ZT_STAGES = [ // [en, simplified, traditional, first day]
@@ -3205,6 +3219,7 @@ function learnView() {
   if (sub === "cards") return L.review ? reviewView() : cardsView();
   if (sub === "temple") return templeView();
   if (sub === "forest") return forestView();
+  if (sub === "gallery") return galleryView();
   return townView();
 }
 function ztHeader(st, back) {
@@ -3236,7 +3251,8 @@ function placeCards(big) {
   const card = (href, img, t, z, line, sub, btn) => `<a class="card ztplace ${big ? "big" : ""}" href="${href}"><span class="ztplaceart">${ztImg(img)}</span>
     <span class="grow"><b>${t}</b> <span class="muted">${z}</span><br><span class="small">${line}</span><br><span class="small muted">${sub}</span></span><span class="btn small">${btn}</span></a>`;
   return card("#/learn/cards", "house", "Flashcard Center", trad() ? "字卡中心" : "字卡中心", dueN ? `${dueN} card${dueN === 1 ? "" : "s"} to review today` : "All done for today", `${d.cards.length.toLocaleString()} in your deck · ${state.lu.perDay} new a day`, "Review")
-    + card("#/learn/temple", "temple", "HSK Temple", trad() ? "漢語廟" : "汉语庙", hskLine, "Every HSK word, and how well you know it", "Explore");
+    + card("#/learn/temple", "temple", "HSK Temple", trad() ? "漢語廟" : "汉语庙", hskLine, "Every HSK word, and how well you know it", "Explore")
+    + (() => { const c = sbCount(); return card("#/learn/gallery", "gallery", "Sticker Gallery", trad() ? "貼紙館" : "贴纸馆", `${c.n} of ${c.total} stickers collected`, "Every sticker you've earned, and how to get the others", "Visit"); })();
 }
 function soonCards(big) {
   const card = (img, t, z, line) => `<div class="card ztplace soon ${big ? "big" : ""}"><span class="ztplaceart">${ztImg(img)}</span>
@@ -3249,8 +3265,8 @@ function townMap(st) {
   const at = (x, y) => `left:${pct(x, M.w)};top:${pct(y, M.h)}`;
   const dueN = ztQueueAll().length, fruit = myFruitKey(), h0 = M.hops[0];
   return `<div class="ztmap ${k}" style="aspect-ratio:${M.w}/${M.h}">
-    ${ztImg(`town-${k}`, "ztbg")}
-    ${[["house", 21, 18, 43, 33, "a", "#/learn/cards", "Flashcard Center"], ["temple", 23, 19, 46, 36, "a", "#/learn/temple", "HSK Temple"],
+    ${ztImg(`town2-${k}`, "ztbg")}
+    ${[["house", 21, 18, 43, 33, "a", "#/learn/cards", "Flashcard Center"], ["temple", 23, 19, 46, 36, "a", "#/learn/temple", "HSK Temple"], ["gallery", 21, 18, 42, 34, "a", "#/learn/gallery", "Sticker Gallery"],
       ["library", 21, 18, 42, 34, "b", "library", "Library, opening soon"], ["callig", 21, 18, 42, 34, "b", "callig", "Calligraphy School, opening soon"]]
       .map(([key, ox, oy, bw, bh, tag, to, label]) => { const [x, y] = M[key], st = `${at(x - ox, y - oy)};width:${pct(bw, M.w)};height:${pct(bh, M.h)}`;
         return tag === "a" ? `<a class="zthit" href="${to}" style="${st}" aria-label="${label}"></a>` : `<button type="button" class="zthit" data-zt="soon" data-v="${to}" style="${st}" aria-label="${label}"></button>`; }).join("")}
@@ -3262,6 +3278,7 @@ function townMap(st) {
     ${st.wilted ? "" : `<button type="button" class="ztfruit" data-zt="cheer" style="${at(...h0)};width:${pct(18, M.w)}" aria-label="Your fruit"><span class="ztbubble" hidden></span>${ztImg("fruit-" + fruit)}</button>`}
     <a class="ztlabel" href="#/learn/cards" style="${at(M.house[0], M.house[1] + 15)}" aria-label="Flashcard Center, ${dueN} due">FLASHCARDS${dueN ? `<em>${dueN}</em>` : ""}</a>
     <a class="ztlabel" href="#/learn/temple" style="${at(M.temple[0], M.temple[1] + 17)}" aria-label="HSK Temple">HSK TEMPLE</a>
+    <a class="ztlabel gal" href="#/learn/gallery" style="${at(M.gallery[0], M.gallery[1] + 15)}" aria-label="Sticker Gallery, ${sbCount().n} of ${sbCount().total} stickers">STICKER GALLERY<em>${sbCount().n}/${sbCount().total}</em></a>
     <button type="button" class="ztlabel soon" data-zt="soon" data-v="library" style="${at(M.library[0], M.library[1] + 15)}" aria-label="Library, opening soon">LIBRARY<em>SOON</em></button>
     <button type="button" class="ztlabel soon" data-zt="soon" data-v="callig" style="${at(M.callig[0], M.callig[1] + 15)}" aria-label="Calligraphy School, opening soon">CALLIGRAPHY<em>SOON</em></button>
     <button type="button" class="ztlabel day ${st.wilted ? "dead" : ""}" data-zt="sheet" style="${at(M.plaza[0], M.plaza[1] + 11)}">${st.wilted ? "WILTED" : `DAY ${st.n}`}</button>
@@ -3565,7 +3582,13 @@ function forestSpot(k, id, fresh) {
   F.pos.set(key, best);
   return best;
 }
-const forestMember = (id) => state.lu.forest.list?.find((m) => m.user_id === id);
+function forestWithMe(list) { // you always see yourself in the forest (hosts aren't in forest_members)
+  if (!list) return [];
+  if (list.some((m) => m.user_id === state.user.id)) return list;
+  const me = state.me || {}, st = ztStreak();
+  return [{ user_id: state.user.id, name: me.display_name, fruit: me.fruit, bg: me.bg, country: me.country, last_seen: new Date().toISOString(), streak: st.wilted ? 0 : st.n }, ...list];
+}
+const forestMember = (id) => forestWithMe(state.lu.forest.list).find((m) => m.user_id === id);
 function forestMap(list) {
   const k = wide() ? "wide" : "phone", M = ZT_FOREST[k], F = state.lu.forest, pct = (x, w) => `${(x / w) * 100}%`;
   const at = (x, y) => `left:${pct(x, M.w)};top:${pct(y, M.h)}`;
@@ -3579,7 +3602,7 @@ function forestMap(list) {
     ${ztImg(`forest-${k}`, "ztbg")}${fish}
     <a class="ztforestsign" href="#/learn" style="${at(sx + 4, sy - 1)};width:${pct(23, M.w)};height:${pct(9, M.h)};font-size:${((k === "wide" ? 2.35 : 1.85) / M.w) * 100}cqw" aria-label="Back to Zest Town">ZEST TOWN</a>
     ${members}
-    ${list.length ? "" : `<div class="ztempty">Nobody else has been here in the last 24 hours. Come back later!</div>`}
+    ${list.some((m) => m.user_id !== state.user.id) ? "" : `<div class="ztempty">Nobody else has been here in the last 24 hours. Come back later!</div>`}
   </div>`;
 }
 function forestCard(m) {
@@ -3605,7 +3628,7 @@ function forestRows(list) {
 function forestView() {
   const F = state.lu.forest, st = ztStreak();
   forestLoad();
-  const list = F.list || [];
+  const list = forestWithMe(F.list);
   const head = `${ztHeader(st, "Magical Forest <span class='zhsub'>魔法森林</span>")}
     <p class="muted small" style="margin:-6px 0 0">${F.list ? `${list.length} member${list.length === 1 ? "" : "s"} opened the app in the last 24 hours.` : "Looking around the forest…"} ${list.length ? (wide() ? "Click one to see their streak or send a hongbao." : "Tap one to say hi.") : ""}</p>`;
   const sel = F.sel && forestMember(F.sel);

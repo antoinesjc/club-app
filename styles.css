@@ -704,6 +704,17 @@ details.custom.sbdet > summary b { color: #6b4423; }
 .ztlabel.day.dead { background: #6b5a4a; }
 .ztlabel:hover { color: #fff; filter: brightness(1.15); }
 .ztlabel.soon { background: #4a4655; color: #e9e2d0; }
+.ztlabel.gal { background: #c2410c; }
+.ztlabel.gal em { background: #fff; color: #c2410c; right: -16px; }
+/* Sticker Gallery (Zest Town) and its shortcut on Me */
+.galhead .ztplaceart { width: 84px; }
+.galbook .sbook { margin: 0; }
+a.custom.sblink { display: flex; align-items: center; gap: 12px; padding: 12px 16px; min-height: 52px; border: 1px solid #f6cfa9; border-radius: var(--radius); background: #fff7ef; text-decoration: none; color: inherit; }
+a.custom.sblink b { display: block; font-size: 16px; color: #6b4423; }
+a.custom.sblink .chev { font-size: 24px; color: var(--faint); }
+a.custom.sblink:hover { border-color: #e3b88c; color: inherit; }
+.sbgalart { width: 58px; flex: none; background: #8fcf5a; border-radius: 10px; padding: 4px; }
+.sbgalart img { display: block; width: 100%; image-rendering: pixelated; }
 .ztlabel.soon em { background: #ffd95a; color: #5a3d00; border-radius: 3px; font-size: 6px; top: -10px; right: -14px; }
 .ztbridge { position: absolute; pointer-events: none; }
 .ztriver { position: absolute; left: 0; right: 0; overflow: hidden; pointer-events: none; }
