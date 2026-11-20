@@ -1095,3 +1095,20 @@ details.custom.sbdet > summary b { color: #6b4423; }
 }
 @media (prefers-reduced-motion: reduce) { .lowlpx { animation: none !important; } }
 @media (min-width: 900px) { .ltopl { max-width: 540px; } .lowlwrap { margin-left: auto; } }
+/* Magical Forest messages (Chinese only): bubble over a fruit for a few seconds when you arrive, and on the member card */
+.ztmsg { position: absolute; left: 50%; bottom: calc(100% + 6px); transform: translateX(-50%) scale(.6); opacity: 0; z-index: 6; background: #fff; color: #2a2420; border: 2px solid #2b2a3a; border-radius: 10px; padding: 3px 7px; font: 700 12.5px/1.35 "Noto Sans SC", "Noto Sans TC", var(--font); white-space: nowrap; max-width: 220px; overflow: hidden; text-overflow: ellipsis; pointer-events: none; animation: ztmsg 5.5s ease forwards; }
+.zh-trad .ztmsg { font-family: "Noto Sans TC", var(--font); }
+.ztmsg::after { content: ""; position: absolute; left: 50%; bottom: -7px; transform: translateX(-50%); border: 6px solid transparent; border-top: 6px solid #2b2a3a; border-bottom: 0; }
+@media (min-width: 900px) { .ztmsg { font-size: 14px; } }
+@keyframes ztmsg { 0% { opacity: 0; transform: translateX(-50%) scale(.6); } 6% { opacity: 1; transform: translateX(-50%) scale(1); } 88% { opacity: 1; transform: translateX(-50%) scale(1); } 100% { opacity: 0; transform: translateX(-50%) scale(.9); } }
+@media (prefers-reduced-motion: reduce) { .ztmsg { animation: ztmsgfade 5.5s steps(1) forwards; transform: translateX(-50%); } }
+@keyframes ztmsgfade { 0% { opacity: 1 } 100% { opacity: 0 } }
+.ztmem { overflow: visible; }
+.ztmcardmsg { background: #fff7f1; border-radius: 12px; padding: 8px 12px; display: flex; flex-direction: column; gap: 2px; }
+.ztmq { font-size: 17px; font-weight: 700; }
+.ztmcardmsg .ztmq::before { content: "💬 "; }
+.ztmybox { gap: 8px; }
+.ztmybox input { flex: 1; min-width: 0; border: 1.5px solid var(--line); border-radius: 12px; padding: 10px 12px; font-size: 17px; background: #fff; }
+.ztmsgerr { color: #b42318; font-weight: 700; min-height: 0; }
+.ztmsgerr:empty { display: none; }
+.ztmem:has(.ztmsg) { z-index: 3; }
