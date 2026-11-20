@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=78";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=78";
-import { COUNTRIES } from "./countries.js?v=78";
+import { createClient } from "./vendor/supabase.js?v=79";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=79";
+import { COUNTRIES } from "./countries.js?v=79";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=78";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=79";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -1382,7 +1382,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=78"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=79"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1949,7 +1949,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=78");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=79");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2823,7 +2823,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=78").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=79").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -3125,14 +3125,21 @@ function ztQueueAll() {
   const day = todayKey(), key = (c) => { let h = 0; for (const ch of c.id + day) h = (h * 31 + ch.charCodeAt(0)) | 0; return h; };
   return [...d.due, ...[...d.fresh].sort((a, b) => key(a) - key(b)).slice(0, room)];
 }
+// Spaced repetition like Anki's default (SM-2): https://docs.ankiweb.net/faqs/what-spaced-repetition-algorithm
+// New / relearning cards: Again = again today, Hard = 1 day, Good = 1 day, Easy = 4 days.
+// Review cards: Hard = interval × 1.2, Good = interval × ease, Easy = interval × ease × 1.3 (easy bonus),
+// each button always at least 1 day more than the one before. Ease starts at 250%, Again −20, Hard −15, Easy +15 (min 130%).
 function ztPreview(c, g) {
   const iv = c.interval_days || 0, ease = c.ease || 2.5;
   if (g === 0) return 0;
-  if (g === 1) return Math.max(1, Math.round(iv * 1.2));
-  if (g === 2) return iv === 0 ? 1 : iv === 1 ? 3 : Math.round(iv * ease);
-  return iv === 0 ? 3 : Math.round(iv * ease * 1.3);
+  if (iv === 0) return [0, 1, 1, 4][g];
+  const hard = Math.max(iv + 1, Math.round(iv * 1.2));
+  if (g === 1) return hard;
+  const good = Math.max(hard + 1, Math.round(iv * ease));
+  if (g === 2) return good;
+  return Math.max(good + 1, Math.round(iv * ease * 1.3));
 }
-const ivText = (n) => (n === 0 ? "now" : n === 1 ? "1 day" : n < 30 ? `${n} days` : `${Math.round(n / 30)} mo`);
+const ivText = (n) => (n === 0 ? "now" : n === 1 ? "1 day" : n < 30 ? `${n} days` : n < 365 ? `${+(n / 30).toFixed(1)} mo` : `${+(n / 365).toFixed(1)} yr`);
 async function ztGrade(g) {
   const R = state.lu.review; if (!R) return;
   const c = R.queue[R.i]; if (!c) return;
@@ -3141,7 +3148,8 @@ async function ztGrade(g) {
     const iv = ztPreview(c, g), wasNew = c.reps === 0;
     const upd = {
       interval_days: iv, due: addDays(iv), reps: c.reps + 1, last_review: new Date().toISOString(),
-      ease: Math.max(1.3, Math.min(3.2, (c.ease || 2.5) + [-0.2, -0.15, 0, 0.15][g])),
+      // Ease only changes on review cards (not while a card is new or being relearned), as in Anki.
+      ease: (c.interval_days || 0) > 0 ? Math.max(1.3, (c.ease || 2.5) + [-0.2, -0.15, 0, 0.15][g]) : c.ease || 2.5,
       good_streak: g >= 2 ? c.good_streak + 1 : g === 1 ? c.good_streak : 0,
       lapses: c.lapses + (g === 0 && c.reps > 0 ? 1 : 0),
     };
