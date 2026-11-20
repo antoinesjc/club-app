@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=90";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=90";
-import { COUNTRIES } from "./countries.js?v=90";
+import { createClient } from "./vendor/supabase.js?v=91";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=91";
+import { COUNTRIES } from "./countries.js?v=91";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=90";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=91";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -39,7 +39,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=90"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=91"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -1382,7 +1382,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=90"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=91"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1963,7 +1963,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=90");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=91");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2842,7 +2842,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=90").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=91").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -4102,7 +4102,7 @@ function libWordsView(meta) {
     ${c.chapters.map((ch, i) => `<section class="lsec"><h2>Chapter ${i + 1} · <span class="lzh">${esc(ch.zh)}</span></h2><div class="card llist">${ch.words.map((w) => libWordRow(c, w)).join("")}</div></section>`).join("")}`;
 }
 
-// ---- the owl librarian: tap for a line from the Analects 論語 ----
+// ---- the owl librarian: tap for a line from the Analects 論語, tap again to close it ----
 const OWL_QUOTES = [
   ["学而时习之，不亦说乎？", "學而時習之，不亦說乎？", "Xué ér shí xí zhī, bú yì yuè hū?", "Is it not a joy to learn and to practise what you have learned?", "1.1"],
   ["温故而知新，可以为师矣。", "溫故而知新，可以為師矣。", "Wēn gù ér zhī xīn, kěyǐ wéi shī yǐ.", "Review the old to discover the new, and you can teach others.", "2.11"],
@@ -4116,6 +4116,7 @@ const OWL_QUOTES = [
 let owlT = null;
 function owlTalk() {
   const S = libState(), wrap = document.querySelector(".lowlwrap"); if (!wrap) return;
+  if (wrap.querySelector(".lbubble")) { clearTimeout(owlT); wrap.querySelector(".lbubble").remove(); wrap.querySelector(".lowl").classList.remove("talk"); return; } // tap again: close
   S.q = ((S.q ?? Math.floor(Math.random() * OWL_QUOTES.length)) + 1) % OWL_QUOTES.length;
   const [zs, zt, py, en, ref] = OWL_QUOTES[S.q];
   wrap.querySelector(".lbubble")?.remove();
