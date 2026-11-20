@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=84";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=84";
-import { COUNTRIES } from "./countries.js?v=84";
+import { createClient } from "./vendor/supabase.js?v=85";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=85";
+import { COUNTRIES } from "./countries.js?v=85";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=84";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=85";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -39,7 +39,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=84"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=85"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -1382,7 +1382,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=84"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=85"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1963,7 +1963,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=84");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=85");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2842,7 +2842,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=84").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=85").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -3229,6 +3229,10 @@ function learnView() {
   if (sub === "temple") return templeView();
   if (sub === "forest") return forestView();
   if (sub === "gallery") return galleryView();
+  if (sub === "library" || sub.startsWith("library/") || sub.startsWith("library?")) {
+    const [path, qs] = sub.split("?");
+    return libraryView(path.split("/").slice(1).filter(Boolean), Object.fromEntries(new URLSearchParams(qs || "")));
+  }
   return townView();
 }
 function ztHeader(st, back) {
@@ -3261,12 +3265,13 @@ function placeCards(big) {
     <span class="grow"><b>${t}</b> <span class="muted">${z}</span><br><span class="small">${line}</span><br><span class="small muted">${sub}</span></span><span class="btn small">${btn}</span></a>`;
   return card("#/learn/cards", "house", "Flashcard Center", trad() ? "字卡中心" : "字卡中心", dueN ? `${dueN} card${dueN === 1 ? "" : "s"} to review today` : "All done for today", `${d.cards.length.toLocaleString()} in your deck · ${state.lu.perDay} new a day`, "Review")
     + card("#/learn/temple", "temple", "HSK Temple", trad() ? "漢語廟" : "汉语庙", hskLine, "Every HSK word, and how well you know it", "Explore")
-    + (() => { const c = sbCount(); return card("#/learn/gallery", "gallery", "Sticker Gallery", trad() ? "貼紙館" : "贴纸馆", `${c.n} of ${c.total} stickers collected`, "Every sticker you've earned, and how to get the others", "Visit"); })();
+    + (() => { const c = sbCount(); return card("#/learn/gallery", "gallery", "Sticker Gallery", trad() ? "貼紙館" : "贴纸馆", `${c.n} of ${c.total} stickers collected`, "Every sticker you've earned, and how to get the others", "Visit"); })()
+    + (libOpen() ? card("#/learn/library", "library", "Library", trad() ? "圖書館" : "图书馆", "Beta · admins only", "Read our workbooks in the app, and buy new ones", "Open") : "");
 }
 function soonCards(big) {
   const card = (img, t, z, line) => `<div class="card ztplace soon ${big ? "big" : ""}"><span class="ztplaceart">${ztImg(img)}</span>
     <span class="grow"><b>${t}</b> <span class="muted">${z}</span><br><span class="small muted">${line}</span></span><span class="ztsoon">Open soon</span></div>`;
-  return card("library", "Library", trad() ? "圖書館" : "图书馆", "Still closed. Coming soon to Zest Town.")
+  return (libOpen() ? "" : card("library", "Library", trad() ? "圖書館" : "图书馆", "Still closed. Coming soon to Zest Town."))
     + card("callig", "Calligraphy School", trad() ? "書法學校" : "书法学校", "Still closed. Coming soon to Zest Town.");
 }
 function townMap(st) {
@@ -3276,7 +3281,7 @@ function townMap(st) {
   return `<div class="ztmap ${k}" style="aspect-ratio:${M.w}/${M.h}">
     ${ztImg(`town3-${k}`, "ztbg")}
     ${[["house", 21, 18, 43, 33, "a", "#/learn/cards", "Flashcard Center"], ["temple", 23, 19, 46, 36, "a", "#/learn/temple", "HSK Temple"], ["gallery", 21, 18, 42, 34, "a", "#/learn/gallery", "Sticker Gallery"],
-      ["library", 21, 18, 42, 34, "b", "library", "Library, opening soon"], ["callig", 21, 18, 42, 34, "b", "callig", "Calligraphy School, opening soon"]]
+      libOpen() ? ["library", 21, 18, 42, 34, "a", "#/learn/library", "Library"] : ["library", 21, 18, 42, 34, "b", "library", "Library, opening soon"], ["callig", 21, 18, 42, 34, "b", "callig", "Calligraphy School, opening soon"]]
       .map(([key, ox, oy, bw, bh, tag, to, label]) => { const [x, y] = M[key], st = `${at(x - ox, y - oy)};width:${pct(bw, M.w)};height:${pct(bh, M.h)}`;
         return tag === "a" ? `<a class="zthit" href="${to}" style="${st}" aria-label="${label}"></a>` : `<button type="button" class="zthit" data-zt="soon" data-v="${to}" style="${st}" aria-label="${label}"></button>`; }).join("")}
     <div class="ztriver" style="top:${pct(M.river[0], M.h)};height:${pct(M.river[1], M.h)}" aria-hidden="true"><img class="px" src="icons/zt/river3-${k}.png" alt="" draggable="false"></div>
@@ -3288,7 +3293,8 @@ function townMap(st) {
     <a class="ztlabel" href="#/learn/cards" style="${at(M.house[0], M.house[1] + 15)}" aria-label="Flashcard Center, ${dueN} due">FLASHCARDS${dueN ? `<em>${dueN}</em>` : ""}</a>
     <a class="ztlabel" href="#/learn/temple" style="${at(M.temple[0], M.temple[1] + 17)}" aria-label="HSK Temple">HSK TEMPLE</a>
     <a class="ztlabel gal" href="#/learn/gallery" style="${at(M.gallery[0], M.gallery[1] + 15)}" aria-label="Sticker Gallery, ${sbCount().n} of ${sbCount().total} stickers">STICKER GALLERY<em>${sbCount().n}/${sbCount().total}</em></a>
-    <button type="button" class="ztlabel soon" data-zt="soon" data-v="library" style="${at(M.library[0], M.library[1] + 15)}" aria-label="Library, opening soon">LIBRARY<em>SOON</em></button>
+    ${libOpen() ? `<a class="ztlabel lib" href="#/learn/library" style="${at(M.library[0], M.library[1] + 15)}" aria-label="Library (beta)">LIBRARY<em>BETA</em></a>`
+      : `<button type="button" class="ztlabel soon" data-zt="soon" data-v="library" style="${at(M.library[0], M.library[1] + 15)}" aria-label="Library, opening soon">LIBRARY<em>SOON</em></button>`}
     <button type="button" class="ztlabel soon" data-zt="soon" data-v="callig" style="${at(M.callig[0], M.callig[1] + 15)}" aria-label="Calligraphy School, opening soon">CALLIGRAPHY<em>SOON</em></button>
     <button type="button" class="ztlabel day ${st.wilted ? "dead" : ""}" data-zt="sheet" style="${at(M.plaza[0], M.plaza[1] + 11)}">${st.wilted ? "WILTED" : `DAY ${st.n}`}</button>
   </div>`;
@@ -3425,9 +3431,9 @@ function templeView() {
     ${wide() && side ? `<div class="ztcols"><div class="grow" style="min-width:0;display:flex;flex-direction:column;gap:12px">${main}</div><div class="ztsidecol">${side}</div></div>` : `${main}${side ? `<div class="ztwordsheet">${side}</div>` : ""}`}`;
 }
 
-async function ztAddWords(ws) {
+async function ztAddWords(ws, source = "hsk") {
   const have = new Set(state.lu.cards.map((c) => c.hanzi));
-  const rows = ws.filter((w) => !have.has(w.hanzi)).map((w) => ({ hanzi: w.hanzi, hanzi_trad: w.hanzi_trad, pinyin: w.pinyin, meaning: w.meaning, hsk_level: w.level, source: "hsk" }))
+  const rows = ws.filter((w) => !have.has(w.hanzi)).map((w) => ({ hanzi: w.hanzi, hanzi_trad: w.hanzi_trad, pinyin: w.pinyin, meaning: w.meaning, hsk_level: w.level, source }))
     .filter((r, i, a) => a.findIndex((x) => x.hanzi === r.hanzi) === i);
   if (!rows.length) return 0;
   let n = 0;
@@ -3741,3 +3747,432 @@ async function checkForUpdate() {
 }
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") checkForUpdate(); });
 setInterval(checkForUpdate, 30 * 60e3);
+
+// ---------------------------------------------------------------------------
+// Library 圖書館 (Zest Town): digital workbooks. Beta: admins only (books.published = false).
+// Books: library_books; texts: library_book_content (only for owners and admins); purchases: library_purchases;
+// progress: library_progress. Bookshop = Stripe Checkout through the library-checkout function.
+// Routes: #/learn/library · #/learn/library/<book> · #/learn/library/<book>/<ch|culture|grammar|ex|words>/<n>
+// ---------------------------------------------------------------------------
+const LIB_LEVELS = ["1", "2", "3", "4", "5", "6", "7-9"];
+const libOpen = () => isAdmin(); // beta: the Library opens for admins only
+function libState() {
+  if (!state.lib) state.lib = { books: null, owned: new Set(), content: new Map(), progress: new Map(), tab: "shelf", lv: lsGet("mz-lib-lv") || "", py: lsGet("mz-lib-py") || "new" };
+  return state.lib;
+}
+async function libLoad(force) {
+  const S = libState();
+  if (S.loading || (S.books && !force)) return;
+  S.loading = true;
+  const [b, p] = await Promise.all([sb.from("library_books").select("*").order("sort").order("level"), sb.from("library_purchases").select("book_id, created_at")]);
+  S.loading = false;
+  if (b.error) { S.error = true; render(); return; }
+  S.books = b.data; S.owned = new Set((p.data || []).map((r) => r.book_id));
+  render();
+}
+const libHas = (id) => libState().owned.has(id) || isAdmin();
+async function libContent(id) {
+  const S = libState();
+  if (S.content.has(id) || S.contentLoading === id) return;
+  S.contentLoading = id;
+  const [c, pr] = await Promise.all([sb.from("library_book_content").select("content").eq("book_id", id).maybeSingle(), sb.from("library_progress").select("state").eq("book_id", id).maybeSingle()]);
+  S.contentLoading = null;
+  if (c.error || !c.data) { toast("Couldn't open this book. Check your connection."); location.hash = "#/learn/library"; return; }
+  S.content.set(id, c.data.content); S.progress.set(id, pr.data?.state || {});
+  render();
+}
+const libBook = (id) => { const c = libState().content.get(id); return c && (trad() ? c.t : c.s); };
+const libProg = (id) => libState().progress.get(id) || {};
+let libSaveT = null;
+const LIB_NUM = ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十"];
+function libSave(id) {
+  clearTimeout(libSaveT);
+  libSaveT = setTimeout(async () => {
+    const { error } = await sb.from("library_progress").upsert({ user_id: state.user.id, book_id: id, state: libProg(id), updated_at: new Date().toISOString() });
+    if (error) toast("Couldn't save your progress. Check your connection.");
+  }, 800);
+}
+function libSet(id, path, val) {
+  const P = libProg(id); let o = P; const keys = path.split(".");
+  keys.slice(0, -1).forEach((k) => { o = o[k] = o[k] || {}; });
+  o[keys[keys.length - 1]] = val; libState().progress.set(id, P); libSave(id);
+}
+const libGet = (id, path) => path.split(".").reduce((o, k) => (o == null ? undefined : o[k]), libProg(id));
+const money = (c, cur) => new Intl.NumberFormat("en-US", { style: "currency", currency: (cur || "usd").toUpperCase(), minimumFractionDigits: c % 100 ? 2 : 0 }).format(c / 100);
+const hskTag = (l) => (l ? `HSK ${l}` : "");
+function libParts(c) { // what's inside a book
+  return [`${c.chapters.length} chapters`, c.culture?.length ? "culture notes" : "", c.grammar?.length ? `${c.grammar.length} grammar points` : "", c.exercises?.length ? `${c.exercises.length} exercises` : ""].filter(Boolean).join(" · ");
+}
+function libReadCount(id) { const r = libGet(id, "read") || {}; return Object.values(r).filter(Boolean).length; }
+
+// ---- words: tap to see pinyin, meaning, HSK level; add to flashcards ----
+function libTok(t, d, opts = {}) {
+  const e = d[t];
+  if (!e) return esc(t);
+  const isNew = opts.newSet?.has(t), ruby = opts.py === "all" ? e.p : opts.py !== "off" && isNew && !opts.seen?.has(t) ? e.p : "";
+  if (isNew) opts.seen?.add(t);
+  const inner = ruby ? `<ruby>${esc(t)}<rt>${esc(ruby)}</rt></ruby>` : esc(t);
+  return `<span class="lw${isNew ? " new" : ""}" data-lw="${esc(t)}" role="button" tabindex="0">${inner}</span>`;
+}
+const libLine = (toks, d, opts) => toks.map((t) => libTok(t, d, opts)).join("");
+function libWordEntry(book, w) {
+  const e = book.dict[w]; if (!e) return null;
+  return { hanzi: e.s || w, hanzi_trad: trad() ? w : null, pinyin: e.p, meaning: e.m || (e.parts || []).map((x) => book.dict[x]?.m).filter(Boolean).join("; "), level: e.l || null };
+}
+const libInDeck = (book, w) => { const h = book.dict[w]?.s || w; return state.lu.cards.some((c) => c.hanzi === h); };
+function libPopHtml(id, w) {
+  const book = libBook(id), e = book?.dict[w]; if (!e) return "";
+  const inDeck = libInDeck(book, w);
+  const parts = (e.parts || []).map((x) => `<button type="button" class="lpart" data-lw="${esc(x)}"><b>${esc(x)}</b> <span>${esc(book.dict[x].p)}</span> ${esc(book.dict[x].m)}</button>`).join("");
+  const tag = e.b ? `<span class="ltag book">In this book's word list</span>` : "";
+  return `<div class="ztover lpopover" data-lib="popclose"><div class="ztsheet lpop" role="dialog" aria-label="${esc(w)}" data-stop>
+    <button type="button" class="ztx" data-lib="popclose" aria-label="Close">×</button>
+    <div class="lpophz">${esc(w)}</div>
+    <div class="lpoppy">${esc(e.p)}</div>
+    ${e.m ? `<div class="lpopm">${esc(e.m)}</div>` : ""}
+    ${parts ? `<div class="lparts">${parts}</div>` : ""}
+    <div class="row" style="gap:6px;flex-wrap:wrap">${e.l ? `<span class="ltag hsk">${hskTag(e.l)}</span>` : `<span class="ltag">Not in the HSK lists</span>`}${tag}</div>
+    ${inDeck ? `<div class="lindeck">✓ In your flashcards</div>` : `<button type="button" class="btn" data-lib="addword" data-w="${esc(w)}">+ Add to flashcards</button>`}
+    ${!e.l && !e.b && e.m ? `<p class="tiny muted" style="margin:0">Dictionary: CC-CEDICT</p>` : ""}
+  </div></div>`;
+}
+function libShowPop(w) {
+  const id = libState().open; document.querySelector(".lpopover")?.remove();
+  const html = libPopHtml(id, w); if (html) app.insertAdjacentHTML("beforeend", html);
+}
+
+// ---- views ----
+function libraryView(parts, q) {
+  const S = libState();
+  if (!libOpen()) { location.hash = "#/learn"; return townView(); }
+  if (!S.books) { libLoad(); return `${ztHeader(null, libTitle())}<p class="muted small">${S.error ? "Couldn't load the Library. Try again later." : "Opening the Library…"}</p>`; }
+  if (q.paid && S.verifying !== q.paid && !S.verified?.has(q.paid)) libVerify(q.paid);
+  if (q.shop) S.tab = "shop";
+  const [id, sec, n] = parts;
+  if (id) {
+    const meta = S.books.find((b) => b.id === id);
+    if (!meta) { location.hash = "#/learn/library"; return ""; }
+    if (!libHas(id)) { S.tab = "shop"; location.hash = "#/learn/library"; return ""; }
+    S.open = id;
+    if (!libBook(id)) { libContent(id); return `${libHead(meta, true)}<p class="muted small">Opening the book…</p>`; }
+    if (sec === "ch") return libChapterView(meta, +n || 0);
+    if (sec === "culture") return libCultureView(meta);
+    if (sec === "grammar") return libGrammarView(meta, +n || 0);
+    if (sec === "ex") return libExerciseView(meta, +n || 0);
+    if (sec === "words") return libWordsView(meta);
+    return libBookView(meta);
+  }
+  return libHomeView();
+}
+const libTitle = () => `Library <span class='zhsub'>${trad() ? "圖書館" : "图书馆"}</span>`;
+function libHomeView() {
+  const S = libState(), shop = S.tab === "shop";
+  const tabs = `<div class="seg ztseg" role="group" aria-label="Library"><button type="button" data-lib="tab" data-v="shelf" aria-pressed="${!shop}">My shelf</button><button type="button" data-lib="tab" data-v="shop" aria-pressed="${shop}">Bookshop</button></div>`;
+  const beta = isAdmin() ? `<div class="lbeta">Beta · only admins can open the Library for now. You can read every book; the Bookshop takes real payments.</div>` : "";
+  return `${ztHeader(ztStreak(), libTitle())}${beta}${tabs}${shop ? libShopView() : libShelfView()}`;
+}
+function libCover(b, cls = "") {
+  return `<span class="lcover ${cls}" style="--c:${esc(b.color || "#f37a48")}">${b.cover ? `<img src="${esc(b.cover)}" alt="" loading="lazy">` : `<b>${esc(b.title_zh || b.title)}</b>`}<span class="lhsk">HSK ${esc(b.level)}</span></span>`;
+}
+function libShelfView() {
+  const S = libState();
+  const mine = S.books.filter((b) => libHas(b.id)), lv = S.lv;
+  const shown = mine.filter((b) => !lv || b.level === lv);
+  const chips = `<div class="lchips" role="group" aria-label="Filter by HSK level"><button type="button" data-lib="lv" data-v="" aria-pressed="${!lv}">All</button>${LIB_LEVELS.map((l) => {
+    const n = mine.filter((b) => b.level === l).length;
+    return `<button type="button" data-lib="lv" data-v="${l}" aria-pressed="${lv === l}" ${n ? "" : "class=\"empty\""}>HSK ${l}${n ? ` <span>${n}</span>` : ""}</button>`; }).join("")}</div>`;
+  const per = wide() ? 5 : 3, rows = [];
+  for (let i = 0; i < Math.max(shown.length, 1); i += per) rows.push(shown.slice(i, i + per));
+  if (rows.length < 2) rows.push([]);
+  const book = (b) => { const c = S.content.get(b.id), total = c ? c.s.chapters.length : 0, read = libReadCount(b.id);
+    return `<a class="lshelfbook" href="#/learn/library/${encodeURIComponent(b.id)}" aria-label="${esc(b.title)}">${libCover(b)}${read ? `<span class="lribbon">${read}${total ? `/${total}` : ""} read</span>` : ""}</a>`; };
+  const shelf = `<div class="lshelf">${rows.map((r) => `<div class="lrow">${r.map(book).join("")}</div>`).join("")}</div>`;
+  const empty = !mine.length ? `<div class="card lempty"><b>Your shelf is empty</b><span class="small muted">Books you buy in the Bookshop appear here, ready to read in the app.</span><button type="button" class="btn" data-lib="tab" data-v="shop">Visit the Bookshop</button></div>`
+    : !shown.length ? `<p class="small muted">No books for HSK ${esc(lv)} on your shelf yet. <button type="button" class="linkbtn" data-lib="tab" data-v="shop">See the Bookshop</button></p>` : "";
+  return `${chips}${shelf}${empty}`;
+}
+function libShopView() {
+  const S = libState(), lv = S.lv, books = S.books.filter((b) => !lv || b.level === lv);
+  const chips = `<div class="lchips" role="group" aria-label="Filter by HSK level"><button type="button" data-lib="lv" data-v="" aria-pressed="${!lv}">All</button>${LIB_LEVELS.map((l) => `<button type="button" data-lib="lv" data-v="${l}" aria-pressed="${lv === l}">HSK ${l}</button>`).join("")}</div>`;
+  const card = (b) => {
+    const bought = S.owned.has(b.id);
+    const btn = bought ? `<a class="btn ghost" href="#/learn/library/${encodeURIComponent(b.id)}">Owned · Read</a>`
+      : `<button type="button" class="btn" data-lib="buy" data-id="${esc(b.id)}" ${S.buying ? "disabled" : ""}>${S.buying === b.id ? "Opening…" : `Buy · ${money(b.price_cents, b.currency)}`}</button>${isAdmin() ? `<a class="small" href="#/learn/library/${encodeURIComponent(b.id)}">Read (admin access)</a>` : ""}`;
+    return `<div class="card lshop">${libCover(b, "sm")}<div class="grow" style="display:flex;flex-direction:column;gap:6px;min-width:0">
+      <div><span class="ltag hsk">HSK ${esc(b.level)}</span>${b.published ? "" : ` <span class="ltag">Beta</span>`}</div>
+      <b class="lshopt">${esc(b.title_zh || "")} <span>${esc(b.title)}</span></b>
+      <span class="small muted">${esc(b.subtitle || "")}</span>
+      <span class="small">${esc(b.summary || "")}</span>
+      <div class="row" style="gap:10px;align-items:center;flex-wrap:wrap;margin-top:4px">${btn}</div></div></div>`;
+  };
+  return `${chips}<p class="small muted" style="margin:0">Buy once, keep it forever. Each book opens in the app right after payment, on all your devices.</p>
+    <div class="lshoplist">${books.map(card).join("") || `<p class="small muted">No books for HSK ${esc(lv)} yet. More are coming.</p>`}</div>`;
+}
+function libHead(meta, back, crumb) {
+  return `<header class="zthead lhead"><a class="ztback" href="${back === true ? "#/learn/library" : back}">‹ ${back === true ? "Library" : esc(crumb || meta.title_zh || meta.title)}</a></header>`;
+}
+function libBookView(meta) {
+  const id = meta.id, c = libBook(id), read = libGet(id, "read") || {}, nRead = libReadCount(id);
+  const exDone = (i) => libExScore(id, i, c.exercises[i]);
+  const row = (href, label, sub, done) => `<a class="lrowlink" href="${href}"><span class="ltick ${done ? "on" : ""}" aria-hidden="true">${done ? "✓" : ""}</span><span class="grow"><b>${label}</b>${sub ? `<br><span class="small muted">${sub}</span>` : ""}</span><span class="chev" aria-hidden="true">›</span></a>`;
+  const base = `#/learn/library/${encodeURIComponent(id)}`;
+  const how = libGet(id, "howSeen") ? "" : " open";
+  return `${libHead(meta, true)}
+    <div class="lbookhead">${libCover(meta, "big")}<div class="grow" style="min-width:0">
+      <span class="ltag hsk">HSK ${esc(meta.level)}</span>
+      <h1 class="lbt">${esc(meta.title_zh)}</h1><div class="lbs">${esc(meta.title)}</div>
+      <div class="small muted">${libParts(c)}</div>
+      <div class="lprog"><i style="width:${(nRead / c.chapters.length) * 100}%"></i></div><span class="small">${nRead} of ${c.chapters.length} chapters read</span>
+      ${nRead < c.chapters.length ? `<a class="btn" href="${base}/ch/${c.chapters.findIndex((_, i) => !read[i])}">${nRead ? "Continue reading" : "Start reading"}</a>` : `<a class="btn ghost" href="${base}/ex/0">Practise with the exercises</a>`}
+    </div></div>
+    <details class="card lhow"${how} data-lib-how="${esc(id)}"><summary><b>How this book works</b></summary>${c.how.map((p) => `<p class="small">${esc(p)}</p>`).join("")}</details>
+    <section class="lsec"><h2>Meet the characters <span class="zhsub">人物</span></h2><div class="lchars">${c.chars.map((ch) => `<div class="lchar"><img src="icons/books/${esc(id)}-${esc(ch.key)}.png" alt=""><b>${esc(ch.zh)}${ch.py ? ` <span class="small muted">${esc(ch.py)}</span>` : ""}</b><span class="small muted">${esc(ch.desc)}</span></div>`).join("")}</div></section>
+    <section class="lsec"><h2>Part 1 · The story</h2><div class="card llist">${c.chapters.map((ch, i) => row(`${base}/ch/${i}`, `<span class="lzh">${LIB_NUM[i] ? `第${LIB_NUM[i]}章 ` : ""}${esc(ch.zh)}</span>`, `${esc(ch.en)} · about ${ch.mins} min · ${ch.words.length} new words`, read[i])).join("")}</div></section>
+    ${c.culture?.length ? `<section class="lsec"><h2>Part 2 · Cultural background</h2><div class="card llist">${row(`${base}/culture`, "China's population, marriage pressure and dating culture", c.culture.map((s) => esc(s.h)).join(" · "), libGet(id, "cultureSeen"))}</div></section>` : ""}
+    <section class="lsec"><h2>Part 3 · Grammar</h2><div class="card llist">${c.grammar.map((g, i) => row(`${base}/grammar/${i}`, `${i + 1}. ${esc(g.title)}`, esc(g.pattern), libGet(id, `gram.${i}`))).join("")}</div></section>
+    <section class="lsec"><h2>Part 4 · Exercises</h2><div class="card llist">${c.exercises.map((x, i) => { const s = exDone(i); return row(`${base}/ex/${i}`, `${i + 1}. ${esc(x.zh)} <span class="muted">${esc(x.en)}</span>`, s.text, s.done); }).join("")}</div></section>
+    <section class="lsec"><h2>Word list</h2><div class="card llist">${row(`${base}/words`, `All ${c.chapters.reduce((n, ch) => n + ch.words.length, 0)} new words`, "By chapter, with pinyin and meaning. Add them to your flashcards.", false)}</div></section>`;
+}
+function libPager(base, sec, i, n, labels) {
+  const prev = i > 0 ? `<a class="btn ghost" href="${base}/${sec}/${i - 1}">‹ ${labels(i - 1)}</a>` : `<span></span>`;
+  const next = i < n - 1 ? `<a class="btn ghost" href="${base}/${sec}/${i + 1}">${labels(i + 1)} ›</a>` : `<a class="btn ghost" href="${base}">Contents</a>`;
+  return `<div class="lpager">${prev}${next}</div>`;
+}
+function libPyToggle() {
+  const v = libState().py;
+  return `<div class="lpyseg" role="group" aria-label="Pinyin above words"><span class="small muted">Pinyin</span>${[["new", "New words"], ["all", "All"], ["off", "Off"]].map(([k, l]) => `<button type="button" data-lib="py" data-v="${k}" aria-pressed="${v === k}">${l}</button>`).join("")}</div>`;
+}
+function libChapterView(meta, i) {
+  const id = meta.id, c = libBook(id), ch = c.chapters[i]; if (!ch) { location.hash = `#/learn/library/${id}`; return ""; }
+  const base = `#/learn/library/${encodeURIComponent(id)}`, newSet = new Set(ch.words), seen = new Set(), py = libState().py;
+  const num = LIB_NUM[i] || i + 1;
+  const text = ch.paras.map((p) => `<p>${libLine(p, c.dict, { newSet, seen, py })}</p>`).join("");
+  const words = ch.words.map((w) => libWordRow(c, w)).join("");
+  const notIn = ch.words.filter((w) => !libInDeck(c, w)).length;
+  const check = ch.check.map((q, k) => {
+    const ans = libGet(id, `qc.${i}.${k}`), done = ans !== undefined, ok = done && ans === q.a;
+    return `<div class="lqc ${done ? (ok ? "ok" : "bad") : ""}"><span class="lqn">${k + 1}</span><span class="grow lzh">${libLine(q.q, c.dict, {})}</span>
+      <span class="lqbtns">${[[true, trad() ? "對" : "对"], [false, trad() ? "錯" : "错"]].map(([v, l]) => `<button type="button" data-lib="qc" data-ch="${i}" data-k="${k}" data-v="${v}" aria-pressed="${ans === v}" ${done ? "disabled" : ""}>${l}</button>`).join("")}</span>
+      ${done ? `<span class="lqres">${ok ? "✓ Right" : `✗ It's ${q.a ? (trad() ? "對" : "对") : (trad() ? "錯" : "错")}`}</span>` : ""}</div>`;
+  }).join("");
+  const read = libGet(id, `read.${i}`);
+  return `${libHead(meta, base, meta.title_zh)}
+    <article class="lread">
+      <div class="lchlabel">第${num}章 · Chapter ${i + 1}</div>
+      <h1 class="lcht">${esc(ch.zh)}</h1><div class="lchs">${esc(ch.en)}</div>
+      <div class="small muted">⏱ about ${ch.mins} min · ${ch.words.length} new words · tap any word for its meaning</div>
+      ${libPyToggle()}
+      <div class="ltext lzh">${text}</div>
+    </article>
+    <section class="lsec"><div class="row between" style="align-items:center;gap:8px;flex-wrap:wrap"><h2 style="margin:0">New words <span class="zhsub">${trad() ? "生詞" : "生词"}</span></h2>${notIn ? `<button type="button" class="btn small" data-lib="addall" data-ch="${i}">+ Add all ${notIn} to flashcards</button>` : `<span class="small lindeck">✓ All in your flashcards</span>`}</div>
+      <div class="card llist">${words}</div></section>
+    <section class="lsec"><h2>Quick check <span class="zhsub">${trad() ? "對還是錯？" : "对还是错？"}</span></h2><div class="lqcs">${check}</div></section>
+    <div class="lreaddone">${read ? `<span class="lindeck">✓ Chapter read</span>` : `<button type="button" class="btn" data-lib="read" data-ch="${i}">✓ I've read this chapter</button>`}</div>
+    ${libPager(base, "ch", i, c.chapters.length, (k) => `Chapter ${k + 1}`)}`;
+}
+function libWordRow(c, w) {
+  const e = c.dict[w] || {}, inDeck = libInDeck(c, w);
+  return `<div class="lwrow"><button type="button" class="lwmain" data-lw="${esc(w)}"><b class="lzh">${esc(w)}</b><span class="lwpy">${esc(e.p || "")}</span><span class="lwm">${esc(e.m || "")}</span></button>
+    ${e.l ? `<span class="ltag hsk">HSK ${esc(e.l)}</span>` : ""}
+    ${inDeck ? `<span class="lwin" title="In your flashcards">✓</span>` : `<button type="button" class="lwadd" data-lib="addword" data-w="${esc(w)}" aria-label="Add ${esc(w)} to flashcards">+</button>`}</div>`;
+}
+function libCultureView(meta) {
+  const id = meta.id, c = libBook(id), d = c.dict;
+  if (!libGet(id, "cultureSeen")) libSet(id, "cultureSeen", true);
+  const para = (segs) => segs.map((s) => typeof s === "string" ? esc(s) : `<button type="button" class="lchip" data-lw="${esc(s.w)}"><span class="lzh">${esc(s.w)}</span> <i>${esc(s.p)}</i></button>`).join("");
+  return `${libHead(meta, `#/learn/library/${encodeURIComponent(id)}`, meta.title_zh)}
+    <article class="lread"><div class="lchlabel">Part 2 · 文化背景</div><h1 class="lcht" style="font-size:26px">China's population, marriage pressure and dating culture</h1>
+    <div class="small muted">In English, with the key Chinese words. Tap a word to see it and add it to your flashcards.</div>
+    ${c.culture.map((s) => `<h2 class="lculth">${esc(s.h)} <span class="zhsub lzh">${esc(s.zh)}</span></h2>${s.paras.map((p) => `<p class="lcult">${para(p)}</p>`).join("")}`).join("")}</article>
+    <section class="lsec"><h2>Words to keep from this section</h2><div class="card llist">${c.keep.map((w) => libWordRow(c, w)).join("")}</div></section>`;
+}
+function libGrammarView(meta, i) {
+  const id = meta.id, c = libBook(id), g = c.grammar[i]; if (!g) { location.hash = `#/learn/library/${id}`; return ""; }
+  if (!libGet(id, `gram.${i}`)) libSet(id, `gram.${i}`, true);
+  const base = `#/learn/library/${encodeURIComponent(id)}`;
+  return `${libHead(meta, base, meta.title_zh)}
+    <article class="lread"><div class="lchlabel">${trad() ? "語法" : "语法"} ${i + 1} · Grammar</div><h1 class="lcht" style="font-size:26px">${esc(g.title)}</h1>
+      <div class="lpattern lzh">${esc(g.pattern)}</div><p>${esc(g.explain)}</p>
+      <div class="lexs">${g.ex.map((x) => `<div class="lex"><div class="lzh lexzh">${libLine(x.zh, c.dict, {})}</div><div class="lexpy">${esc(x.py)}</div><div class="small">${esc(x.en)}</div>${x.ch ? `<a class="ltag" href="${base}/ch/${x.ch - 1}">Ch. ${x.ch}</a>` : ""}</div>`).join("")}</div>
+    </article>
+    ${libPager(base, "grammar", i, c.grammar.length, (k) => `Grammar ${k + 1}`)}`;
+}
+const libNorm = (s) => String(s || "").replace(/[\s，。！？、,.!?：:；;“”"'‘’（）()…—\-]/g, "");
+// Model answers in both scripts, so a sentence typed in simplified also counts when reading in traditional (and back).
+function libAlt(id, i) {
+  const c = libState().content.get(id), o = c && (trad() ? c.s : c.t), x = libBook(id).exercises[i];
+  if (x.kind === "write" && o) x.items.forEach((it, k) => { it.alt = o.exercises[i].items[k].a; });
+  return x;
+}
+function libExScore(id, i, x) {
+  x = libAlt(id, i);
+  const A = libGet(id, `ex.${i}`) || {};
+  if (x.kind === "essay") { const t = A.text || ""; const n = (t.match(/[一-鿿]/g) || []).length; return { done: n >= 80, text: n ? `${n} characters written` : "Writing task" }; }
+  const n = x.items.length, ans = A.a || {};
+  if (x.kind === "open") { const k = Object.values(ans).filter((v) => String(v).trim()).length; return { done: k === n, text: `${k} of ${n} answered` }; }
+  const right = x.items.filter((it, k) => libExRight(x, it, ans[k])).length, tried = Object.keys(ans).length;
+  return { done: right === n, text: tried ? `${right} of ${n} right` : `${n} questions` };
+}
+function libExRight(x, it, a) {
+  if (a === undefined || a === null || a === "") return false;
+  if (x.kind === "bank") return a === it.a;
+  if (x.kind === "choice") return +a === it.a;
+  if (x.kind === "write") return a === true || [...it.a, ...(it.alt || [])].some((m) => libNorm(m) === libNorm(a));
+  return false;
+}
+function libBlanks(q, fill) { // "___" -> blank chips
+  let k = 0;
+  return esc(q).split("___").map((part, j, arr) => part + (j < arr.length - 1 ? fill(k++) : "")).join("");
+}
+function libExerciseView(meta, i) {
+  const id = meta.id, c = libBook(id), x = c.exercises[i] && libAlt(id, i); if (!x) { location.hash = `#/learn/library/${id}`; return ""; }
+  const base = `#/learn/library/${encodeURIComponent(id)}`, A = libGet(id, `ex.${i}`) || {}, ans = A.a || {}, shown = A.show || {};
+  let body = "";
+  if (x.kind === "open") body = x.items.map((it, k) => `<div class="card lexi"><div class="lexq"><span class="lqn">${k + 1}</span><span class="lzh">${libLine(it.q, c.dict, {})}</span></div>
+      <textarea class="lin lzh" rows="2" data-libin="${i}.${k}" placeholder="Your answer in Chinese">${esc(ans[k] || "")}</textarea>
+      ${shown[k] ? `<div class="lmodel"><span class="tiny muted">Sample answer</span><div class="lzh">${esc(it.a)}</div></div>` : `<button type="button" class="linkbtn" data-lib="show" data-ex="${i}" data-k="${k}">Show a sample answer</button>`}</div>`).join("");
+  if (x.kind === "bank") {
+    const used = new Set(Object.values(ans)), sel = libState().blank;
+    body = `<div class="lbank" role="group" aria-label="Word box">${x.bank.map((w) => `<button type="button" class="lbankw lzh" data-lib="bankw" data-ex="${i}" data-w="${esc(w)}" ${used.has(w) ? "data-used" : ""}>${esc(w)}</button>`).join("")}</div>
+      <p class="tiny muted" style="margin:0">${sel?.ex === i ? `Now tap a word for blank ${sel.k + 1}.` : "Tap a blank, then a word."}</p>`
+      + x.items.map((it, k) => { const a = ans[k], ok = a && a === it.a, on = sel?.ex === i && sel.k === k;
+        return `<div class="card lexi ${a ? (ok ? "ok" : "bad") : ""}"><div class="lexq"><span class="lqn">${k + 1}</span><span class="lzh">${libBlanks(it.q, () => `<button type="button" class="lblank ${on ? "on" : ""}" data-lib="blank" data-ex="${i}" data-k="${k}">${a ? esc(a) : "＿＿"}</button>`)}</span></div>${a && !ok ? `<span class="tiny lbadtxt">Not quite. Tap the blank to try another word.</span>` : ""}</div>`; }).join("");
+  }
+  if (x.kind === "choice") body = x.items.map((it, k) => { const a = ans[k], done = a !== undefined, ok = done && +a === it.a;
+    const pair = x.options[it.a].split("……"), fill = (j) => `<span class="lblank ${ok ? "filled" : ""}">${ok ? esc(pair[j] || "") : "＿＿"}</span>`;
+    return `<div class="card lexi ${done ? (ok ? "ok" : "bad") : ""}"><div class="lexq"><span class="lqn">${k + 1}</span><span class="lzh">${libBlanks(it.q, fill)}</span></div>
+      <div class="lopts">${x.options.map((o, j) => `<button type="button" class="lzh" data-lib="choice" data-ex="${i}" data-k="${k}" data-v="${j}" aria-pressed="${done && +a === j}" ${ok ? "disabled" : ""}>${esc(o)}</button>`).join("")}</div>
+      ${done && !ok ? `<span class="tiny lbadtxt">Not quite, try the other one.</span>` : ""}</div>`; }).join("");
+  if (x.kind === "write") body = x.items.map((it, k) => { const a = ans[k], ok = libExRight(x, it, a), checked = shown[k];
+    return `<div class="card lexi ${checked ? (ok ? "ok" : "") : ""}"><div class="lexq"><span class="lqn">${k + 1}</span><span class="${typeof it.q === "string" ? "" : "lzh"}">${typeof it.q === "string" ? esc(it.q) : libLine(it.q, c.dict, {})}</span>${it.hint ? `<span class="ltag">${esc(it.hint)}</span>` : ""}</div>
+      <textarea class="lin lzh" rows="${x.zh === "比较句" || x.zh === "比較句" ? 2 : 1}" data-libin="${i}.${k}" placeholder="Write your sentence">${esc(a === true ? "" : a || "")}</textarea>
+      ${checked ? (ok ? `<div class="lmodel ok">✓ Well done!${it.a.filter((m) => libNorm(m) !== libNorm(a)).length ? ` Also possible: <span class="lzh">${it.a.filter((m) => libNorm(m) !== libNorm(a)).map(esc).join(" / ")}</span>` : ""}</div>`
+        : `<div class="lmodel"><span class="tiny muted">Model answer${it.a.length > 1 ? "s" : ""}</span>${it.a.map((m) => `<div class="lzh">${esc(m)}</div>`).join("")}<button type="button" class="linkbtn" data-lib="selfok" data-ex="${i}" data-k="${k}">Mine says the same thing ✓</button></div>`)
+        : `<button type="button" class="btn small ghost" data-lib="check" data-ex="${i}" data-k="${k}">Check</button>`}</div>`; }).join("");
+  if (x.kind === "essay") {
+    const t = A.text || "", n = (t.match(/[一-鿿]/g) || []).length, task = A.task || "A";
+    body = `<div class="ltasks">${x.tasks.map(([k, en, q]) => `<button type="button" class="card ltask" data-lib="task" data-ex="${i}" data-v="${k}" aria-pressed="${task === k}"><b>${k} · ${esc(en)}</b><span class="lzh small">${esc(q)}</span></button>`).join("")}</div>
+      <textarea class="lin lzh lessay" rows="8" data-libin="${i}.text" placeholder="写 80–150 个字…">${esc(t)}</textarea>
+      <div class="row between small" style="gap:8px;flex-wrap:wrap"><span class="lcount ${n > 150 ? "over" : ""}">${n} / 150 characters</span><span class="muted">Saved automatically</span></div>
+      <div class="lchecklist">${libEssayChecks(t)}</div>`;
+  }
+  const s = libExScore(id, i, x);
+  return `${libHead(meta, base, meta.title_zh)}
+    <article class="lread"><div class="lchlabel">${trad() ? "練習" : "练习"} ${i + 1} · Exercise</div><h1 class="lcht" style="font-size:26px"><span class="lzh">${esc(x.zh)}</span> <span class="lchs" style="display:inline">${esc(x.en)}</span></h1>
+      <p class="small muted" style="margin:0">${esc(x.how)}</p></article>
+    <div class="lexlist">${body}</div>
+    ${x.kind !== "essay" && x.kind !== "open" ? `<div class="lscore ${s.done ? "ok" : ""}">${s.text}${s.done ? " · 太棒了！" : ""}${Object.keys(ans).length ? ` <button type="button" class="linkbtn" data-lib="reset" data-ex="${i}">Start again</button>` : ""}</div>` : ""}
+    ${libPager(base, "ex", i, c.exercises.length, (k) => `Exercise ${k + 1}`)}`;
+}
+function libEssayChecks(t) {
+  const n = (t.match(/[一-鿿]/g) || []).length;
+  const has = { bi: /比/.test(t), pair: /(虽然|雖然)[^。！？]*但是|(因为|因為)[^。！？]*所以/.test(t), ruguo: /如果[^。！？]*就/.test(t), de: /(?<![觉覺记記懂获獲值显顯使])得(很|不|非常|太|真|特别|特別|更|好|快|慢|挺|比较|比較|越)/.test(t), len: n >= 80 };
+  const chk = [["bi", "比"], ["pair", trad() ? "雖然……但是 / 因為……所以" : "虽然……但是 / 因为……所以"], ["ruguo", "如果……就"], ["de", "得"], ["len", "80+ characters"]];
+  return chk.map(([k, l]) => `<span class="${has[k] ? "on" : ""}">${has[k] ? "✓" : "○"} <span class="lzh">${esc(l)}</span></span>`).join("");
+}
+function libWordsView(meta) {
+  const id = meta.id, c = libBook(id), all = c.chapters.flatMap((ch) => ch.words), notIn = all.filter((w) => !libInDeck(c, w)).length;
+  return `${libHead(meta, `#/learn/library/${encodeURIComponent(id)}`, meta.title_zh)}
+    <div class="row between" style="align-items:center;gap:8px;flex-wrap:wrap"><h1 style="margin:0;font-size:26px">Word list <span class="zhsub">${trad() ? "詞彙總表" : "词汇总表"}</span></h1>${notIn ? `<button type="button" class="btn small" data-lib="addall" data-ch="all">+ Add all ${notIn} to flashcards</button>` : `<span class="small lindeck">✓ All in your flashcards</span>`}</div>
+    <p class="small muted" style="margin:0">All ${all.length} new words, in story order. New cards arrive in the Flashcard Center a few a day.</p>
+    ${c.chapters.map((ch, i) => `<section class="lsec"><h2>Chapter ${i + 1} · <span class="lzh">${esc(ch.zh)}</span></h2><div class="card llist">${ch.words.map((w) => libWordRow(c, w)).join("")}</div></section>`).join("")}`;
+}
+
+// ---- buying ----
+async function libCall(body) {
+  const { data: { session } } = await sb.auth.getSession();
+  return fetch(`${SUPABASE_URL}/functions/v1/library-checkout`, {
+    method: "POST", headers: { Authorization: `Bearer ${session.access_token}`, apikey: SUPABASE_KEY, "Content-Type": "application/json" }, body: JSON.stringify(body),
+  }).then((r) => r.json()).catch(() => ({ error: "Couldn't reach the Bookshop. Check your connection." }));
+}
+let stripeJs = null;
+const loadStripe = () => stripeJs || (stripeJs = new Promise((ok, bad) => { const s = document.createElement("script"); s.src = "https://js.stripe.com/v3/"; s.onload = () => ok(window.Stripe); s.onerror = bad; document.head.append(s); }));
+async function libBuy(id) {
+  const S = libState(); S.buying = id; render();
+  const r = await libCall({ action: "create", book_id: id });
+  S.buying = null;
+  if (r.owned) { await libVerify(); return; }
+  if (r.error || !(r.client_secret || r.url)) { render(); toast(r.error || "Couldn't open the checkout. Please try again."); return; }
+  if (r.url) { location.href = r.url; return; } // Stripe's own page; it comes back to #/learn/library?paid=…
+  try {
+    const Stripe = await loadStripe();
+    S.checkout = { session: r.session_id };
+    document.body.insertAdjacentHTML("beforeend", `<div class="ztover center lcheckover" data-lib="checkoutclose"><div class="ztsheet lcheck" data-stop><button type="button" class="ztx" data-lib="checkoutclose" aria-label="Close">×</button><b>Secure checkout · Stripe</b><div id="lcheckout"></div></div></div>`);
+    render();
+    const co = await Stripe(r.publishable_key).initEmbeddedCheckout({ fetchClientSecret: async () => r.client_secret, onComplete: () => { libCloseCheckout(); libVerify(r.session_id); } });
+    S.checkout.co = co; co.mount("#lcheckout");
+  } catch { libCloseCheckout(); toast("Couldn't load the checkout. Please try again."); }
+}
+function libCloseCheckout() {
+  const S = libState(); try { S.checkout?.co?.destroy(); } catch { /* already gone */ }
+  S.checkout = null; document.querySelector(".lcheckover")?.remove();
+}
+async function libVerify(sessionId) {
+  const S = libState(); S.verifying = sessionId || true; S.verified = S.verified || new Set(); if (sessionId) S.verified.add(sessionId);
+  const r = await libCall({ action: "verify", session_id: sessionId });
+  S.verifying = null;
+  if (r.owned) S.owned = new Set(r.owned);
+  if (r.unlocked?.length) {
+    const b = S.books?.find((x) => x.id === r.unlocked[0]);
+    toast(`📖 ${b ? b.title_zh || b.title : "Your book"} is on your shelf!`);
+    S.tab = "shelf"; location.hash = `#/learn/library/${encodeURIComponent(r.unlocked[0])}`;
+  } else if (sessionId) { toast("Payment received? It can take a minute. Your book appears on your shelf as soon as Stripe confirms."); location.hash = "#/learn/library"; }
+  render();
+}
+
+// ---- clicks and typing ----
+document.addEventListener("click", async (e) => {
+  const w = e.target.closest("[data-lw]");
+  if (w && libState().open && route() === "learn") { e.preventDefault(); libShowPop(w.dataset.lw); return; }
+  const el = e.target.closest("[data-lib]"); if (!el) return;
+  if (el.dataset.lib === "popclose" && e.target.closest("[data-stop]") && !e.target.closest(".ztx")) return;
+  if (el.dataset.lib === "checkoutclose" && e.target.closest("[data-stop]") && !e.target.closest(".ztx")) return;
+  const S = libState(), a = el.dataset.lib, id = S.open, d = el.dataset;
+  if (a === "tab") { S.tab = d.v; if (location.hash !== "#/learn/library") location.hash = "#/learn/library"; else render(); }
+  else if (a === "lv") { S.lv = d.v; lsSet("mz-lib-lv", d.v); render(); }
+  else if (a === "py") { S.py = d.v; lsSet("mz-lib-py", d.v); render(); }
+  else if (a === "buy") libBuy(d.id);
+  else if (a === "checkoutclose") libCloseCheckout();
+  else if (a === "popclose") document.querySelector(".lpopover")?.remove();
+  else if (a === "addword" || a === "addall") {
+    const book = libBook(id); if (!book) return;
+    const list = a === "addword" ? [d.w] : d.ch === "all" ? book.chapters.flatMap((c) => c.words) : book.chapters[+d.ch].words;
+    el.disabled = true;
+    const n = await ztAddWords(list.map((x) => libWordEntry(book, x)).filter(Boolean), "book");
+    toast(n ? `${n === 1 ? "Added to" : `${n} words added to`} your flashcards.` : "Already in your flashcards.");
+    const pop = document.querySelector(".lpopover"); render();
+    if (pop && a === "addword") libShowPop(d.w);
+  }
+  else if (a === "qc") { libSet(id, `qc.${d.ch}.${d.k}`, d.v === "true"); render(); }
+  else if (a === "read") { libSet(id, `read.${d.ch}`, true); toast("Chapter ticked off. 加油！"); render(); }
+  else if (a === "show") { libSet(id, `ex.${d.ex}.show.${d.k}`, true); render(); }
+  else if (a === "blank") { S.blank = { ex: +d.ex, k: +d.k }; render(); }
+  else if (a === "bankw") {
+    const sel = S.blank; if (!sel || sel.ex !== +d.ex) { toast("Tap a blank first."); return; }
+    const ans = libGet(id, `ex.${d.ex}.a`) || {};
+    for (const [k, v] of Object.entries(ans)) if (v === d.w && +k !== sel.k) delete ans[k]; // a word goes in one blank only
+    ans[sel.k] = d.w; libSet(id, `ex.${d.ex}.a`, ans);
+    const items = libBook(id).exercises[+d.ex].items, nextK = items.findIndex((_, k) => !ans[k]);
+    S.blank = nextK >= 0 ? { ex: +d.ex, k: nextK } : null; render();
+  }
+  else if (a === "choice") { libSet(id, `ex.${d.ex}.a.${d.k}`, +d.v); render(); }
+  else if (a === "check") { libSet(id, `ex.${d.ex}.show.${d.k}`, true); render(); }
+  else if (a === "selfok") { libSet(id, `ex.${d.ex}.a.${d.k}`, true); render(); }
+  else if (a === "task") { libSet(id, `ex.${d.ex}.task`, d.v); render(); }
+  else if (a === "reset") { libSet(id, `ex.${d.ex}`, {}); S.blank = null; render(); }
+});
+document.addEventListener("keydown", (e) => { if ((e.key === "Enter" || e.key === " ") && e.target.matches?.(".lw[data-lw]")) { e.preventDefault(); e.target.click(); } });
+document.addEventListener("input", (e) => {
+  const t = e.target.closest("[data-libin]"); if (!t) return;
+  const id = libState().open, [ex, k] = t.dataset.libin.split(".");
+  if (k === "text") {
+    libSet(id, `ex.${ex}.text`, t.value);
+    const n = (t.value.match(/[一-鿿]/g) || []).length, c = document.querySelector(".lcount");
+    if (c) { c.textContent = `${n} / 150 characters`; c.classList.toggle("over", n > 150); }
+    const cl = document.querySelector(".lchecklist"); if (cl) cl.innerHTML = libEssayChecks(t.value);
+  } else {
+    const ans = libGet(id, `ex.${ex}.a`) || {}; ans[k] = t.value; libSet(id, `ex.${ex}.a`, ans);
+    const sh = libGet(id, `ex.${ex}.show`); if (sh?.[k] && libBook(id).exercises[+ex].kind === "write") { delete sh[k]; }
+  }
+});
+document.addEventListener("toggle", (e) => { const d = e.target.closest?.("[data-lib-how]"); if (d && !d.open) libSet(d.dataset.libHow, "howSeen", true); }, true);
