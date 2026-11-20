@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=83";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=83";
-import { COUNTRIES } from "./countries.js?v=83";
+import { createClient } from "./vendor/supabase.js?v=84";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=84";
+import { COUNTRIES } from "./countries.js?v=84";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=83";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=84";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -39,7 +39,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=83"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=84"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -1382,7 +1382,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=83"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=84"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1963,7 +1963,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=83");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=84");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2785,7 +2785,12 @@ let lastLoad = Date.now();
 document.addEventListener("visibilitychange", async () => {
   if (document.visibilityState !== "visible" || !state.role || Date.now() - lastLoad < 60e3) return;
   lastLoad = Date.now();
-  try { await loadAll(); if (route() !== "me") render(); } catch { /* offline: keep what we have */ }
+  try {
+    await loadAll();
+    // Flashcards and the streak tree may have changed on another device: reload them (not in the middle of a review).
+    if (state.lu?.loaded && !state.lu.review) await ztLoad(true);
+    if (route() !== "me") render();
+  } catch { /* offline: keep what we have */ }
 });
 setInterval(() => { if (state.role && route() === "home") render(); }, 60e3); // keep "in 2 h" fresh
 let wasWide = wide();
@@ -2837,7 +2842,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=83").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=84").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -2955,13 +2960,13 @@ document.addEventListener("focusout", (e) => { if (vsugg.input && e.target === v
 // Zest Town · Learning Universe (live for all members since 18 Nov 2026; is_beta() on the server is the off switch)
 // Streak tree, HSK Temple and Flashcard Center. Art: icons/zt/*.png (pixel art, see the design canvas).
 // ---------------------------------------------------------------------------
-const ZT_MAP = {
-  phone: { w: 98, h: 222, tree: [28, 39], temple: [70, 26], house: [26, 30], library: [25, 146], callig: [73, 146], gallery: [49, 200], plaza: [49, 73],
-    river: [89, 29], bridge: [44, 96, 11, 18], fsign: [74, 82, 24], bushes: [[4, 4], [85, 63], [1, 71], [43, 2], [85, 111], [1, 113], [6, 196], [80, 192]],
-    hops: [[8, 58], [12, 76], [64, 80], [74, 60], [58, 86], [26, 86]] },
-  wide: { w: 196, h: 180, tree: [77, 66], temple: [141, 36], house: [52, 41], library: [32, 108], callig: [164, 108], gallery: [96, 30], plaza: [98, 100],
-    river: [129, 30], bridge: [93, 129, 11, 17], fsign: [160, 150, 32], bushes: [[8, 6], [175, 61], [1, 59], [176, 8], [21, 159], [59, 71], [127, 69]],
-    hops: [[58, 94], [62, 116], [120, 116], [124, 94], [104, 124], [76, 124]] },
+const ZT_MAP = { // town3-*.png: 1.2x more room than the first layout, so buildings look smaller and don't touch (20 Nov)
+  phone: { w: 118, h: 266, tree: [38, 51], temple: [84, 31], house: [31, 36], library: [30, 175], callig: [88, 175], gallery: [59, 240], plaza: [59, 88],
+    river: [110, 29], bridge: [54, 117, 11, 18], fsign: [91, 100, 24], bushes: [[6, 6], [104, 77], [3, 86], [53, 4], [104, 134], [3, 137], [9, 236], [98, 232]],
+    hops: [[11, 71], [16, 93], [79, 98], [91, 74], [71, 105], [33, 105]] },
+  wide: { w: 235, h: 216, tree: [97, 84], temple: [169, 43], house: [62, 49], library: [38, 130], callig: [197, 130], gallery: [115, 36], plaza: [118, 120],
+    river: [158, 30], bridge: [113, 158, 11, 17], fsign: [195, 182, 32], bushes: [[11, 8], [212, 74], [3, 72], [213, 11], [27, 192], [72, 86], [154, 84]],
+    hops: [[71, 115], [76, 141], [146, 141], [151, 115], [127, 151], [93, 151]] },
 };
 const ZT_STAGES = [ // [en, simplified, traditional, first day]
   ["Seed", "种子", "種子", 0], ["Sprout", "嫩芽", "嫩芽", 1], ["Seedling", "幼苗", "幼苗", 7], ["Sapling", "小树", "小樹", 30],
@@ -3126,7 +3131,11 @@ const treeImg = (st, cls = "") => (st.wilted ? ztImg("tree-dead", cls, "Your wil
 
 // ---- flashcards: simple spaced repetition ----------------------------------
 const addDays = (n) => { const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() + n); return dkey(d); };
-function ztNewToday() { return +(lsGet("mz-zt-newdone-" + todayKey()) || 0); }
+// New cards started today, on any device (first_review is saved with the card), so phone and computer agree.
+function ztNewToday() {
+  const today = todayKey(), n = (state.lu.cards || []).filter((c) => c.first_review && dkey(new Date(c.first_review)) === today).length;
+  return Math.max(n, +(lsGet("mz-zt-newdone-" + today) || 0));
+}
 function ztDeck(filter) {
   const today = todayKey(), cards = state.lu.cards.filter(filter || (() => true));
   const due = cards.filter((c) => c.reps > 0 && c.due <= today);
@@ -3170,7 +3179,7 @@ async function ztGrade(g) {
     // Several good answers on the same day only count once towards "learned".
     if (g >= 2 && c.last_review && dkey(new Date(c.last_review)) === todayKey()) upd.good_streak = c.good_streak;
     Object.assign(c, upd);
-    if (wasNew) lsSet("mz-zt-newdone-" + todayKey(), String(ztNewToday() + 1));
+    if (wasNew) { lsSet("mz-zt-newdone-" + todayKey(), String(ztNewToday() + 1)); upd.first_review = c.first_review = new Date().toISOString(); }
     sb.from("learn_cards").update(upd).eq("id", c.id).then(({ error }) => { if (error) toast("Couldn't save that card. Check your connection."); });
   }
   R.done++;
@@ -3265,12 +3274,12 @@ function townMap(st) {
   const at = (x, y) => `left:${pct(x, M.w)};top:${pct(y, M.h)}`;
   const dueN = ztQueueAll().length, fruit = myFruitKey(), h0 = M.hops[0];
   return `<div class="ztmap ${k}" style="aspect-ratio:${M.w}/${M.h}">
-    ${ztImg(`town2-${k}`, "ztbg")}
+    ${ztImg(`town3-${k}`, "ztbg")}
     ${[["house", 21, 18, 43, 33, "a", "#/learn/cards", "Flashcard Center"], ["temple", 23, 19, 46, 36, "a", "#/learn/temple", "HSK Temple"], ["gallery", 21, 18, 42, 34, "a", "#/learn/gallery", "Sticker Gallery"],
       ["library", 21, 18, 42, 34, "b", "library", "Library, opening soon"], ["callig", 21, 18, 42, 34, "b", "callig", "Calligraphy School, opening soon"]]
       .map(([key, ox, oy, bw, bh, tag, to, label]) => { const [x, y] = M[key], st = `${at(x - ox, y - oy)};width:${pct(bw, M.w)};height:${pct(bh, M.h)}`;
         return tag === "a" ? `<a class="zthit" href="${to}" style="${st}" aria-label="${label}"></a>` : `<button type="button" class="zthit" data-zt="soon" data-v="${to}" style="${st}" aria-label="${label}"></button>`; }).join("")}
-    <div class="ztriver" style="top:${pct(M.river[0], M.h)};height:${pct(M.river[1], M.h)}" aria-hidden="true"><img class="px" src="icons/zt/river-${k}.png" alt="" draggable="false"></div>
+    <div class="ztriver" style="top:${pct(M.river[0], M.h)};height:${pct(M.river[1], M.h)}" aria-hidden="true"><img class="px" src="icons/zt/river3-${k}.png" alt="" draggable="false"></div>
     <img class="px ztbridge" src="icons/zt/bridge-${k}.png" alt="" draggable="false" style="${at(M.bridge[0], M.bridge[1])};width:${pct(M.bridge[2], M.w)}">
     ${(() => { const [x, y, sz] = M.fsign, k = sz / 24; return `<a class="ztsignwrap" href="#/learn/forest" style="${at(x, y)};width:${pct(sz, M.w)}" aria-label="To the Magical Forest">${ztImg("sign-forest")}<span class="ztsigntext" style="width:${(16 / 24) * 100}%;height:${(11 / 18) * 100}%;font-size:${(k * 1.75 / M.w) * 100}cqw">MAGICAL<br>FOREST</span></a>`; })()}
     ${M.bushes.map(([x, y], i) => `<img class="px ztbush" src="icons/zt/bush.png" alt="" draggable="false" style="${at(x, y)};width:${pct(15, M.w)};animation-delay:-${(i * 0.7) % 3}s">`).join("")}
