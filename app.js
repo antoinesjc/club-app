@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=108";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=108";
-import { COUNTRIES } from "./countries.js?v=108";
+import { createClient } from "./vendor/supabase.js?v=109";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=109";
+import { COUNTRIES } from "./countries.js?v=109";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=108";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=109";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -39,7 +39,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=108"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=109"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -1382,7 +1382,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=108"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=109"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1963,7 +1963,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=108");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=109");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2842,7 +2842,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=108").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=109").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -3270,7 +3270,7 @@ function placeCards(big) {
   return card("#/learn/cards", "house", "Flashcard Center", trad() ? "字卡中心" : "字卡中心", dueN ? `${dueN} card${dueN === 1 ? "" : "s"} to review today` : "All done for today", `${d.cards.length.toLocaleString()} in your deck · ${state.lu.perDay} new a day`, "Review")
     + card("#/learn/temple", "temple", "HSK Temple", trad() ? "漢語廟" : "汉语庙", hskLine, "Every HSK word, and how well you know it", "Explore")
     + (() => { const c = sbCount(); return card("#/learn/gallery", "gallery", "Sticker Gallery", trad() ? "貼紙館" : "贴纸馆", `${c.n} of ${c.total} stickers collected`, "Every sticker you've earned, and how to get the others", "Visit"); })()
-    + (libOpen() ? card("#/learn/library", "library", "Library", trad() ? "圖書館" : "图书馆", "Beta · admins only", "Read our workbooks in the app, and buy new ones", "Open") : "");
+    + (libOpen() ? card("#/learn/library", "library", "Library", trad() ? "圖書館" : "图书馆", "Workbooks & graded readers", "Read your books in the app, and get new ones in the Bookshop", "Open") : "");
 }
 function soonCards(big) {
   const card = (img, t, z, line) => `<div class="card ztplace soon ${big ? "big" : ""}"><span class="ztplaceart">${ztImg(img)}</span>
@@ -3297,7 +3297,7 @@ function townMap(st) {
     <a class="ztlabel" href="#/learn/cards" style="${at(M.house[0], M.house[1] + 15)}" aria-label="Flashcard Center, ${dueN} due">FLASHCARDS${dueN ? `<em>${dueN}</em>` : ""}</a>
     <a class="ztlabel" href="#/learn/temple" style="${at(M.temple[0], M.temple[1] + 17)}" aria-label="HSK Temple">HSK TEMPLE</a>
     <a class="ztlabel gal" href="#/learn/gallery" style="${at(M.gallery[0], M.gallery[1] + 15)}" aria-label="Sticker Gallery">STICKER GALLERY</a>
-    ${libOpen() ? `<a class="ztlabel lib" href="#/learn/library" style="${at(M.library[0], M.library[1] + 15)}" aria-label="Library (beta)">LIBRARY<em>BETA</em></a>`
+    ${libOpen() ? `<a class="ztlabel lib" href="#/learn/library" style="${at(M.library[0], M.library[1] + 15)}" aria-label="Library">LIBRARY</a>`
       : `<button type="button" class="ztlabel soon" data-zt="soon" data-v="library" style="${at(M.library[0], M.library[1] + 15)}" aria-label="Library, opening soon">LIBRARY<em>SOON</em></button>`}
     <button type="button" class="ztlabel soon" data-zt="soon" data-v="callig" style="${at(M.callig[0], M.callig[1] + 15)}" aria-label="Calligraphy School, opening soon">CALLIGRAPHY<em>SOON</em></button>
     <button type="button" class="ztlabel day ${st.wilted ? "dead" : ""}" data-zt="sheet" style="${at(M.plaza[0], M.plaza[1] + 11)}">${st.wilted ? "WILTED" : `DAY ${st.n}`}</button>
@@ -3802,7 +3802,7 @@ setInterval(checkForUpdate, 30 * 60e3);
 // Routes: #/learn/library · #/learn/library/<book> · #/learn/library/<book>/<ch|culture|grammar|ex|words>/<n>
 // ---------------------------------------------------------------------------
 const LIB_LEVELS = ["1", "2", "3", "4", "5", "6", "7-9"];
-const libOpen = () => isAdmin(); // beta: the Library opens for admins only
+const libOpen = () => true; // live for everyone with Zest Town since 21 Nov 2026 (was admins only)
 function libState() {
   if (!state.lib) state.lib = { books: null, owned: new Set(), content: new Map(), progress: new Map(), tab: "shelf", lv: lsGet("mz-lib-lv") || "", py: lsGet("mz-lib-py") === "on" ? "on" : "off" };
   return state.lib;
@@ -3936,7 +3936,7 @@ const libTitle = () => `Library <span class='zhsub'>${trad() ? "圖書館" : "�
 function libHomeView() {
   const S = libState(), shop = S.tab === "shop";
   const tabs = `<div class="seg ztseg" role="group" aria-label="Library"><button type="button" data-lib="tab" data-v="shelf" aria-pressed="${!shop}">My shelf</button><button type="button" data-lib="tab" data-v="shop" aria-pressed="${shop}">Bookshop</button></div>`;
-  const beta = isAdmin() ? `<div class="lbeta">Beta · only admins can open the Library for now. You can read every book; the Bookshop takes real payments.</div>` : "";
+  const beta = "";
   const owl = `<div class="lowlwrap"><button type="button" class="lowl" data-lib="owl" aria-label="Talk to the owl librarian"><span class="lowlpx" aria-hidden="true"></span></button><span class="lowltip">${trad() ? "館長" : "馆长"}</span></div>`;
   return `${ztHeader(ztStreak(), libTitle())}${beta}<div class="ltop"><div class="ltopl">${tabs}${libCounter()}</div>${owl}</div>${shop ? libShopView() : libShelfView()}`;
 }
