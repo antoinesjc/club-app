@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=109";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=109";
-import { COUNTRIES } from "./countries.js?v=109";
+import { createClient } from "./vendor/supabase.js?v=110";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=110";
+import { COUNTRIES } from "./countries.js?v=110";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=109";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=110";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -39,7 +39,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=109"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=110"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -1382,7 +1382,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=109"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=110"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1541,7 +1541,32 @@ function memberView() {
   ${full?.discord ? `<a class="chatcard" style="display:flex" href="${DISCORD_CHAT}" target="_blank" rel="noopener">${ICON.chat}<span class="grow"><b>@${esc(full.discord)}</b><br><span class="small">Say hi on the Club Discord</span></span><span aria-hidden="true" style="font-size:20px">↗</span></a>` : ""}
   ${hongbaoGiveBlock(id)}
   ${isAdmin() ? activityBlock(id) : ""}
-  ${isAdmin() ? adminXpBlock(id, r, awards) : ""}`;
+  ${isAdmin() ? adminXpBlock(id, r, awards) : ""}
+  ${isAdmin() && r ? adminBookBlock(id) : ""}`;
+}
+
+// Admins give Library books to a member, e.g. someone who already bought the PDF (source 'gift').
+function adminBookBlock(id) {
+  const S = libState();
+  if (!S.books && !S.loading && !S.error) libLoad().then(render);
+  const mb = (state.memberBooks ||= {});
+  if (mb[id] === undefined) { mb[id] = null; sb.rpc("library_member_books", { p_user: id }).then(({ data }) => { mb[id] = data || []; render(); }); }
+  const own = mb[id], books = S.books || [];
+  if (!own || !books.length) return `<section class="card"><h2>Library books</h2><p class="small muted" style="margin:0">Loading…</p></section>`;
+  const has = new Set(own.map((o) => o.book_id)), pick = (state.giveBooks ||= new Set());
+  const src = { stripe: "bought", claim: "claimed free", gift: "given by an admin" };
+  const t = (bid) => { const b = books.find((x) => x.id === bid); return b ? `${b.title_zh || b.title}` : bid; };
+  const free = books.filter((b) => !b.price_cents).map((b) => t(b.id));
+  const rest = books.filter((b) => b.price_cents && !has.has(b.id));
+  return `<section class="card" style="gap:12px">
+    <div class="row between" style="align-items:baseline"><h2>Library books</h2><span class="small muted">Admin only</span></div>
+    <div>${own.length ? own.map((o) => `<div class="awardrow"><span class="grow"><b class="lzh">${esc(t(o.book_id))}</b><br><span class="small muted">${esc(src[o.source] || o.source)} · ${new Date(o.created_at).toLocaleDateString()}</span></span>
+      ${o.source === "gift" ? `<button type="button" class="xbtn" data-act="book-take" data-id="${esc(o.book_id)}" aria-label="Take this book back">×</button>` : ""}</div>`).join("") : `<p class="small muted" style="margin:0">No books yet${free.length ? ` (besides the free ${esc(free.join(", "))})` : ""}.</p>`}</div>
+    ${rest.length ? `<div><div style="font-weight:700;font-size:14.5px;margin-bottom:6px">Give books for free</div>
+      <div class="stack" style="gap:2px">${rest.map((b) => `<label class="checkrow"><input type="checkbox" data-act="book-pick" data-id="${esc(b.id)}" ${pick.has(b.id) ? "checked" : ""}> <span class="lzh">${esc(b.title_zh || b.title)}</span> <span class="small muted">${esc(b.title)} · HSK ${esc(b.level)}</span></label>`).join("")}</div></div>
+    <button type="button" class="btn green block" data-act="book-give" ${pick.size ? "" : "disabled"}>${pick.size ? `Give ${pick.size} book${pick.size > 1 ? "s" : ""}` : "Give books"}</button>
+    <div class="small muted">For members who already bought a book as a PDF. It goes straight onto their shelf. It doesn't use their one free claim and doesn't unlock the 开卷 sticker.</div>` : `<p class="small muted" style="margin:0">They have every book.</p>`}
+  </section>`;
 }
 
 // Admin: a member's activity (sessions attended, XP gained, stickers and avatars received).
@@ -1963,7 +1988,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=109");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=110");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2709,6 +2734,19 @@ document.addEventListener("click", async (e) => {
     state.actFilter = el.dataset.v; state.actLimit = 25; render();
   } else if (act === "act-more") {
     state.actLimit = (state.actLimit || 25) + 50; render();
+  } else if (act === "book-pick") {
+    const p = (state.giveBooks ||= new Set()); el.checked ? p.add(el.dataset.id) : p.delete(el.dataset.id); render();
+  } else if (act === "book-give") {
+    const uid = routeArg(), ids = [...(state.giveBooks || [])]; if (!ids.length) return;
+    el.disabled = true; let n = 0;
+    for (const b of ids) { const { data } = await sb.rpc("library_give_book", { p_user: uid, p_book: b }); if (data === "ok") n++; }
+    state.giveBooks = new Set(); if (state.memberBooks) delete state.memberBooks[uid];
+    toast(n ? `Gave ${n} book${n > 1 ? "s" : ""}. It's on their shelf now.` : "Couldn't give the book."); render();
+  } else if (act === "book-take") {
+    if (!confirm("Take this book back from their shelf?")) return;
+    const uid = routeArg(); const { data } = await sb.rpc("library_take_book", { p_user: uid, p_book: el.dataset.id });
+    if (state.memberBooks) delete state.memberBooks[uid];
+    toast(data === "ok" ? "Book taken back." : "Couldn't take it back."); render();
   } else if (act === "award-del") {
     if (!confirm("Remove this XP award?")) return;
     const { error } = await sb.from("xp_awards").delete().eq("id", el.dataset.id);
@@ -2842,7 +2880,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=109").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=110").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
