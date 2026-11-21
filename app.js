@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=101";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=101";
-import { COUNTRIES } from "./countries.js?v=101";
+import { createClient } from "./vendor/supabase.js?v=102";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=102";
+import { COUNTRIES } from "./countries.js?v=102";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=101";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=102";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -39,7 +39,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=101"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=102"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -1382,7 +1382,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=101"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=102"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1963,7 +1963,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=101");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=102");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2842,7 +2842,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=101").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=102").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -3811,10 +3811,10 @@ async function libLoad(force) {
   const S = libState();
   if (S.loading || (S.books && !force)) return;
   S.loading = true;
-  const [b, p] = await Promise.all([sb.from("library_books").select("*").order("sort").order("level"), sb.from("library_purchases").select("book_id, created_at")]);
+  const [b, p] = await Promise.all([sb.from("library_books").select("*").order("sort").order("level"), sb.from("library_purchases").select("book_id, source, created_at")]);
   S.loading = false;
   if (b.error) { S.error = true; render(); return; }
-  S.books = b.data; S.owned = libWithFree((p.data || []).map((r) => r.book_id));
+  S.books = b.data; S.owned = libWithFree((p.data || []).map((r) => r.book_id)); S.claimed = (p.data || []).some((r) => r.source === "claim");
   render();
   if (!S.checked) { S.checked = true; libVerify(); } // a payment finished after the app was closed still unlocks its book
 }
@@ -3968,10 +3968,11 @@ function libCounter() {
 function libShopView() {
   const S = libState(), lv = S.lv, forSale = S.books.filter((b) => !S.owned.has(b.id)), books = forSale.filter((b) => !lv || libLvIn(b, lv)); // books you own are on your shelf, not in the shop
   const chips = `<div class="lchips" role="group" aria-label="Filter by HSK level"><button type="button" data-lib="lv" data-v="" aria-pressed="${!lv}">All</button>${LIB_LEVELS.map((l) => `<button type="button" data-lib="lv" data-v="${l}" aria-pressed="${lv === l}" ${forSale.some((b) => libLvIn(b, l)) ? "" : "class=\"empty\""}>HSK ${l}</button>`).join("")}</div>`;
+  const canClaim = !S.claimed && forSale.some((b) => b.price_cents > 0);
   const card = (b) => {
     const bought = S.owned.has(b.id);
     const btn = bought ? `<a class="btn ghost" href="#/learn/library/${encodeURIComponent(b.id)}">${b.price_cents ? "Owned" : "Free"} · Read</a>`
-      : `<button type="button" class="btn" data-lib="buy" data-id="${esc(b.id)}" ${S.buying ? "disabled" : ""}>${S.buying === b.id ? "Opening…" : `Buy · ${money(b.price_cents, b.currency)}`}</button>${isAdmin() ? `<a class="small" href="#/learn/library/${encodeURIComponent(b.id)}">Read (admin access)</a>` : ""}`;
+      : `${canClaim ? `<button type="button" class="btn lclaim" data-lib="claim" data-id="${esc(b.id)}" ${S.claiming ? "disabled" : ""}>${S.claiming === b.id ? "Claiming…" : S.claimAsk === b.id ? "Tap again to confirm" : "🎁 Claim for free"}</button>` : ""}<button type="button" class="btn${canClaim ? " ghost" : ""}" data-lib="buy" data-id="${esc(b.id)}" ${S.buying ? "disabled" : ""}>${S.buying === b.id ? "Opening…" : `Buy · ${money(b.price_cents, b.currency)}`}</button>${isAdmin() ? `<a class="small" href="#/learn/library/${encodeURIComponent(b.id)}">Read (admin access)</a>` : ""}`;
     return `<div class="card lshop">${libCover(b, "sm")}<div class="grow" style="display:flex;flex-direction:column;gap:6px;min-width:0">
       <div><span class="ltag hsk">${libLv(b)}</span>${b.published ? "" : ` <span class="ltag">Beta</span>`}</div>
       <b class="lshopt">${esc(b.title_zh || "")} <span>${esc(b.title)}</span></b>
@@ -3979,7 +3980,8 @@ function libShopView() {
       <span class="small">${esc(b.summary || "")}</span>
       <div class="row" style="gap:10px;align-items:center;flex-wrap:wrap;margin-top:4px">${btn}</div></div></div>`;
   };
-  return `${chips}<p class="small muted" style="margin:0">Buy once, keep it forever. Each book opens in the app right after payment, on all your devices.</p>
+  const gift = canClaim ? `<div class="card lgift"><span class="lgiftic" aria-hidden="true">🎁</span><span><b>One book free for Club members</b><br><span class="small">Pick any book you like and tap “Claim for free”. It's yours to keep, on all your devices. You can claim one book.</span></span></div>` : "";
+  return `${chips}${gift}<p class="small muted" style="margin:0">Buy once, keep it forever. Each book opens in the app right after payment, on all your devices.</p>
     <div class="lshoplist">${books.map(card).join("") || (forSale.length ? `<p class="small muted">No more books for HSK ${esc(lv)} yet. More are coming.</p>` : `<p class="small muted">You have every book in the shop. More are coming.</p>`)}</div>`;
 }
 function libHead(meta, back, crumb) {
@@ -4199,6 +4201,21 @@ async function libCall(body) {
 }
 let stripeJs = null;
 const loadStripe = () => stripeJs || (stripeJs = new Promise((ok, bad) => { const s = document.createElement("script"); s.src = "https://js.stripe.com/v3/"; s.onload = () => ok(window.Stripe); s.onerror = bad; document.head.append(s); }));
+async function libClaim(id) { // one free book per member: first tap asks, second tap claims
+  const S = libState(); if (S.claiming || S.claimed) return;
+  if (S.claimAsk !== id) { S.claimAsk = id; render(); return; }
+  S.claimAsk = null; S.claiming = id; render();
+  const { data, error } = await sb.rpc("library_claim_free", { p_book: id });
+  S.claiming = null;
+  if (error || data !== "ok") {
+    if (data === "already_claimed") S.claimed = true;
+    toast(data === "already_claimed" ? "You've already claimed your free book." : "Couldn't claim this book. Please try again."); render(); return;
+  }
+  S.claimed = true; S.owned.add(id);
+  const b = S.books?.find((x) => x.id === id);
+  toast(`🎁 ${b ? b.title_zh || b.title : "Your book"} is on your shelf!`);
+  S.tab = "shelf"; location.hash = `#/learn/library/${encodeURIComponent(id)}`;
+}
 async function libBuy(id) {
   const S = libState(); S.buying = id; render();
   const r = await libCall({ action: "create", book_id: id });
@@ -4245,6 +4262,7 @@ document.addEventListener("click", async (e) => {
   else if (a === "lv") { S.lv = d.v; lsSet("mz-lib-lv", d.v); render(); }
   else if (a === "py") { S.py = d.v; lsSet("mz-lib-py", d.v); render(); }
   else if (a === "buy") libBuy(d.id);
+  else if (a === "claim") libClaim(d.id);
   else if (a === "owl") owlTalk();
   else if (a === "checkoutclose") libCloseCheckout();
   else if (a === "popclose") document.querySelector(".lpopover")?.remove();

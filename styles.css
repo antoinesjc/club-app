@@ -1118,3 +1118,6 @@ details.custom.sbdet > summary b { color: #6b4423; }
 .ltile { border: 1.5px solid var(--orange); background: #fff; color: var(--ink); border-radius: 10px; padding: 6px 12px; font-size: 17px; cursor: pointer; min-height: 40px; }
 .ltile.on { background: #fdf0e8; border-color: #f6cfa9; }
 .lexi.ok .ltile.on { background: #e9f6e6; border-color: #a9d9a0; }
+.lgift { display: flex; flex-direction: row; gap: 12px; align-items: center; padding: 12px 14px; background: #fff4e6; border: 1.5px dashed #f37a48; }
+.lgiftic { font-size: 28px; line-height: 1; }
+.lclaim { background: #f37a48; }
