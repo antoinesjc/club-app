@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=95";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=95";
-import { COUNTRIES } from "./countries.js?v=95";
+import { createClient } from "./vendor/supabase.js?v=96";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=96";
+import { COUNTRIES } from "./countries.js?v=96";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=95";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=96";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -39,7 +39,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=95"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=96"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -1382,7 +1382,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=95"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=96"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1963,7 +1963,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=95");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=96");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2842,7 +2842,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=95").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=96").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -3836,7 +3836,7 @@ const LIB_HOW = [
   "Tap any word in the story to see its pinyin, meaning and HSK level, and add it to your flashcards. Turn pinyin on above the text if you need it. Each chapter ends with its new words and a quick check.",
   "Suggested method: first just read, without stopping. Then read again with the word list. Then read the dialogues aloud and give each character a voice.",
 ];
-const LIB_FIXED = new Set(["bank", "choice"]); // exercises with one right answer, checked by the app
+const LIB_FIXED = new Set(["bank", "choice", "order"]); // exercises with one right answer, checked by the app
 async function libUnpack(c) {
   const fixed = (b) => { b.exercises = (b.exercises || []).filter((x) => LIB_FIXED.has(x.kind)); return b; };
   if (!c.gz) return { s: fixed(c.s), t: fixed(c.t) };
@@ -3938,15 +3938,18 @@ function libHomeView() {
   const owl = `<div class="lowlwrap"><button type="button" class="lowl" data-lib="owl" aria-label="Talk to the owl librarian"><span class="lowlpx" aria-hidden="true"></span></button><span class="lowltip">${trad() ? "館長" : "馆长"}</span></div>`;
   return `${ztHeader(ztStreak(), libTitle())}${beta}<div class="ltop"><div class="ltopl">${tabs}${libCounter()}</div>${owl}</div>${shop ? libShopView() : libShelfView()}`;
 }
+// A book's level can be one level ("3") or a range ("2-3"); it shows under every level it covers.
+const libLvIn = (b, l) => { const [a, z = a] = String(b.level || "").split("-"); const n = (x) => (x === "7" || x === "7-9" ? 7 : +x); return n(l) >= n(a) && n(l) <= n(z); };
+const libLv = (b) => `HSK ${esc(String(b.level || "").replace("-", "–"))}`;
 function libCover(b, cls = "") {
-  return `<span class="lcover ${cls}" style="--c:${esc(b.color || "#f37a48")}">${b.cover ? `<img src="${esc(b.cover)}" alt="" loading="lazy">` : `<b>${esc(b.title_zh || b.title)}</b>`}<span class="lhsk">HSK ${esc(b.level)}</span></span>`;
+  return `<span class="lcover ${cls}" style="--c:${esc(b.color || "#f37a48")}">${b.cover ? `<img src="${esc(b.cover)}" alt="" loading="lazy">` : `<b>${esc(b.title_zh || b.title)}</b>`}<span class="lhsk">${libLv(b)}</span></span>`;
 }
 function libShelfView() {
   const S = libState();
   const mine = S.books.filter((b) => libHas(b.id)), lv = S.lv;
-  const shown = mine.filter((b) => !lv || b.level === lv);
+  const shown = mine.filter((b) => !lv || libLvIn(b, lv));
   const chips = `<div class="lchips" role="group" aria-label="Filter by HSK level"><button type="button" data-lib="lv" data-v="" aria-pressed="${!lv}">All</button>${LIB_LEVELS.map((l) => {
-    const n = mine.filter((b) => b.level === l).length;
+    const n = mine.filter((b) => libLvIn(b, l)).length;
     return `<button type="button" data-lib="lv" data-v="${l}" aria-pressed="${lv === l}" ${n ? "" : "class=\"empty\""}>HSK ${l}</button>`; }).join("")}</div>`;
   const per = wide() ? 5 : 3, rows = [];
   for (let i = 0; i < Math.max(shown.length, 1); i += per) rows.push(shown.slice(i, i + per));
@@ -3963,14 +3966,14 @@ function libCounter() {
   return `<div class="lcount2"><span class="lcountn">${have}</span><span><b>${have === 1 ? "book" : "books"} collected</b><br><span class="small muted">${total > have ? `${total - have} more in the Bookshop` : `You have every book. ${trad() ? "太厲害了！" : "太厉害了！"}`}${isAdmin() && !have ? " · as an admin you can read them all" : ""}</span></span></div>`;
 }
 function libShopView() {
-  const S = libState(), lv = S.lv, books = S.books.filter((b) => !lv || b.level === lv);
-  const chips = `<div class="lchips" role="group" aria-label="Filter by HSK level"><button type="button" data-lib="lv" data-v="" aria-pressed="${!lv}">All</button>${LIB_LEVELS.map((l) => `<button type="button" data-lib="lv" data-v="${l}" aria-pressed="${lv === l}" ${S.books.some((b) => b.level === l) ? "" : "class=\"empty\""}>HSK ${l}</button>`).join("")}</div>`;
+  const S = libState(), lv = S.lv, books = S.books.filter((b) => !lv || libLvIn(b, lv));
+  const chips = `<div class="lchips" role="group" aria-label="Filter by HSK level"><button type="button" data-lib="lv" data-v="" aria-pressed="${!lv}">All</button>${LIB_LEVELS.map((l) => `<button type="button" data-lib="lv" data-v="${l}" aria-pressed="${lv === l}" ${S.books.some((b) => libLvIn(b, l)) ? "" : "class=\"empty\""}>HSK ${l}</button>`).join("")}</div>`;
   const card = (b) => {
     const bought = S.owned.has(b.id);
     const btn = bought ? `<a class="btn ghost" href="#/learn/library/${encodeURIComponent(b.id)}">Owned · Read</a>`
       : `<button type="button" class="btn" data-lib="buy" data-id="${esc(b.id)}" ${S.buying ? "disabled" : ""}>${S.buying === b.id ? "Opening…" : `Buy · ${money(b.price_cents, b.currency)}`}</button>${isAdmin() ? `<a class="small" href="#/learn/library/${encodeURIComponent(b.id)}">Read (admin access)</a>` : ""}`;
     return `<div class="card lshop">${libCover(b, "sm")}<div class="grow" style="display:flex;flex-direction:column;gap:6px;min-width:0">
-      <div><span class="ltag hsk">HSK ${esc(b.level)}</span>${b.published ? "" : ` <span class="ltag">Beta</span>`}</div>
+      <div><span class="ltag hsk">${libLv(b)}</span>${b.published ? "" : ` <span class="ltag">Beta</span>`}</div>
       <b class="lshopt">${esc(b.title_zh || "")} <span>${esc(b.title)}</span></b>
       <span class="small muted">${esc(b.subtitle || "")}</span>
       <span class="small">${esc(b.summary || "")}</span>
@@ -3990,14 +3993,14 @@ function libBookView(meta) {
   const how = libGet(id, "howSeen") ? "" : " open";
   return `${libHead(meta, true)}
     <div class="lbookhead">${libCover(meta, "big")}<div class="grow" style="min-width:0">
-      <span class="ltag hsk">HSK ${esc(meta.level)}</span>
+      <span class="ltag hsk">${libLv(meta)}</span>
       <h1 class="lbt">${esc(meta.title_zh)}</h1><div class="lbs">${esc(meta.title)}</div>
       <div class="small muted">${libParts(c)}</div>
       <div class="lprog"><i style="width:${(nRead / c.chapters.length) * 100}%"></i></div><span class="small">${nRead} of ${c.chapters.length} chapters read</span>
       ${nRead < c.chapters.length ? `<a class="btn" href="${base}/ch/${c.chapters.findIndex((_, i) => !read[i])}">${nRead ? "Continue reading" : "Start reading"}</a>` : `<a class="btn ghost" href="${base}/ex/0">Practise with the exercises</a>`}
     </div></div>
     <details class="card lhow"${how} data-lib-how="${esc(id)}"><summary><b>How this book works</b></summary>${LIB_HOW.map((p) => `<p class="small">${esc(p)}</p>`).join("")}</details>
-    <section class="lsec"><h2>Meet the characters <span class="zhsub">人物</span></h2><div class="lchars">${c.chars.map((ch) => `<div class="lchar"><img src="icons/books/${esc(id)}-${esc(ch.key)}.png" alt=""><b>${esc(ch.zh)}${ch.py ? ` <span class="small muted">${esc(ch.py)}</span>` : ""}</b><span class="small muted">${esc(ch.desc)}</span></div>`).join("")}</div></section>
+    ${c.chars?.length ? "" : "<!--"}<section class="lsec"><h2>Meet the characters <span class="zhsub">人物</span></h2><div class="lchars">${(c.chars || []).map((ch) => `<div class="lchar"><img src="icons/books/${esc(id)}-${esc(ch.key)}.png" alt=""><b>${esc(ch.zh)}${ch.py ? ` <span class="small muted">${esc(ch.py)}</span>` : ""}</b><span class="small muted">${esc(ch.desc)}</span></div>`).join("")}</div></section>${c.chars?.length ? "" : "-->"}
     <section class="lsec"><h2>Part 1 · The story</h2><div class="card llist">${c.chapters.map((ch, i) => row(`${base}/ch/${i}`, `<span class="lzh">${LIB_NUM[i] ? `第${LIB_NUM[i]}章 ` : ""}${esc(ch.zh)}</span>`, `${esc(ch.en)} · about ${ch.mins} min · ${ch.words.length} new words`, read[i])).join("")}</div></section>
     ${c.culture?.length ? `<section class="lsec"><h2>Part 2 · Cultural background</h2><div class="card llist">${row(`${base}/culture`, "China's population, marriage pressure and dating culture", c.culture.map((s) => esc(s.h)).join(" · "), libGet(id, "cultureSeen"))}</div></section>` : ""}
     <section class="lsec"><h2>Part 3 · Grammar</h2><div class="card llist">${c.grammar.map((g, i) => row(`${base}/grammar/${i}`, `${i + 1}. ${esc(g.title)}`, esc(g.pattern), libGet(id, `gram.${i}`))).join("")}</div></section>
@@ -4072,7 +4075,7 @@ const libNorm = (s) => String(s || "").replace(/[\s，。！？、,.!?：:；;�
 // Model answers in both scripts, so a sentence typed in simplified also counts when reading in traditional (and back).
 function libAlt(id, i) {
   const c = libState().content.get(id), o = c && (trad() ? c.s : c.t), x = libBook(id).exercises[i];
-  if (x.kind === "write" && o) x.items.forEach((it, k) => { it.alt = o.exercises[i].items[k].a; });
+  if ((x.kind === "write" || x.kind === "order") && o) x.items.forEach((it, k) => { const oa = o.exercises[i]?.items[k]?.a; it.alt = Array.isArray(oa) ? oa : oa ? [oa] : []; });
   return x;
 }
 function libExScore(id, i, x) {
@@ -4084,9 +4087,16 @@ function libExScore(id, i, x) {
   const right = x.items.filter((it, k) => libExRight(x, it, ans[k])).length, tried = Object.keys(ans).length;
   return { done: right === n, text: tried ? `${right} of ${n} right` : `${n} questions` };
 }
+function libShuffle(arr, seed) { // same order every time for one question, never the right order
+  let h = 0; for (const ch of seed) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  const out = [...arr]; for (let i = out.length - 1; i > 0; i--) { h = (h * 1103515245 + 12345) >>> 0; const j = h % (i + 1); [out[i], out[j]] = [out[j], out[i]]; }
+  if (out.every((v, i) => v === i) && out.length > 1) out.push(out.shift());
+  return out;
+}
 function libExRight(x, it, a) {
   if (a === undefined || a === null || a === "") return false;
   if (x.kind === "bank") return a === it.a;
+  if (x.kind === "order") return Array.isArray(a) && a.length === it.tiles.length && [it.a, ...(it.alt || [])].some((m) => libNorm(m) === libNorm(a.map((j) => it.tiles[j]).join("")));
   if (x.kind === "choice") return +a === it.a;
   if (x.kind === "write") return a === true || [...it.a, ...(it.alt || [])].some((m) => libNorm(m) === libNorm(a));
   return false;
@@ -4103,7 +4113,7 @@ function libExerciseView(meta, i) {
       <textarea class="lin lzh" rows="2" data-libin="${i}.${k}" placeholder="Your answer in Chinese">${esc(ans[k] || "")}</textarea>
       ${shown[k] ? `<div class="lmodel"><span class="tiny muted">Sample answer</span><div class="lzh">${esc(it.a)}</div></div>` : `<button type="button" class="linkbtn" data-lib="show" data-ex="${i}" data-k="${k}">Show a sample answer</button>`}</div>`).join("");
   if (x.kind === "bank") {
-    const used = new Set(Object.values(ans)), sel = libState().blank;
+    const used = new Set(x.reuse ? [] : Object.values(ans)), sel = libState().blank;
     body = `<div class="lbank" role="group" aria-label="Word box">${x.bank.map((w) => `<button type="button" class="lbankw lzh" data-lib="bankw" data-ex="${i}" data-w="${esc(w)}" ${used.has(w) ? "data-used" : ""}>${esc(w)}</button>`).join("")}</div>
       <p class="tiny muted" style="margin:0">${sel?.ex === i ? `Now tap a word for blank ${sel.k + 1}.` : "Tap a blank, then a word."}</p>`
       + x.items.map((it, k) => { const a = ans[k], ok = a && a === it.a, on = sel?.ex === i && sel.k === k;
@@ -4113,7 +4123,14 @@ function libExerciseView(meta, i) {
     const pair = x.options[it.a].split("……"), fill = (j) => `<span class="lblank ${ok ? "filled" : ""}">${ok ? esc(pair[j] || "") : "＿＿"}</span>`;
     return `<div class="card lexi ${done ? (ok ? "ok" : "bad") : ""}"><div class="lexq"><span class="lqn">${k + 1}</span><span class="lzh">${libBlanks(it.q, fill)}</span></div>
       <div class="lopts">${x.options.map((o, j) => `<button type="button" class="lzh" data-lib="choice" data-ex="${i}" data-k="${k}" data-v="${j}" aria-pressed="${done && +a === j}" ${ok ? "disabled" : ""}>${esc(o)}</button>`).join("")}</div>
-      ${done && !ok ? `<span class="tiny lbadtxt">Not quite, try the other one.</span>` : ""}</div>`; }).join("");
+      ${done && !ok ? `<span class="tiny lbadtxt">Not quite, try ${x.options.length > 2 ? "another" : "the other"} one.</span>` : ""}</div>`; }).join("");
+  if (x.kind === "order") body = x.items.map((it, k) => { // tap the word tiles in order to build the sentence
+    const a = Array.isArray(ans[k]) ? ans[k] : [], full = a.length === it.tiles.length, ok = full && libExRight(x, it, a);
+    const left = libShuffle(it.tiles.map((t, j) => j), `${i}.${k}`).filter((j) => !a.includes(j));
+    return `<div class="card lexi ${full ? (ok ? "ok" : "bad") : ""}"><div class="lexq"><span class="lqn">${k + 1}</span>
+      <span class="lorderline lzh">${a.map((j, p) => `<button type="button" class="ltile on" data-lib="untile" data-ex="${i}" data-k="${k}" data-p="${p}" ${ok ? "disabled" : ""}>${esc(it.tiles[j])}</button>`).join("") || `<span class="tiny muted">Tap the words below in order</span>`}</span></div>
+      ${ok ? `<div class="lmodel ok">✓ <span class="lzh">${esc(it.a)}</span></div>` : `<div class="ltiles">${left.map((j) => `<button type="button" class="ltile lzh" data-lib="tile" data-ex="${i}" data-k="${k}" data-j="${j}">${esc(it.tiles[j])}</button>`).join("")}</div>`}
+      ${full && !ok ? `<span class="tiny lbadtxt">Not quite. Tap a word in your sentence to take it back.</span>` : ""}</div>`; }).join("");
   if (x.kind === "write") body = x.items.map((it, k) => { const a = ans[k], ok = libExRight(x, it, a), checked = shown[k];
     return `<div class="card lexi ${checked ? (ok ? "ok" : "") : ""}"><div class="lexq"><span class="lqn">${k + 1}</span><span class="${typeof it.q === "string" ? "" : "lzh"}">${typeof it.q === "string" ? esc(it.q) : libLine(it.q, c.dict, {})}</span>${it.hint ? `<span class="ltag">${esc(it.hint)}</span>` : ""}</div>
       <textarea class="lin lzh" rows="${x.zh === "比较句" || x.zh === "比較句" ? 2 : 1}" data-libin="${i}.${k}" placeholder="Write your sentence">${esc(a === true ? "" : a || "")}</textarea>
@@ -4248,12 +4265,17 @@ document.addEventListener("click", async (e) => {
   else if (a === "bankw") {
     const sel = S.blank; if (!sel || sel.ex !== +d.ex) { toast("Tap a blank first."); return; }
     const ans = libGet(id, `ex.${d.ex}.a`) || {};
-    for (const [k, v] of Object.entries(ans)) if (v === d.w && +k !== sel.k) delete ans[k]; // a word goes in one blank only
+    if (!libBook(id).exercises[+d.ex].reuse) for (const [k, v] of Object.entries(ans)) if (v === d.w && +k !== sel.k) delete ans[k]; // a word goes in one blank only
     ans[sel.k] = d.w; libSet(id, `ex.${d.ex}.a`, ans);
     const items = libBook(id).exercises[+d.ex].items, nextK = items.findIndex((_, k) => !ans[k]);
     S.blank = nextK >= 0 ? { ex: +d.ex, k: nextK } : null; render();
   }
   else if (a === "choice") { libSet(id, `ex.${d.ex}.a.${d.k}`, +d.v); render(); }
+  else if (a === "tile" || a === "untile") {
+    const cur = libGet(id, `ex.${d.ex}.a.${d.k}`), list = Array.isArray(cur) ? [...cur] : [];
+    if (a === "tile") list.push(+d.j); else list.splice(+d.p, 1);
+    libSet(id, `ex.${d.ex}.a.${d.k}`, list); render();
+  }
   else if (a === "check") { libSet(id, `ex.${d.ex}.show.${d.k}`, true); render(); }
   else if (a === "selfok") { libSet(id, `ex.${d.ex}.a.${d.k}`, true); render(); }
   else if (a === "task") { libSet(id, `ex.${d.ex}.task`, d.v); render(); }
