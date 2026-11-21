@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=98";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=98";
-import { COUNTRIES } from "./countries.js?v=98";
+import { createClient } from "./vendor/supabase.js?v=99";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=99";
+import { COUNTRIES } from "./countries.js?v=99";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=98";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=99";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -39,7 +39,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=98"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=99"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -1382,7 +1382,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=98"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=99"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1963,7 +1963,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=98");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=99");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2842,7 +2842,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=98").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=99").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -3951,12 +3951,12 @@ function libShelfView() {
   const chips = `<div class="lchips" role="group" aria-label="Filter by HSK level"><button type="button" data-lib="lv" data-v="" aria-pressed="${!lv}">All</button>${LIB_LEVELS.map((l) => {
     const n = mine.filter((b) => libLvIn(b, l)).length;
     return `<button type="button" data-lib="lv" data-v="${l}" aria-pressed="${lv === l}" ${n ? "" : "class=\"empty\""}>HSK ${l}</button>`; }).join("")}</div>`;
-  const per = wide() ? 5 : 3, rows = [];
+  const per = wide() ? 6 : 3, rows = [];
   for (let i = 0; i < Math.max(shown.length, 1); i += per) rows.push(shown.slice(i, i + per));
   if (rows.length < 2) rows.push([]);
   const book = (b) => { const c = S.content.get(b.id), total = c ? c.s.chapters.length : 0, read = libReadCount(b.id);
     return `<a class="lshelfbook" href="#/learn/library/${encodeURIComponent(b.id)}" aria-label="${esc(b.title)}">${libCover(b)}${read ? `<span class="lribbon">${read}${total ? `/${total}` : ""} read</span>` : ""}</a>`; };
-  const shelf = `<div class="lshelf">${rows.map((r) => `<div class="lrow">${r.map(book).join("")}</div>`).join("")}</div>`;
+  const shelf = `<div class="lshelf" style="--per:${per}">${rows.map((r) => `<div class="lrow">${r.map(book).join("")}</div>`).join("")}</div>`;
   const empty = !mine.length ? `<div class="card lempty"><b>Your shelf is empty</b><span class="small muted">Books you buy in the Bookshop appear here, ready to read in the app.</span><button type="button" class="btn" data-lib="tab" data-v="shop">Visit the Bookshop</button></div>`
     : !shown.length ? `<p class="small muted">No books for HSK ${esc(lv)} on your shelf yet. <button type="button" class="linkbtn" data-lib="tab" data-v="shop">See the Bookshop</button></p>` : "";
   return `${chips}${shelf}${empty}`;
