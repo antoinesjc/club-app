@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=102";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=102";
-import { COUNTRIES } from "./countries.js?v=102";
+import { createClient } from "./vendor/supabase.js?v=103";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=103";
+import { COUNTRIES } from "./countries.js?v=103";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=102";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=103";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -39,7 +39,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=102"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=103"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -776,7 +776,7 @@ function bootcampsView() {
     ? state.bootcamps.map((b) => ({ b, st: bootStatus(b) })).filter((x) => x.st).sort((x, y) => bootSortKey(x.b).localeCompare(bootSortKey(y.b)))
     : [];
   return `
-  <a class="linkbtn mobonly" href="#/home" style="text-decoration:none;font-weight:700;align-self:flex-start">← Home</a>
+  <a class="ztback mobonly" href="#/home">‹ Home</a>
   <header><div class="eyebrow">Mandarin Zest Club</div><h1>Bootcamps</h1>
     <p class="muted" style="margin:6px 0 0;line-height:1.5;max-width:640px">Short, intensive courses run by our teachers. As a Club member you pay the Club price. To join, tap “Request to join” and a host will email you to sign you up.</p></header>
   ${state.bootcamps === null ? `<p class="muted small">Loading bootcamps…</p>`
@@ -1118,7 +1118,7 @@ function noteDraft(id) {
 function hostView() {
   const id = routeArg();
   const s = state.sessions.find((x) => x.id === id);
-  if (!s) return `<a class="linkbtn" href="#/sessions">← Back</a><div class="card"><h2>Session not found</h2><p class="muted small" style="margin:0">It may have been removed from the calendar.</p></div>`;
+  if (!s) return `<a class="ztback" href="#/sessions">‹ Back</a><div class="card"><h2>Session not found</h2><p class="muted small" style="margin:0">It may have been removed from the calendar.</p></div>`;
   const a = new Date(s.starts_at);
   const came = state.attendance.get(s.id) || new Set();
   const candidateIds = new Set([...going(s), ...came]);
@@ -1129,7 +1129,7 @@ function hostView() {
   const d = noteDraft(s.id), n = state.notes.get(s.id);
   return `
   <div class="row between">
-    <a class="linkbtn" href="#/sessions" style="text-decoration:none;font-weight:700">← Back</a>
+    <a class="ztback" href="#/sessions">‹ Back</a>
     <span class="chip" style="background:var(--green)">HOST VIEW</span>
   </div>
   <header>
@@ -1351,7 +1351,7 @@ async function giveHongbao(id) {
 function unlocksView() {
   const idx = trad() ? 1 : 0;
   return `
-  <a class="linkbtn" href="#/me" data-act="back-custom" style="text-decoration:none;font-weight:700;align-self:flex-start">← Back to my profile</a>
+  <a class="ztback" href="#/me" data-act="back-custom">‹ Back to my profile</a>
   <header><div class="eyebrow">Avatar customization</div><h1>How to unlock avatars &amp; stickers</h1></header>
   <section class="card" style="gap:10px">
     <h2>Fruit avatars: level up</h2>
@@ -1382,7 +1382,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=102"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=103"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1512,7 +1512,7 @@ function memberView() {
   const r = state.board.find((x) => x.user_id === id);
   const full = state.profiles.get(id);
   const p = full || (r && { id, display_name: r.name, fruit: r.fruit, bg: r.bg, country: r.country, sticker: r.sticker });
-  if (!p) return `<a class="linkbtn" href="#/members">← Back</a><div class="card"><h2>Member not found</h2></div>`;
+  if (!p) return `<a class="ztback" href="#/members">‹ Back</a><div class="card"><h2>Member not found</h2></div>`;
   const role = state.roles.get(id), host = role === "host" || role === "admin";
   const me = id === state.user.id;
   const xp = r?.total || 0, pr = progress(xp);
@@ -1527,7 +1527,7 @@ function memberView() {
   ].filter(Boolean);
   const awards = isAdmin() ? state.awards.filter((a) => a.user_id === id) : [];
   return `
-  <a class="linkbtn" href="#/members" style="text-decoration:none;font-weight:700;align-self:flex-start">← Back</a>
+  <a class="ztback" href="#/members">‹ Back</a>
   <header class="row" style="gap:16px">${avatar(p, 88)}
     <div class="grow"><div class="eyebrow">${host ? "Host" : "Member"}${me ? " · you" : ""}</div>
       <h1>${esc(p.display_name || "Member")}</h1>
@@ -1963,7 +1963,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=102");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=103");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2842,7 +2842,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=102").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=103").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
