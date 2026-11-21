@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=93";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=93";
-import { COUNTRIES } from "./countries.js?v=93";
+import { createClient } from "./vendor/supabase.js?v=94";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=94";
+import { COUNTRIES } from "./countries.js?v=94";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=93";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=94";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -39,7 +39,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=93"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=94"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -1382,7 +1382,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=93"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=94"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1963,7 +1963,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=93");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=94");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2842,7 +2842,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=93").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=94").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -3934,7 +3934,7 @@ function libHomeView() {
   const tabs = `<div class="seg ztseg" role="group" aria-label="Library"><button type="button" data-lib="tab" data-v="shelf" aria-pressed="${!shop}">My shelf</button><button type="button" data-lib="tab" data-v="shop" aria-pressed="${shop}">Bookshop</button></div>`;
   const beta = isAdmin() ? `<div class="lbeta">Beta · only admins can open the Library for now. You can read every book; the Bookshop takes real payments.</div>` : "";
   const owl = `<div class="lowlwrap"><button type="button" class="lowl" data-lib="owl" aria-label="Talk to the owl librarian"><span class="lowlpx" aria-hidden="true"></span></button><span class="lowltip">${trad() ? "館長" : "馆长"}</span></div>`;
-  return `${ztHeader(ztStreak(), libTitle())}${beta}<div class="ltop"><div class="ltopl">${tabs}${shop ? "" : libCounter()}</div>${owl}</div>${shop ? libShopView() : libShelfView()}`;
+  return `${ztHeader(ztStreak(), libTitle())}${beta}<div class="ltop"><div class="ltopl">${tabs}${libCounter()}</div>${owl}</div>${shop ? libShopView() : libShelfView()}`;
 }
 function libCover(b, cls = "") {
   return `<span class="lcover ${cls}" style="--c:${esc(b.color || "#f37a48")}">${b.cover ? `<img src="${esc(b.cover)}" alt="" loading="lazy">` : `<b>${esc(b.title_zh || b.title)}</b>`}<span class="lhsk">HSK ${esc(b.level)}</span></span>`;
@@ -3962,7 +3962,7 @@ function libCounter() {
 }
 function libShopView() {
   const S = libState(), lv = S.lv, books = S.books.filter((b) => !lv || b.level === lv);
-  const chips = `<div class="lchips" role="group" aria-label="Filter by HSK level"><button type="button" data-lib="lv" data-v="" aria-pressed="${!lv}">All</button>${LIB_LEVELS.map((l) => `<button type="button" data-lib="lv" data-v="${l}" aria-pressed="${lv === l}">HSK ${l}</button>`).join("")}</div>`;
+  const chips = `<div class="lchips" role="group" aria-label="Filter by HSK level"><button type="button" data-lib="lv" data-v="" aria-pressed="${!lv}">All</button>${LIB_LEVELS.map((l) => `<button type="button" data-lib="lv" data-v="${l}" aria-pressed="${lv === l}" ${S.books.some((b) => b.level === l) ? "" : "class=\"empty\""}>HSK ${l}</button>`).join("")}</div>`;
   const card = (b) => {
     const bought = S.owned.has(b.id);
     const btn = bought ? `<a class="btn ghost" href="#/learn/library/${encodeURIComponent(b.id)}">Owned · Read</a>`
@@ -4231,8 +4231,11 @@ document.addEventListener("click", async (e) => {
     const book = libBook(id); if (!book) return;
     const list = a === "addword" ? [d.w] : d.ch === "all" ? book.chapters.flatMap((c) => c.words) : book.chapters[+d.ch].words;
     el.disabled = true;
-    const n = await ztAddWords(list.map((x) => libWordEntry(book, x)).filter(Boolean), "book");
-    toast(n ? `${n === 1 ? "Added to" : `${n} words added to`} your flashcards.` : "Already in your flashcards.");
+    const entries = list.map((x) => libWordEntry(book, x)).filter(Boolean), todo = entries.filter((x) => !state.lu.cards.some((c) => c.hanzi === x.hanzi)).length;
+    const n = await ztAddWords(entries, "book");
+    if (n) toast(`${n === 1 ? "Added to" : `${n} words added to`} your flashcards.`);
+    else if (!todo) toast("Already in your flashcards.");
+    else { el.disabled = false; return; } // ztAddWords already said it couldn't save
     const pop = document.querySelector(".lpopover"); render();
     if (pop && a === "addword") libShowPop(d.w);
   }
