@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=100";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=100";
-import { COUNTRIES } from "./countries.js?v=100";
+import { createClient } from "./vendor/supabase.js?v=101";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=101";
+import { COUNTRIES } from "./countries.js?v=101";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=100";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=101";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -39,7 +39,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=100"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=101"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -1382,7 +1382,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=100"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=101"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1963,7 +1963,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=100");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=101");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2842,7 +2842,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=100").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=101").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -3966,8 +3966,8 @@ function libCounter() {
   return `<div class="lcount2"><span class="lcountn">${have}</span><span><b>${have === 1 ? "book" : "books"} collected</b><br><span class="small muted">${total > have ? `${total - have} more in the Bookshop` : `You have every book. ${trad() ? "太厲害了！" : "太厉害了！"}`}${isAdmin() && !have ? " · as an admin you can read them all" : ""}</span></span></div>`;
 }
 function libShopView() {
-  const S = libState(), lv = S.lv, books = S.books.filter((b) => !lv || libLvIn(b, lv));
-  const chips = `<div class="lchips" role="group" aria-label="Filter by HSK level"><button type="button" data-lib="lv" data-v="" aria-pressed="${!lv}">All</button>${LIB_LEVELS.map((l) => `<button type="button" data-lib="lv" data-v="${l}" aria-pressed="${lv === l}" ${S.books.some((b) => libLvIn(b, l)) ? "" : "class=\"empty\""}>HSK ${l}</button>`).join("")}</div>`;
+  const S = libState(), lv = S.lv, forSale = S.books.filter((b) => !S.owned.has(b.id)), books = forSale.filter((b) => !lv || libLvIn(b, lv)); // books you own are on your shelf, not in the shop
+  const chips = `<div class="lchips" role="group" aria-label="Filter by HSK level"><button type="button" data-lib="lv" data-v="" aria-pressed="${!lv}">All</button>${LIB_LEVELS.map((l) => `<button type="button" data-lib="lv" data-v="${l}" aria-pressed="${lv === l}" ${forSale.some((b) => libLvIn(b, l)) ? "" : "class=\"empty\""}>HSK ${l}</button>`).join("")}</div>`;
   const card = (b) => {
     const bought = S.owned.has(b.id);
     const btn = bought ? `<a class="btn ghost" href="#/learn/library/${encodeURIComponent(b.id)}">${b.price_cents ? "Owned" : "Free"} · Read</a>`
@@ -3980,7 +3980,7 @@ function libShopView() {
       <div class="row" style="gap:10px;align-items:center;flex-wrap:wrap;margin-top:4px">${btn}</div></div></div>`;
   };
   return `${chips}<p class="small muted" style="margin:0">Buy once, keep it forever. Each book opens in the app right after payment, on all your devices.</p>
-    <div class="lshoplist">${books.map(card).join("") || `<p class="small muted">No books for HSK ${esc(lv)} yet. More are coming.</p>`}</div>`;
+    <div class="lshoplist">${books.map(card).join("") || (forSale.length ? `<p class="small muted">No more books for HSK ${esc(lv)} yet. More are coming.</p>` : `<p class="small muted">You have every book in the shop. More are coming.</p>`)}</div>`;
 }
 function libHead(meta, back, crumb) {
   return `<header class="zthead lhead"><a class="ztback" href="${back === true ? "#/learn/library" : back}">‹ ${back === true ? "Library" : esc(crumb || meta.title_zh || meta.title)}</a></header>`;
