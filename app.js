@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=105";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=105";
-import { COUNTRIES } from "./countries.js?v=105";
+import { createClient } from "./vendor/supabase.js?v=106";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=106";
+import { COUNTRIES } from "./countries.js?v=106";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=105";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=106";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -39,7 +39,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=105"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=106"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -1382,7 +1382,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=105"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=106"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1963,7 +1963,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=105");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=106");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2842,7 +2842,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=105").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=106").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -3852,6 +3852,8 @@ async function libUnpack(c) {
 const libBook = (id) => { const c = libState().content.get(id); return c && (trad() ? c.t : c.s); };
 const libProg = (id) => libState().progress.get(id) || {};
 let libSaveT = null;
+const libChLabel = (c, i) => c.chapters[i]?.label || `第${LIB_NUM[c.chapters.slice(0, i).filter((x) => !x.label).length] || i + 1}章`;
+const libChLabelEn = (c, i) => c.chapters[i]?.label_en || `Chapter ${c.chapters.slice(0, i).filter((x) => !x.label).length + 1}`;
 const LIB_NUM = ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十", "十一", "十二", "十三", "十四", "十五", "十六", "十七", "十八", "十九", "二十"];
 function libSave(id) {
   clearTimeout(libSaveT);
@@ -4004,7 +4006,7 @@ function libBookView(meta) {
     </div></div>
     <details class="card lhow"${how} data-lib-how="${esc(id)}"><summary><b>How this book works</b></summary>${(c.how?.length ? c.how : LIB_HOW).map((p) => `<p class="small">${esc(p)}</p>`).join("")}</details>
     ${c.chars?.length ? "" : "<!--"}<section class="lsec"><h2>Meet the characters <span class="zhsub">人物</span></h2><div class="lchars">${(c.chars || []).map((ch) => `<div class="lchar"><img src="icons/books/${esc(id)}-${esc(ch.key)}.png" alt=""><b>${esc(ch.zh)}${ch.py ? ` <span class="small muted">${esc(ch.py)}</span>` : ""}</b><span class="small muted">${esc(ch.desc)}</span></div>`).join("")}</div></section>${c.chars?.length ? "" : "-->"}
-    <section class="lsec"><h2>Part ${part()} · The story</h2><div class="card llist">${c.chapters.map((ch, i) => row(`${base}/ch/${i}`, `<span class="lzh">${LIB_NUM[i] ? `第${LIB_NUM[i]}章 ` : ""}${esc(ch.zh)}</span>`, `${esc(ch.en)} · about ${ch.mins} min · ${ch.words.length} new words`, read[i])).join("")}</div></section>
+    <section class="lsec"><h2>Part ${part()} · The story</h2><div class="card llist">${c.chapters.map((ch, i) => row(`${base}/ch/${i}`, `<span class="lzh">${esc(libChLabel(c, i))} ${esc(ch.zh)}</span>`, `${esc(ch.en)} · about ${ch.mins} min · ${ch.words.length} new words`, read[i])).join("")}</div></section>
     ${c.culture?.length ? `<section class="lsec"><h2>Part ${part()} · Cultural background</h2><div class="card llist">${row(`${base}/culture`, libCtitle(c, id), c.culture.map((s) => esc(s.h)).join(" · "), libGet(id, "cultureSeen"))}</div></section>` : ""}
     ${c.grammar?.length ? "" : "<!--"}<section class="lsec"><h2>Part ${c.grammar?.length ? part() : 0} · Grammar</h2><div class="card llist">${c.grammar.map((g, i) => row(`${base}/grammar/${i}`, `${i + 1}. ${esc(g.title)}`, esc(g.pattern), libGet(id, `gram.${i}`))).join("")}</div></section>${c.grammar?.length ? "" : "-->"}
     ${c.exercises?.length ? "" : "<!--"}<section class="lsec"><h2>Part ${c.exercises?.length ? part() : 0} · Exercises</h2><div class="card llist">${c.exercises.map((x, i) => { const s = exDone(i); return row(`${base}/ex/${i}`, `${i + 1}. ${esc(x.zh)} <span class="muted">${esc(x.en)}</span>`, s.text, s.done); }).join("")}</div>${c.exercises?.length ? "" : "-->"}</section>
@@ -4022,7 +4024,6 @@ function libPyToggle() {
 function libChapterView(meta, i) {
   const id = meta.id, c = libBook(id), ch = c.chapters[i]; if (!ch) { location.hash = `#/learn/library/${id}`; return ""; }
   const base = `#/learn/library/${encodeURIComponent(id)}`, py = libState().py;
-  const num = LIB_NUM[i] || i + 1;
   const text = ch.paras.map((p) => `<p>${libLine(p, c.dict, { py })}</p>`).join("");
   const words = ch.words.map((w) => libWordRow(c, w)).join("");
   const notIn = ch.words.filter((w) => !libInDeck(c, w)).length;
@@ -4035,17 +4036,17 @@ function libChapterView(meta, i) {
   const read = libGet(id, `read.${i}`);
   return `${libHead(meta, base, meta.title_zh)}
     <article class="lread">
-      <div class="lchlabel">第${num}章 · Chapter ${i + 1}</div>
+      <div class="lchlabel">${esc(libChLabel(c, i))} · ${esc(libChLabelEn(c, i))}</div>
       <h1 class="lcht">${esc(ch.zh)}</h1><div class="lchs">${esc(ch.en)}</div>
       <div class="small muted">⏱ about ${ch.mins} min · ${ch.words.length} new words · tap any word for its meaning</div>
       ${libPyToggle()}
       <div class="ltext lzh">${text}</div>
     </article>
-    <section class="lsec"><div class="row between" style="align-items:center;gap:8px;flex-wrap:wrap"><h2 style="margin:0">New words <span class="zhsub">${trad() ? "生詞" : "生词"}</span></h2>${notIn ? `<button type="button" class="btn small" data-lib="addall" data-ch="${i}">+ Add all ${notIn} to flashcards</button>` : `<span class="small lindeck">✓ All in your flashcards</span>`}</div>
-      <div class="card llist">${words}</div></section>
-    <section class="lsec"><h2>Quick check <span class="zhsub">${trad() ? "對還是錯？" : "对还是错？"}</span></h2><div class="lqcs">${check}</div></section>
+    ${ch.words.length ? `<section class="lsec"><div class="row between" style="align-items:center;gap:8px;flex-wrap:wrap"><h2 style="margin:0">New words <span class="zhsub">${trad() ? "生詞" : "生词"}</span></h2>${notIn ? `<button type="button" class="btn small" data-lib="addall" data-ch="${i}">+ Add all ${notIn} to flashcards</button>` : `<span class="small lindeck">✓ All in your flashcards</span>`}</div>
+      <div class="card llist">${words}</div></section>` : ""}
+    ${ch.check.length ? `<section class="lsec"><h2>Quick check <span class="zhsub">${trad() ? "對還是錯？" : "对还是错？"}</span></h2><div class="lqcs">${check}</div></section>` : ""}
     <div class="lreaddone">${read ? `<span class="lindeck">✓ Chapter read</span>` : `<button type="button" class="btn" data-lib="read" data-ch="${i}">✓ I've read this chapter</button>`}</div>
-    ${libPager(base, "ch", i, c.chapters.length, (k) => `Chapter ${k + 1}`)}`;
+    ${libPager(base, "ch", i, c.chapters.length, (k) => libChLabelEn(c, k))}`;
 }
 function libWordRow(c, w) {
   const e = c.dict[w] || {}, inDeck = libInDeck(c, w);
@@ -4167,7 +4168,7 @@ function libWordsView(meta) {
   return `${libHead(meta, `#/learn/library/${encodeURIComponent(id)}`, meta.title_zh)}
     <div class="row between" style="align-items:center;gap:8px;flex-wrap:wrap"><h1 style="margin:0;font-size:26px">Word list <span class="zhsub">${trad() ? "詞彙總表" : "词汇总表"}</span></h1>${notIn ? `<button type="button" class="btn small" data-lib="addall" data-ch="all">+ Add all ${notIn} to flashcards</button>` : `<span class="small lindeck">✓ All in your flashcards</span>`}</div>
     <p class="small muted" style="margin:0">All ${all.length} new words, in story order. New cards arrive in the Flashcard Center a few a day.</p>
-    ${c.chapters.map((ch, i) => `<section class="lsec"><h2>Chapter ${i + 1} · <span class="lzh">${esc(ch.zh)}</span></h2><div class="card llist">${ch.words.map((w) => libWordRow(c, w)).join("")}</div></section>`).join("")}`;
+    ${c.chapters.map((ch, i) => `<section class="lsec"><h2>${esc(libChLabelEn(c, i))} · <span class="lzh">${esc(ch.zh)}</span></h2><div class="card llist">${ch.words.map((w) => libWordRow(c, w)).join("")}</div></section>`).join("")}`;
 }
 
 // ---- the owl librarian: tap for a line from the Analects 論語, tap again to close it ----
