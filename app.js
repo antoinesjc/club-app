@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=103";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=103";
-import { COUNTRIES } from "./countries.js?v=103";
+import { createClient } from "./vendor/supabase.js?v=104";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=104";
+import { COUNTRIES } from "./countries.js?v=104";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=103";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=104";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -39,7 +39,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=103"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=104"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -1382,7 +1382,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=103"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=104"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1963,7 +1963,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=103");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=104");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2842,7 +2842,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=103").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=104").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -3852,7 +3852,7 @@ async function libUnpack(c) {
 const libBook = (id) => { const c = libState().content.get(id); return c && (trad() ? c.t : c.s); };
 const libProg = (id) => libState().progress.get(id) || {};
 let libSaveT = null;
-const LIB_NUM = ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十"];
+const LIB_NUM = ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十", "十一", "十二", "十三", "十四", "十五", "十六", "十七", "十八", "十九", "二十"];
 function libSave(id) {
   clearTimeout(libSaveT);
   libSaveT = setTimeout(async () => {
@@ -3993,20 +3993,21 @@ function libBookView(meta) {
   const row = (href, label, sub, done) => `<a class="lrowlink" href="${href}"><span class="ltick ${done ? "on" : ""}" aria-hidden="true">${done ? "✓" : ""}</span><span class="grow"><b>${label}</b>${sub ? `<br><span class="small muted">${sub}</span>` : ""}</span><span class="chev" aria-hidden="true">›</span></a>`;
   const base = `#/learn/library/${encodeURIComponent(id)}`;
   const how = libGet(id, "howSeen") ? "" : " open";
+  let partN = 0; const part = () => ++partN; // sections are numbered by what the book has (graded readers have no exercises)
   return `${libHead(meta, true)}
     <div class="lbookhead">${libCover(meta, "big")}<div class="grow" style="min-width:0">
       <span class="ltag hsk">${libLv(meta)}</span>
       <h1 class="lbt">${esc(meta.title_zh)}</h1><div class="lbs">${esc(meta.title)}</div>
       <div class="small muted">${libParts(c)}</div>
       <div class="lprog"><i style="width:${(nRead / c.chapters.length) * 100}%"></i></div><span class="small">${nRead} of ${c.chapters.length} chapters read</span>
-      ${nRead < c.chapters.length ? `<a class="btn" href="${base}/ch/${c.chapters.findIndex((_, i) => !read[i])}">${nRead ? "Continue reading" : "Start reading"}</a>` : `<a class="btn ghost" href="${base}/ex/0">Practise with the exercises</a>`}
+      ${nRead < c.chapters.length ? `<a class="btn" href="${base}/ch/${c.chapters.findIndex((_, i) => !read[i])}">${nRead ? "Continue reading" : "Start reading"}</a>` : (c.exercises?.length ? `<a class="btn ghost" href="${base}/ex/0">Practise with the exercises</a>` : `<a class="btn ghost" href="${base}/ch/0">Read it again</a>`)}
     </div></div>
-    <details class="card lhow"${how} data-lib-how="${esc(id)}"><summary><b>How this book works</b></summary>${LIB_HOW.map((p) => `<p class="small">${esc(p)}</p>`).join("")}</details>
+    <details class="card lhow"${how} data-lib-how="${esc(id)}"><summary><b>How this book works</b></summary>${(c.how?.length ? c.how : LIB_HOW).map((p) => `<p class="small">${esc(p)}</p>`).join("")}</details>
     ${c.chars?.length ? "" : "<!--"}<section class="lsec"><h2>Meet the characters <span class="zhsub">人物</span></h2><div class="lchars">${(c.chars || []).map((ch) => `<div class="lchar"><img src="icons/books/${esc(id)}-${esc(ch.key)}.png" alt=""><b>${esc(ch.zh)}${ch.py ? ` <span class="small muted">${esc(ch.py)}</span>` : ""}</b><span class="small muted">${esc(ch.desc)}</span></div>`).join("")}</div></section>${c.chars?.length ? "" : "-->"}
-    <section class="lsec"><h2>Part 1 · The story</h2><div class="card llist">${c.chapters.map((ch, i) => row(`${base}/ch/${i}`, `<span class="lzh">${LIB_NUM[i] ? `第${LIB_NUM[i]}章 ` : ""}${esc(ch.zh)}</span>`, `${esc(ch.en)} · about ${ch.mins} min · ${ch.words.length} new words`, read[i])).join("")}</div></section>
-    ${c.culture?.length ? `<section class="lsec"><h2>Part 2 · Cultural background</h2><div class="card llist">${row(`${base}/culture`, libCtitle(c, id), c.culture.map((s) => esc(s.h)).join(" · "), libGet(id, "cultureSeen"))}</div></section>` : ""}
-    <section class="lsec"><h2>Part 3 · Grammar</h2><div class="card llist">${c.grammar.map((g, i) => row(`${base}/grammar/${i}`, `${i + 1}. ${esc(g.title)}`, esc(g.pattern), libGet(id, `gram.${i}`))).join("")}</div></section>
-    <section class="lsec"><h2>Part 4 · Exercises</h2><div class="card llist">${c.exercises.map((x, i) => { const s = exDone(i); return row(`${base}/ex/${i}`, `${i + 1}. ${esc(x.zh)} <span class="muted">${esc(x.en)}</span>`, s.text, s.done); }).join("")}</div></section>
+    <section class="lsec"><h2>Part ${part()} · The story</h2><div class="card llist">${c.chapters.map((ch, i) => row(`${base}/ch/${i}`, `<span class="lzh">${LIB_NUM[i] ? `第${LIB_NUM[i]}章 ` : ""}${esc(ch.zh)}</span>`, `${esc(ch.en)} · about ${ch.mins} min · ${ch.words.length} new words`, read[i])).join("")}</div></section>
+    ${c.culture?.length ? `<section class="lsec"><h2>Part ${part()} · Cultural background</h2><div class="card llist">${row(`${base}/culture`, libCtitle(c, id), c.culture.map((s) => esc(s.h)).join(" · "), libGet(id, "cultureSeen"))}</div></section>` : ""}
+    ${c.grammar?.length ? "" : "<!--"}<section class="lsec"><h2>Part ${c.grammar?.length ? part() : 0} · Grammar</h2><div class="card llist">${c.grammar.map((g, i) => row(`${base}/grammar/${i}`, `${i + 1}. ${esc(g.title)}`, esc(g.pattern), libGet(id, `gram.${i}`))).join("")}</div></section>${c.grammar?.length ? "" : "-->"}
+    ${c.exercises?.length ? "" : "<!--"}<section class="lsec"><h2>Part ${c.exercises?.length ? part() : 0} · Exercises</h2><div class="card llist">${c.exercises.map((x, i) => { const s = exDone(i); return row(`${base}/ex/${i}`, `${i + 1}. ${esc(x.zh)} <span class="muted">${esc(x.en)}</span>`, s.text, s.done); }).join("")}</div>${c.exercises?.length ? "" : "-->"}</section>
     <section class="lsec"><h2>Word list</h2><div class="card llist">${row(`${base}/words`, `All ${c.chapters.reduce((n, ch) => n + ch.words.length, 0)} new words`, "By chapter, with pinyin and meaning. Add them to your flashcards.", false)}</div></section>`;
 }
 function libPager(base, sec, i, n, labels) {
@@ -4055,12 +4056,12 @@ function libWordRow(c, w) {
 function libCultureView(meta) {
   const id = meta.id, c = libBook(id), d = c.dict;
   if (!libGet(id, "cultureSeen")) libSet(id, "cultureSeen", true);
-  const para = (segs) => segs.map((s) => typeof s === "string" ? esc(s) : `<button type="button" class="lchip" data-lw="${esc(s.w)}"><span class="lzh">${esc(s.w)}</span> <i>${esc(s.p)}</i></button>`).join("");
+  const para = (segs) => segs.map((s) => typeof s === "string" ? esc(s) : s.t ? libTok(s.t, d) : `<button type="button" class="lchip" data-lw="${esc(s.w)}"><span class="lzh">${esc(s.w)}</span> <i>${esc(s.p)}</i></button>`).join("");
   return `${libHead(meta, `#/learn/library/${encodeURIComponent(id)}`, meta.title_zh)}
-    <article class="lread"><div class="lchlabel">Part 2 · 文化背景</div><h1 class="lcht" style="font-size:26px">${esc(libCtitle(c, id))}</h1>
-    <div class="small muted">In English, with the key Chinese words. Tap a word to see it and add it to your flashcards.</div>
+    <article class="lread"><div class="lchlabel">文化背景 · Culture</div><h1 class="lcht" style="font-size:26px">${esc(libCtitle(c, id))}</h1>
+    <div class="small muted">${c.culture.some((s) => s.paras.some((p) => p.some((x) => x && x.t))) ? "Tap any word to see it and add it to your flashcards." : "In English, with the key Chinese words. Tap a word to see it and add it to your flashcards."}</div>
     ${c.culture.map((s) => `<h2 class="lculth">${esc(s.h)} <span class="zhsub lzh">${esc(s.zh)}</span></h2>${s.paras.map((p) => `<p class="lcult">${para(p)}</p>`).join("")}`).join("")}</article>
-    <section class="lsec"><h2>Words to keep from this section</h2><div class="card llist">${c.keep.map((w) => libWordRow(c, w)).join("")}</div></section>`;
+    ${c.keep?.length ? `<section class="lsec"><h2>Words to keep from this section</h2><div class="card llist">${c.keep.map((w) => libWordRow(c, w)).join("")}</div></section>` : ""}`;
 }
 function libGrammarView(meta, i) {
   const id = meta.id, c = libBook(id), g = c.grammar[i]; if (!g) { location.hash = `#/learn/library/${id}`; return ""; }
