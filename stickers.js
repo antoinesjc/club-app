@@ -94,6 +94,14 @@ export const STICKERS = [
     zh: ["火鸡", "火雞"], en: "Turkey", bootcamp: "thanksgiving",
     svg: `<ellipse cx="30" cy="22" rx="5" ry="15" transform="rotate(-60 30 34)" fill="#b5652a"/><ellipse cx="30" cy="22" rx="5" ry="15" transform="rotate(-30 30 34)" fill="#d7863a"/><ellipse cx="30" cy="22" rx="5" ry="15" transform="rotate(0 30 34)" fill="#b5652a"/><ellipse cx="30" cy="22" rx="5" ry="15" transform="rotate(30 30 34)" fill="#d7863a"/><ellipse cx="30" cy="22" rx="5" ry="15" transform="rotate(60 30 34)" fill="#b5652a"/><ellipse cx="30" cy="25" rx="3.6" ry="11" transform="rotate(-60 30 34)" fill="#f2b632"/><ellipse cx="30" cy="25" rx="3.6" ry="11" transform="rotate(-30 30 34)" fill="#e5484d"/><ellipse cx="30" cy="25" rx="3.6" ry="11" transform="rotate(0 30 34)" fill="#f2b632"/><ellipse cx="30" cy="25" rx="3.6" ry="11" transform="rotate(30 30 34)" fill="#e5484d"/><ellipse cx="30" cy="25" rx="3.6" ry="11" transform="rotate(60 30 34)" fill="#f2b632"/><ellipse cx="32" cy="42" rx="14" ry="13" fill="#7a4a2a"/><circle cx="42" cy="28" r="6.5" fill="#8a5a3a"/><path d="M47 28 l6 2 l-6 2z" fill="#f2b632"/><path d="M45.5 31 q2 5 -1 8 q-2 -3 -1 -7z" fill="#d7263d"/><circle cx="43.5" cy="27" r="1.4" fill="#2a2420"/><path d="M28 54 v6 M36 54 v6" stroke="#f2b632" stroke-width="2.2" stroke-linecap="round"/><path d="M22 42 q6 6 14 3" stroke="#5e3820" stroke-width="2" fill="none" stroke-linecap="round"/>`,
   },
+  {
+    key: "book", how: "Buy your first book in the Library's Bookshop.", zh: ["开卷", "開卷"], en: "Open book",
+    svg: `<path d="M4 18 v35 c10 -3 20 -2 28 3 c8 -5 18 -6 28 -3 v-35" fill="#f37a48" stroke="#6b4a2b" stroke-width="2.6" stroke-linejoin="round"/>
+      <path d="M32 17 c-8 -6 -18 -6 -26 -3 v34 c8 -3 18 -3 26 3z" fill="#fffaf2" stroke="#6b4a2b" stroke-width="2.6" stroke-linejoin="round"/>
+      <path d="M32 17 c8 -6 18 -6 26 -3 v34 c-8 -3 -18 -3 -26 3z" fill="#fffaf2" stroke="#6b4a2b" stroke-width="2.6" stroke-linejoin="round"/>
+      <path d="M11 23 q8 -2 16 1 M11 30 q8 -2 16 1 M11 37 q8 -2 16 1 M37 24 q8 -3 16 -1 M37 31 q8 -3 16 -1" stroke="#d2c1b0" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+      <path d="M44 37 v25 l3.5 -3.5 l3.5 3.5 v-26" fill="#1b6f1b"/>`,
+  },
 ];
 
 const BY_KEY = new Map(STICKERS.map((s) => [s.key, s]));
@@ -116,5 +124,6 @@ export const STICKER_PAGES = [
   { en: "Club life", zh: ["社团生活", "社團生活"], color: "#1b6f1b", keys: ["phone", "heart"] },
   { en: "Achievements", zh: ["成就", "成就"], color: "#c98d12", keys: ["medal", "sprout"] },
   { en: "Festivals & events", zh: ["节日活动", "節日活動"], color: "#a63d6b", keys: ["turkey", "lantern", "mooncake", "dumpling"] },
+  { en: "Reading", zh: ["读书", "讀書"], color: "#2f6f8f", keys: ["book"] },
 ];
 export const MYSTERY_STICKERS = new Set(["lantern", "mooncake", "dumpling"]);

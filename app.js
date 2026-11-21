@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=107";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=107";
-import { COUNTRIES } from "./countries.js?v=107";
+import { createClient } from "./vendor/supabase.js?v=108";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=108";
+import { COUNTRIES } from "./countries.js?v=108";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=107";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=108";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -39,7 +39,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=107"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=108"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -1362,7 +1362,7 @@ function unlocksView() {
     <h2>Special avatars and stickers</h2>
     <p class="small muted" style="margin:0;line-height:1.5">Special avatars and stickers are given during special sessions, bootcamps and Club initiatives. Stickers are a small extra: you wear one at the bottom-left of your avatar. Keep an eye out, new ones come with new events.</p>
     <p class="small" style="margin:4px 0 0;font-weight:700">A few you can work towards anytime:</p>
-    <div class="stack" style="gap:2px">${STICKERS.filter((t) => ["phone", "heart", "medal", "sprout"].includes(t.key)).map((t) => `<div class="unlockrow"><span class="stkbig" style="--z:44px">${stickerSvg(t.key)}</span>
+    <div class="stack" style="gap:2px">${STICKERS.filter((t) => ["phone", "heart", "medal", "sprout", "book"].includes(t.key)).map((t) => `<div class="unlockrow"><span class="stkbig" style="--z:44px">${stickerSvg(t.key)}</span>
       <div class="grow"><b>${esc(t.en)} <span style="font-weight:600;color:var(--orange-ink)">${esc(zh(t.zh))}</span></b><div class="small muted">${esc(t.how || "")}</div></div>
       ${myStickers().includes(t.key) ? `<span class="chip" style="background:var(--green)">Yours</span>` : ""}</div>`).join("")}</div>
   </section>`;
@@ -1382,7 +1382,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=107"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=108"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1748,7 +1748,7 @@ function stickerBookBody() {
 function galleryView() {
   return `${ztHeader(ztStreak(), `Sticker Gallery <span class='zhsub'>${trad() ? "貼紙館" : "贴纸馆"}</span>`)}
     <div class="row galhead" style="gap:12px;align-items:center"><span class="ztplaceart">${ztImg("gallery")}</span>
-      <span class="grow"><b style="font-size:17px">Your sticker collection</b><br><span class="small muted">Stickers can't be bought: you earn them in bootcamps, Club life, achievements and special events.</span></span></div>
+      <span class="grow"><b style="font-size:17px">Your sticker collection</b><br><span class="small muted">Stickers can't be bought: you earn them in bootcamps, Club life, achievements, special events and by reading.</span></span></div>
     <div class="galbook">${stickerBookBody()}</div>`;
 }
 function stickerBook() { // Me page: nothing while Zest Town is on (the full book only when Zest Town is off)
@@ -1963,7 +1963,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=107");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=108");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2842,7 +2842,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=107").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=108").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
