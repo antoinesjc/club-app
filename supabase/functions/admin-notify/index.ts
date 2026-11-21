@@ -10,7 +10,8 @@ import webpush from "npm:web-push@3.6.7";
 
 const APP_URL = "https://app.mandarinzest.com";
 const FROM = "Mandarin Zest Club <club@mandarinzest.com>";
-const PAGES = new Set(["home", "sessions", "members", "bootcamps", "me", "notes"]);
+const PAGES = new Set(["home", "sessions", "members", "bootcamps", "me", "notes",
+  "learn", "learn/cards", "learn/temple", "learn/gallery", "learn/library", "learn/library?shop=1", "learn/forest"]);
 const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
 const cors = {
   "Access-Control-Allow-Origin": "*",

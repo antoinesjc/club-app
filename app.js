@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=111";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=111";
-import { COUNTRIES } from "./countries.js?v=111";
+import { createClient } from "./vendor/supabase.js?v=112";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=112";
+import { COUNTRIES } from "./countries.js?v=112";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=111";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=112";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -39,7 +39,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=111"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=112"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -1382,7 +1382,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=111"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=112"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1988,7 +1988,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=111");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=112");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2073,7 +2073,9 @@ function settingsView() {
 // ---------------------------------------------------------------------------
 // Admin tab (desktop sidebar, admins only): send a notification to members
 // ---------------------------------------------------------------------------
-const BC_PAGES = [["home", "Home"], ["sessions", "My sessions"], ["bootcamps", "Bootcamps"], ["members", "Members"], ["me", "Me"]];
+const BC_PAGES = [["home", "Home"], ["sessions", "My sessions"], ["bootcamps", "Bootcamps"], ["members", "Members"], ["me", "Me"],
+  ["learn", "Zest Town"], ["learn/cards", "Zest Town · Flashcard Center"], ["learn/temple", "Zest Town · HSK Temple"], ["learn/gallery", "Zest Town · Sticker Gallery"],
+  ["learn/library", "Zest Town · Library (My shelf)"], ["learn/library?shop=1", "Zest Town · Library (Bookshop)"], ["learn/forest", "Zest Town · Magical Forest"]];
 const BC_AUDIENCE = [["all", "Everyone"], ["members", "Members only"], ["hosts", "Hosts only"], ["pick", "Choose people"]];
 const BC_CHANNEL = [
   ["push", "App notification only", "Only people who turned on notifications in the app get it."],
@@ -2883,7 +2885,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=111").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=112").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -3956,7 +3958,7 @@ function libraryView(parts, q) {
   if (!libOpen()) { location.hash = "#/learn"; return townView(); }
   if (!S.books) { libLoad(); return `${ztHeader(null, libTitle())}<p class="muted small">${S.error ? "Couldn't load the Library. Try again later." : "Opening the Library…"}</p>`; }
   if (q.paid && S.verifying !== q.paid && !S.verified?.has(q.paid)) libVerify(q.paid);
-  if (q.shop) S.tab = "shop";
+  if (q.shop) { S.tab = "shop"; history.replaceState(null, "", "#/learn/library"); }
   const [id, sec, n] = parts;
   if (id) {
     const meta = S.books.find((b) => b.id === id);
