@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=97";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=97";
-import { COUNTRIES } from "./countries.js?v=97";
+import { createClient } from "./vendor/supabase.js?v=98";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=98";
+import { COUNTRIES } from "./countries.js?v=98";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=97";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=98";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -39,7 +39,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=97"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=98"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -1382,7 +1382,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=97"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=98"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1963,7 +1963,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=97");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=98");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2842,7 +2842,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=97").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=98").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -3814,7 +3814,7 @@ async function libLoad(force) {
   const [b, p] = await Promise.all([sb.from("library_books").select("*").order("sort").order("level"), sb.from("library_purchases").select("book_id, created_at")]);
   S.loading = false;
   if (b.error) { S.error = true; render(); return; }
-  S.books = b.data; S.owned = new Set((p.data || []).map((r) => r.book_id));
+  S.books = b.data; S.owned = new Set([...(p.data || []).map((r) => r.book_id), ...b.data.filter((x) => !x.price_cents).map((x) => x.id)]); // free books are on everyone's shelf
   render();
   if (!S.checked) { S.checked = true; libVerify(); } // a payment finished after the app was closed still unlocks its book
 }
@@ -3970,7 +3970,7 @@ function libShopView() {
   const chips = `<div class="lchips" role="group" aria-label="Filter by HSK level"><button type="button" data-lib="lv" data-v="" aria-pressed="${!lv}">All</button>${LIB_LEVELS.map((l) => `<button type="button" data-lib="lv" data-v="${l}" aria-pressed="${lv === l}" ${S.books.some((b) => libLvIn(b, l)) ? "" : "class=\"empty\""}>HSK ${l}</button>`).join("")}</div>`;
   const card = (b) => {
     const bought = S.owned.has(b.id);
-    const btn = bought ? `<a class="btn ghost" href="#/learn/library/${encodeURIComponent(b.id)}">Owned · Read</a>`
+    const btn = bought ? `<a class="btn ghost" href="#/learn/library/${encodeURIComponent(b.id)}">${b.price_cents ? "Owned" : "Free"} · Read</a>`
       : `<button type="button" class="btn" data-lib="buy" data-id="${esc(b.id)}" ${S.buying ? "disabled" : ""}>${S.buying === b.id ? "Opening…" : `Buy · ${money(b.price_cents, b.currency)}`}</button>${isAdmin() ? `<a class="small" href="#/learn/library/${encodeURIComponent(b.id)}">Read (admin access)</a>` : ""}`;
     return `<div class="card lshop">${libCover(b, "sm")}<div class="grow" style="display:flex;flex-direction:column;gap:6px;min-width:0">
       <div><span class="ltag hsk">${libLv(b)}</span>${b.published ? "" : ` <span class="ltag">Beta</span>`}</div>
