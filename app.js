@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=96";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=96";
-import { COUNTRIES } from "./countries.js?v=96";
+import { createClient } from "./vendor/supabase.js?v=97";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=97";
+import { COUNTRIES } from "./countries.js?v=97";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=96";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=97";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -39,7 +39,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=96"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=97"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -1382,7 +1382,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=96"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=97"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1963,7 +1963,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=96");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=97");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2842,7 +2842,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=96").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=97").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -4002,7 +4002,7 @@ function libBookView(meta) {
     <details class="card lhow"${how} data-lib-how="${esc(id)}"><summary><b>How this book works</b></summary>${LIB_HOW.map((p) => `<p class="small">${esc(p)}</p>`).join("")}</details>
     ${c.chars?.length ? "" : "<!--"}<section class="lsec"><h2>Meet the characters <span class="zhsub">人物</span></h2><div class="lchars">${(c.chars || []).map((ch) => `<div class="lchar"><img src="icons/books/${esc(id)}-${esc(ch.key)}.png" alt=""><b>${esc(ch.zh)}${ch.py ? ` <span class="small muted">${esc(ch.py)}</span>` : ""}</b><span class="small muted">${esc(ch.desc)}</span></div>`).join("")}</div></section>${c.chars?.length ? "" : "-->"}
     <section class="lsec"><h2>Part 1 · The story</h2><div class="card llist">${c.chapters.map((ch, i) => row(`${base}/ch/${i}`, `<span class="lzh">${LIB_NUM[i] ? `第${LIB_NUM[i]}章 ` : ""}${esc(ch.zh)}</span>`, `${esc(ch.en)} · about ${ch.mins} min · ${ch.words.length} new words`, read[i])).join("")}</div></section>
-    ${c.culture?.length ? `<section class="lsec"><h2>Part 2 · Cultural background</h2><div class="card llist">${row(`${base}/culture`, "China's population, marriage pressure and dating culture", c.culture.map((s) => esc(s.h)).join(" · "), libGet(id, "cultureSeen"))}</div></section>` : ""}
+    ${c.culture?.length ? `<section class="lsec"><h2>Part 2 · Cultural background</h2><div class="card llist">${row(`${base}/culture`, libCtitle(c, id), c.culture.map((s) => esc(s.h)).join(" · "), libGet(id, "cultureSeen"))}</div></section>` : ""}
     <section class="lsec"><h2>Part 3 · Grammar</h2><div class="card llist">${c.grammar.map((g, i) => row(`${base}/grammar/${i}`, `${i + 1}. ${esc(g.title)}`, esc(g.pattern), libGet(id, `gram.${i}`))).join("")}</div></section>
     <section class="lsec"><h2>Part 4 · Exercises</h2><div class="card llist">${c.exercises.map((x, i) => { const s = exDone(i); return row(`${base}/ex/${i}`, `${i + 1}. ${esc(x.zh)} <span class="muted">${esc(x.en)}</span>`, s.text, s.done); }).join("")}</div></section>
     <section class="lsec"><h2>Word list</h2><div class="card llist">${row(`${base}/words`, `All ${c.chapters.reduce((n, ch) => n + ch.words.length, 0)} new words`, "By chapter, with pinyin and meaning. Add them to your flashcards.", false)}</div></section>`;
@@ -4055,7 +4055,7 @@ function libCultureView(meta) {
   if (!libGet(id, "cultureSeen")) libSet(id, "cultureSeen", true);
   const para = (segs) => segs.map((s) => typeof s === "string" ? esc(s) : `<button type="button" class="lchip" data-lw="${esc(s.w)}"><span class="lzh">${esc(s.w)}</span> <i>${esc(s.p)}</i></button>`).join("");
   return `${libHead(meta, `#/learn/library/${encodeURIComponent(id)}`, meta.title_zh)}
-    <article class="lread"><div class="lchlabel">Part 2 · 文化背景</div><h1 class="lcht" style="font-size:26px">China's population, marriage pressure and dating culture</h1>
+    <article class="lread"><div class="lchlabel">Part 2 · 文化背景</div><h1 class="lcht" style="font-size:26px">${esc(libCtitle(c, id))}</h1>
     <div class="small muted">In English, with the key Chinese words. Tap a word to see it and add it to your flashcards.</div>
     ${c.culture.map((s) => `<h2 class="lculth">${esc(s.h)} <span class="zhsub lzh">${esc(s.zh)}</span></h2>${s.paras.map((p) => `<p class="lcult">${para(p)}</p>`).join("")}`).join("")}</article>
     <section class="lsec"><h2>Words to keep from this section</h2><div class="card llist">${c.keep.map((w) => libWordRow(c, w)).join("")}</div></section>`;
@@ -4085,8 +4085,9 @@ function libExScore(id, i, x) {
   const n = x.items.length, ans = A.a || {};
   if (x.kind === "open") { const k = Object.values(ans).filter((v) => String(v).trim()).length; return { done: k === n, text: `${k} of ${n} answered` }; }
   const right = x.items.filter((it, k) => libExRight(x, it, ans[k])).length, tried = Object.keys(ans).length;
-  return { done: right === n, text: tried ? `${right} of ${n} right` : `${n} questions` };
+  return { done: right === n, text: tried ? `${right} of ${n} right` : `${n} question${n === 1 ? "" : "s"}` };
 }
+const libCtitle = (c, id) => c.ctitle || (id === "mz-partner" ? "China's population, marriage pressure and dating culture" : "Culture notes");
 function libShuffle(arr, seed) { // same order every time for one question, never the right order
   let h = 0; for (const ch of seed) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
   const out = [...arr]; for (let i = out.length - 1; i > 0; i--) { h = (h * 1103515245 + 12345) >>> 0; const j = h % (i + 1); [out[i], out[j]] = [out[j], out[i]]; }
@@ -4095,7 +4096,7 @@ function libShuffle(arr, seed) { // same order every time for one question, neve
 }
 function libExRight(x, it, a) {
   if (a === undefined || a === null || a === "") return false;
-  if (x.kind === "bank") return a === it.a;
+  if (x.kind === "bank") return a === it.a || (it.alt || []).includes(a);
   if (x.kind === "order") return Array.isArray(a) && a.length === it.tiles.length && [it.a, ...(it.alt || [])].some((m) => libNorm(m) === libNorm(a.map((j) => it.tiles[j]).join("")));
   if (x.kind === "choice") return +a === it.a;
   if (x.kind === "write") return a === true || [...it.a, ...(it.alt || [])].some((m) => libNorm(m) === libNorm(a));
