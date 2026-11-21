@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=113";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=113";
-import { COUNTRIES } from "./countries.js?v=113";
+import { createClient } from "./vendor/supabase.js?v=114";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=114";
+import { COUNTRIES } from "./countries.js?v=114";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=113";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=114";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -39,7 +39,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=113"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=114"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -1269,7 +1269,7 @@ function leaderboard() {
   ${podium}
   <div class="stack" style="gap:6px">${rest}${meRow}</div>
   ${!isHost() && mine && mine <= 3 ? `<p class="small" style="text-align:center;margin:0"><b>You're #${mine}!</b></p>` : ""}
-  <p class="small muted" style="margin:0">+${XP_SESSION} XP per session · +${XP_STREAK} XP every 4 weeks in a row · XP for bootcamps · +${XP_HONGBAO} XP per hongbao received${isBeta() ? " · +1 XP a day for a Zest Town game · +2 XP every 10 days of your streak tree" : ""}. Hosts don't take part.</p>`;
+  <p class="small muted" style="margin:0">+${XP_SESSION} XP per session · +${XP_STREAK} XP every 4 weeks in a row · XP for bootcamps · +${XP_HONGBAO} XP per hongbao received${isBeta() ? " · +1 XP a day for a flashcard review or a Library chapter · +2 XP every 10 days of your streak tree" : ""}. Hosts don't take part.</p>`;
 }
 
 function directory() {
@@ -1382,7 +1382,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=113"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=114"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1599,7 +1599,7 @@ function activityBlock(id) {
     : r.kind === "sticker" ? `Sticker · ${esc(stickerInfo(r.title)?.en || r.title)}`
     : r.kind === "avatar" ? `Special avatar · ${esc(fruitInfo(r.title).en || r.title)}`
     : r.kind === "streak" ? "Streak bonus · 4 weeks in a row"
-    : r.kind === "game" ? "Zest Town game"
+    : r.kind === "game" ? "Zest Town (flashcards or reading)"
     : r.kind === "tree" ? "Streak tree bonus · 10 days in a row"
     : r.kind === "hongbao" ? "Hongbao 红包" : esc(r.title);
   const sub = (r) => [dfmt(new Date(r.at)),
@@ -1988,7 +1988,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=113");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=114");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2886,7 +2886,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=113").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=114").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -3236,13 +3236,20 @@ async function ztGrade(g) {
   if (R.i >= R.queue.length) await ztFinish();
   render();
 }
+// A flashcard review or a Library chapter read today makes the streak tree grow (one "game" day, +1 XP).
+// Returns true when this call counted today for the first time.
+async function ztCountDay() {
+  const days = state.lu?.days;
+  if (days?.some((d) => d.day === todayKey() && d.kind === "game")) return false;
+  const row = { day: todayKey(), kind: "game" };
+  const { error } = await sb.from("learn_days").upsert(row, { onConflict: "user_id,day,kind", ignoreDuplicates: true });
+  if (error) return false;
+  if (days) days.push({ ...row, created_at: new Date().toISOString() });
+  return !!days;
+}
 async function ztFinish() {
   const R = state.lu.review; R.finished = true;
-  if (R.done > 0 && !state.lu.days.some((d) => d.day === todayKey() && d.kind === "game")) {
-    const row = { day: todayKey(), kind: "game" };
-    const { error } = await sb.from("learn_days").upsert(row, { onConflict: "user_id,day,kind", ignoreDuplicates: true });
-    if (!error) { state.lu.days.push({ ...row, created_at: new Date().toISOString() }); R.counted = true; }
-  }
+  if (R.done > 0 && await ztCountDay()) R.counted = true;
 }
 function ztStart(title, queue, cram) {
   if (!queue.length) { toast("Nothing to review here right now."); return; }
@@ -3371,7 +3378,7 @@ function treeSheet(st) {
       <div><div class="eyebrow">Your streak tree</div><div class="ztday">${st.wilted ? "Wilted" : `Day ${st.n}`}</div><div class="ztstage">${esc(stageName(st.stage))}</div>
       ${st.wilted ? "" : `<div class="small muted" style="margin-top:6px">${nx.text}</div><span class="ztbar"><i style="width:${nx.pct}%"></i></span>`}</div></div>
     <div class="card" style="gap:8px"><b>This week</b><div class="ztweek">${week}</div></div>
-    <div class="ztinfo"><div class="card"><b>What counts</b><span class="small">Joining a session, or playing a game in Zest Town (a flashcard review), once a day.</span></div>
+    <div class="ztinfo"><div class="card"><b>What counts</b><span class="small">Joining a session, a flashcard review in Zest Town, or reading a Library chapter (tap “I’ve read this chapter”), once a day.</span></div>
       <div class="card water">${ZT_DROP}<b>${w} watering can</b><span class="small">${w ? "left this month. If you miss a day, it brings your tree back." : "used this month. You get a new one on the 1st."}</span></div></div>
     ${state.push?.subscribed ? "" : `<a class="ztnotif" href="#/settings" data-scroll="notifications">${ICON.bell}<span><b>Turn on notifications</b> so you never lose your streak. We'll remind you 1 hour before your day ends.</span><span class="chev" aria-hidden="true">›</span></a>`}
     <details class="ztstages"><summary>All 9 stages</summary><div class="ztstagegrid">${ZT_STAGES.map((s, i) => `<span>${ztImg("tree-" + i)}<b>${esc(s[0])}</b><small>Day ${s[3]}${i < 8 ? "+" : ""}</small></span>`).join("")}</div></details>
@@ -4325,7 +4332,10 @@ document.addEventListener("click", async (e) => {
     if (pop && a === "addword") libShowPop(d.w);
   }
   else if (a === "qc") { libSet(id, `qc.${d.ch}.${d.k}`, d.v === "true"); render(); }
-  else if (a === "read") { libSet(id, `read.${d.ch}`, true); toast("Chapter ticked off. 加油！"); render(); }
+  else if (a === "read") {
+    libSet(id, `read.${d.ch}`, true); toast("Chapter ticked off. 加油！"); render();
+    ztCountDay().then((grew) => { if (grew) toast("Chapter ticked off. Your streak tree grew today 🌱"); });
+  }
   else if (a === "show") { libSet(id, `ex.${d.ex}.show.${d.k}`, true); render(); }
   else if (a === "blank") { S.blank = { ex: +d.ex, k: +d.k }; render(); }
   else if (a === "bankw") {
