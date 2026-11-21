@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=94";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=94";
-import { COUNTRIES } from "./countries.js?v=94";
+import { createClient } from "./vendor/supabase.js?v=95";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=95";
+import { COUNTRIES } from "./countries.js?v=95";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=94";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=95";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -39,7 +39,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=94"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=95"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -1382,7 +1382,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=94"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=95"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1963,7 +1963,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=94");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=95");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2842,7 +2842,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=94").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=95").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -2976,7 +2976,9 @@ const ZT_STAGES = [ // [en, simplified, traditional, first day]
   ["Fruiting tree", "结果树", "結果樹", 330], ["Orange tree", "橘子树", "橘子樹", 365],
 ];
 const HSK_LEVELS = ["1", "2", "3", "4", "5", "6", "7-9"];
-const ZT_LEARNED = 3; // a word counts as learned after 3 good answers in a row, on different days
+const ZT_LEARNED = 3; // good answers in a row (kept for the streak counter on each card)
+const ZT_KNOWN_DAYS = 90; // a word counts as known (dark green) once its next review is 3 months or more away (21 Nov)
+const ztKnown = (c) => !!c && (c.interval_days || 0) >= ZT_KNOWN_DAYS;
 const ZT_CHEERS = [["加油！", "加油！"], ["你好！", "你好！"], ["太棒了！", "太棒了！"], ["我们走吧！", "我們走吧！"], ["好开心！", "好開心！"], ["学中文吧！", "學中文吧！"]];
 const ZT_FLAME = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 2c1 4 6 6 6 12a6 6 0 0 1-12 0c0-3 2-5 3-6 0 2 1 3 2 3 0-4-1-6 1-9z" fill="#f37a48"/><path d="M12 12c1 2 3 3 3 5a3 3 0 0 1-6 0c0-1.5 1-2.5 1.5-3 .2 1 .8 1.5 1.5 1.5 0-1.5-.5-2.5 0-3.5z" fill="#ffd95a"/></svg>';
 const ZT_LEAF = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M20 3C11 3 4.5 7.5 4.5 14.5c0 2 .6 3.7 1.6 5C8 12.8 12 9.5 16 8c-4 2.8-7 6.6-8.4 12.2 1.2.6 2.6.8 4 .8C18.6 21 21 13 20 3z" fill="#3f8f2f"/><path d="M8 18.5C10 13.5 13 10.5 16 8" stroke="#b9e98b" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg>';
@@ -3213,7 +3215,7 @@ function ztWordStatus() {
   for (const v of ztSessionVocab()) m.set(v.hanzi, "seen");
   for (const c of state.lu.cards) {
     // A card added from the HSK Temple only counts as "seen" once it has been reviewed at least once.
-    const s = c.good_streak >= ZT_LEARNED ? "learned" : c.reps > 0 || c.source === "session" ? "seen" : null;
+    const s = ztKnown(c) ? "learned" : c.reps > 0 || c.source === "session" ? "seen" : null;
     if (!s) continue;
     for (const h of [c.hanzi, c.hanzi_trad]) if (h && m.get(h) !== "learned") m.set(h, s);
   }
@@ -3428,7 +3430,7 @@ function templeView() {
       ${T > L.show ? `<button type="button" class="btn ghost block" data-zt="more">Show more (${(T - L.show).toLocaleString()} left)</button>` : ""}
       ${L.pick ? `<div class="ztselbar"><span class="ztselcount">${L.pick.size} word${L.pick.size === 1 ? "" : "s"} selected</span><span class="ztselbtns"><button type="button" class="btn ghost small" data-zt="know-picked" ${L.pick.size ? "" : "disabled"}>✓ I know them</button><button type="button" class="btn small" data-zt="add-picked" ${L.pick.size ? "" : "disabled"}>Add to flashcards</button></span></div>` : ""}`;
   }
-  const head = `<div class="ztthead"><span class="ztplaceart">${ztImg("temple")}</span><span class="small muted">Every HSK word, and how well you know it.<br>Grey: not met yet · light green: seen · dark green: learned.</span></div>`;
+  const head = `<div class="ztthead"><span class="ztplaceart">${ztImg("temple")}</span><span class="small muted">Every HSK word, and how well you know it.<br>Grey: not met yet · light green: seen · dark green: known (next review 3+ months away).</span></div>`;
   return `${ztHeader(ztStreak(), `HSK Temple <span class='zhsub'>${trad() ? "漢語廟" : "汉语庙"}</span>`)}${head}<div class="ztlvpills">${pills}</div>
     ${wide() && side ? `<div class="ztcols"><div class="grow" style="min-width:0;display:flex;flex-direction:column;gap:12px">${main}</div><div class="ztsidecol">${side}</div></div>` : `${main}${side ? `<div class="ztwordsheet">${side}</div>` : ""}`}`;
 }
@@ -3447,11 +3449,11 @@ async function ztAddWords(ws, source = "hsk") {
   return n;
 }
 
-// "I already know this word": a learned card due in 30 days (so it still comes back once in a while).
+// "I already know this word": a known card due in 3 months (so it still comes back once in a while).
 async function ztMarkKnown(words, known) {
   const L = state.lu, byHanzi = new Map(L.cards.map((c) => [c.hanzi, c]));
   const upd = known
-    ? { good_streak: ZT_LEARNED, interval_days: 30, due: addDays(30), reps: 1, last_review: new Date().toISOString() }
+    ? { good_streak: ZT_LEARNED, interval_days: ZT_KNOWN_DAYS, due: addDays(ZT_KNOWN_DAYS), reps: 1, last_review: new Date().toISOString() }
     : { good_streak: 0, interval_days: 0, due: todayKey() };
   const have = words.filter((w) => byHanzi.has(w.hanzi)), fresh = known ? words.filter((w) => !byHanzi.has(w.hanzi)) : [];
   let n = 0;
@@ -3743,7 +3745,7 @@ function wodCard() {
   const w = state.wod?.w;
   if (!w) return "";
   const card = state.lu.cards.find((c) => c.hanzi === w.hanzi || (w.hanzi_trad && c.hanzi === w.hanzi_trad));
-  const learned = card && card.good_streak >= ZT_LEARNED;
+  const learned = ztKnown(card);
   const actions = !state.lu.loaded ? ""
     : learned ? `<div class="wodbtns"><span class="wodstate known">✓ Learned · dark green in the HSK Temple</span><button type="button" class="link small" data-wod="unknow">Undo</button></div>`
     : card ? `<div class="wodbtns"><span class="wodstate">✓ In your flashcards</span><button type="button" class="btn ghost small wodknow" data-wod="know">✓ I know this word</button></div>`
