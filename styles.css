@@ -1125,3 +1125,67 @@ details.custom.sbdet > summary b { color: #6b4423; }
 .lclaim { background: #f37a48; }
 .checkrow { display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 2px 0; cursor: pointer; flex-wrap: wrap; }
 .checkrow input { width: 20px; height: 20px; accent-color: #1b6f1b; flex: none; }
+
+/* ---------- Calligraphy School 书法学校 (Zest Town, beta: admins only) ---------- */
+.cgzh { font-family: "Noto Sans SC", "Noto Sans TC", sans-serif; font-weight: 700; }
+.zh-trad .cgzh { font-family: "Noto Sans TC", sans-serif; }
+.cgh { margin: 6px 0 8px; font-size: 13px; font-weight: 800; letter-spacing: .04em; color: var(--faint); text-transform: uppercase; }
+.cgsearch { display: flex; gap: 8px; }
+.cgsbox { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; height: 50px; padding: 0 14px; border-radius: 14px; border: 1.5px solid #e3d6cb; background: #fff; color: #8a7d74; }
+.cgsbox:focus-within { border-color: #1b6f1b; }
+.cgin { border: 0; outline: 0; flex: 1; min-width: 0; background: transparent; font: 700 19px "Noto Sans SC", "Noto Sans TC", sans-serif; color: var(--ink); }
+.cgsearch .btn { min-height: 50px; }
+.cgtries { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; max-width: 520px; }
+.cgtile { display: grid; place-items: center; height: 58px; border-radius: 12px; background: #fff; border: 1.5px solid #e3d6cb; color: var(--ink); text-decoration: none; font: 700 26px/1 "Noto Sans SC", "Noto Sans TC", sans-serif; }
+.cgtile:hover { border-color: #1b6f1b; color: #1b6f1b; }
+.cgrecent { display: flex; gap: 8px; flex-wrap: wrap; }
+.cgrecent a { text-decoration: none; color: var(--ink); background: #f4ece4; border-radius: 999px; padding: 6px 14px; font: 700 17px "Noto Sans SC", "Noto Sans TC", sans-serif; }
+.cgclass { display: flex; align-items: center; gap: 12px; padding: 12px 14px; }
+.cgclass.soon { opacity: .65; }
+.cgclassic { width: 44px; height: 44px; flex: none; border-radius: 12px; background: #fdece4; color: #c2410c; display: grid; place-items: center; font: 700 22px "Noto Sans SC", "Noto Sans TC", sans-serif; }
+.cgclass.soon .cgclassic { background: #f4ece4; color: #8a7d74; }
+.cgtabs { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.cgtab { width: 54px; height: 50px; border-radius: 12px; border: 1.5px solid #e3d6cb; background: #fff; font: 700 24px/1 "Noto Sans SC", "Noto Sans TC", sans-serif; cursor: pointer; }
+.cgtab[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+.cgtab:disabled { opacity: .4; cursor: default; }
+.cggrid { display: block; width: 100%; height: auto; background: #fbf3e2; border-radius: 6px; }
+.cgplayer { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 16px; }
+.cggridwrap { width: min(100%, 340px); }
+.cglabel { font-size: 15px; min-height: 22px; text-align: center; }
+.cgctrls { display: flex; align-items: center; gap: 10px; }
+.cgrb { width: 48px; height: 48px; flex: none; border-radius: 50%; border: 1.5px solid #e3d6cb; background: #fff; color: var(--ink); display: inline-grid; place-items: center; cursor: pointer; padding: 0; }
+.cgrb:hover { border-color: #b9a898; }
+.cgrb.main { width: 62px; height: 62px; background: var(--ink); border-color: var(--ink); color: #fff; }
+.cgrb.speed { font-weight: 800; font-size: 14px; }
+.cgcheck { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
+.cgcheck input { width: 20px; height: 20px; accent-color: #1b6f1b; }
+.cginfo { display: flex; flex-direction: column; gap: 10px; }
+.cginfotop { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.cgbig { font-size: 40px; line-height: 1; }
+.cgpy { font-size: 21px; }
+.cgalt { text-decoration: none; }
+.cginfo .btn { display: inline-flex; align-items: center; gap: 8px; }
+.cgstrip { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 8px 6px; }
+.cgstep { border: 0; background: none; padding: 2px; border-radius: 8px; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; font-size: 11.5px; font-weight: 700; color: var(--faint); }
+.cgstep.on { background: #fdece4; color: #c2410c; }
+.cgnext { align-self: flex-end; font-weight: 700; font-size: 15px; }
+.cgcols { display: grid; grid-template-columns: minmax(360px, 440px) 1fr; gap: 24px; align-items: start; }
+.cgcols .cggridwrap { width: 100%; }
+.cgwh { margin: 0; font-size: 24px; }
+.cgbar { display: flex; gap: 4px; width: 100%; max-width: 440px; }
+.cgbar span { flex: 1; height: 8px; border-radius: 4px; background: #e8dcc8; }
+.cgbar span.ok { background: #1b6f1b; }
+.cgbar span.cur { background: #c2410c; }
+.cgquizwrap { position: relative; width: min(100%, 380px); aspect-ratio: 1; align-self: center; touch-action: none; }
+.cgquizwrap > .cggrid { position: absolute; inset: 0; }
+.cgquiz { position: absolute; inset: 0; }
+.cgquiz svg { display: block; }
+.btn.cgon { background: #e6f4df; border-color: #bfe0b0; color: #1b6f1b; }
+.cgdone { display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; padding: 22px 18px; max-width: 440px; align-self: center; width: 100%; }
+.cgdone h2 { margin: 8px 0 0; font-size: 24px; }
+.cgdonegrid { position: relative; width: 210px; }
+.cgseal { position: absolute; right: -22px; bottom: -16px; width: 88px; height: 88px; display: grid; place-items: center; background: #c23b3b; color: #fdf3ee; border-radius: 10px; transform: rotate(-6deg); box-shadow: inset 0 0 0 5px #c23b3b, inset 0 0 0 8px #f8e2dc; font: 700 48px/1 "Noto Sans SC", "Noto Sans TC", sans-serif; }
+.cgseal.two { font-size: 30px; writing-mode: vertical-rl; letter-spacing: 2px; }
+.ztlabel.cgbeta em { background: #ffd95a; color: #5a3d00; }
+.card.cgclass { flex-direction: row; text-align: left; }
+.cgin::placeholder { font: 500 16px var(--font); color: #8a7d74; }

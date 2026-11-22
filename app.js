@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=114";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=114";
-import { COUNTRIES } from "./countries.js?v=114";
+import { createClient } from "./vendor/supabase.js?v=115";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=115";
+import { COUNTRIES } from "./countries.js?v=115";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=114";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=115";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -39,7 +39,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=114"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=115"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -494,6 +494,7 @@ function render() {
   if (state.idea?.open) app.insertAdjacentHTML("beforeend", ideaOverlay());
   else if (state.rewardQueue?.length && !app.querySelector(".hbover")) app.insertAdjacentHTML("beforeend", rewardOverlay());
   wireMap();
+  cgAfterRender();
 }
 
 // ---------------------------------------------------------------------------
@@ -1382,7 +1383,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=114"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=115"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1988,7 +1989,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=114");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=115");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2886,7 +2887,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=114").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=115").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -3284,6 +3285,7 @@ function learnView() {
   if (sub === "temple") return templeView();
   if (sub === "forest") return forestView();
   if (sub === "gallery") return galleryView();
+  if (sub === "callig" || sub.startsWith("callig/")) return calligView(sub.split("?")[0].split("/").slice(1).filter(Boolean));
   if (sub === "library" || sub.startsWith("library/") || sub.startsWith("library?")) {
     const [path, qs] = sub.split("?");
     return libraryView(path.split("/").slice(1).filter(Boolean), Object.fromEntries(new URLSearchParams(qs || "")));
@@ -3298,7 +3300,7 @@ function ztHeader(st, back) {
 function todayCard(st) {
   return st.doneToday
     ? `<div class="zttoday done">${ZT_LEAF}<span><b>Today counts!</b><br><span class="small">Your tree grows again tomorrow. Come back for day ${st.n + 1}.</span></span></div>`
-    : `<div class="zttoday">${ZT_LEAF}<span><b>Keep your tree growing</b><br><span class="small">Review flashcards or join a session today.</span></span></div>`;
+    : `<div class="zttoday">${ZT_LEAF}<span><b>Keep your tree growing</b><br><span class="small">Review flashcards, read a Library chapter or join a session today.</span></span></div>`;
 }
 function treeCard(st, big) {
   const nx = ztNext(st);
@@ -3321,13 +3323,14 @@ function placeCards(big) {
   return card("#/learn/cards", "house", "Flashcard Center", trad() ? "字卡中心" : "字卡中心", dueN ? `${dueN} card${dueN === 1 ? "" : "s"} to review today` : "All done for today", `${d.cards.length.toLocaleString()} in your deck · ${state.lu.perDay} new a day`, "Review")
     + card("#/learn/temple", "temple", "HSK Temple", trad() ? "漢語廟" : "汉语庙", hskLine, "Every HSK word, and how well you know it", "Explore")
     + (() => { const c = sbCount(); return card("#/learn/gallery", "gallery", "Sticker Gallery", trad() ? "貼紙館" : "贴纸馆", `${c.n} of ${c.total} stickers collected`, "Every sticker you've earned, and how to get the others", "Visit"); })()
-    + (libOpen() ? card("#/learn/library", "library", "Library", trad() ? "圖書館" : "图书馆", "Workbooks & graded readers", "Read your books in the app, and get new ones in the Bookshop", "Open") : "");
+    + (libOpen() ? card("#/learn/library", "library", "Library", trad() ? "圖書館" : "图书馆", "Workbooks & graded readers", "Read your books in the app, and get new ones in the Bookshop", "Open") : "")
+    + (calligOpen() ? card("#/learn/callig", "callig", "Calligraphy School", trad() ? "書法學校" : "书法学校", "Stroke order · beta, admins only", "Watch any character stroke by stroke, then write it yourself", "Enter") : "");
 }
 function soonCards(big) {
   const card = (img, t, z, line) => `<div class="card ztplace soon ${big ? "big" : ""}"><span class="ztplaceart">${ztImg(img)}</span>
     <span class="grow"><b>${t}</b> <span class="muted">${z}</span><br><span class="small muted">${line}</span></span><span class="ztsoon">Open soon</span></div>`;
   return (libOpen() ? "" : card("library", "Library", trad() ? "圖書館" : "图书馆", "Still closed. Coming soon to Zest Town."))
-    + card("callig", "Calligraphy School", trad() ? "書法學校" : "书法学校", "Still closed. Coming soon to Zest Town.");
+    + (calligOpen() ? "" : card("callig", "Calligraphy School", trad() ? "書法學校" : "书法学校", "Still closed. Coming soon to Zest Town."));
 }
 function townMap(st) {
   const k = wide() ? "wide" : "phone", M = ZT_MAP[k], pct = (x, w) => `${(x / w) * 100}%`;
@@ -3336,7 +3339,7 @@ function townMap(st) {
   return `<div class="ztmap ${k}" style="aspect-ratio:${M.w}/${M.h}">
     ${ztImg(`town4-${k}`, "ztbg")}
     ${[["house", 21, 18, 43, 33, "a", "#/learn/cards", "Flashcard Center"], ["temple", 23, 19, 46, 36, "a", "#/learn/temple", "HSK Temple"], ["gallery", 21, 18, 42, 34, "a", "#/learn/gallery", "Sticker Gallery"],
-      libOpen() ? ["library", 21, 18, 42, 34, "a", "#/learn/library", "Library"] : ["library", 21, 18, 42, 34, "b", "library", "Library, opening soon"], ["callig", 21, 18, 42, 34, "b", "callig", "Calligraphy School, opening soon"]]
+      libOpen() ? ["library", 21, 18, 42, 34, "a", "#/learn/library", "Library"] : ["library", 21, 18, 42, 34, "b", "library", "Library, opening soon"], calligOpen() ? ["callig", 21, 18, 42, 34, "a", "#/learn/callig", "Calligraphy School (beta)"] : ["callig", 21, 18, 42, 34, "b", "callig", "Calligraphy School, opening soon"]]
       .map(([key, ox, oy, bw, bh, tag, to, label]) => { const [x, y] = M[key], st = `${at(x - ox, y - oy)};width:${pct(bw, M.w)};height:${pct(bh, M.h)}`;
         return tag === "a" ? `<a class="zthit" href="${to}" style="${st}" aria-label="${label}"></a>` : `<button type="button" class="zthit" data-zt="soon" data-v="${to}" style="${st}" aria-label="${label}"></button>`; }).join("")}
     <div class="ztriver" style="top:${pct(M.river[0], M.h)};height:${pct(M.river[1], M.h)}" aria-hidden="true"><img class="px" src="icons/zt/river3-${k}.png" alt="" draggable="false"></div>
@@ -3350,7 +3353,8 @@ function townMap(st) {
     <a class="ztlabel gal" href="#/learn/gallery" style="${at(M.gallery[0], M.gallery[1] + 15)}" aria-label="Sticker Gallery">STICKER GALLERY</a>
     ${libOpen() ? `<a class="ztlabel lib" href="#/learn/library" style="${at(M.library[0], M.library[1] + 15)}" aria-label="Library">LIBRARY</a>`
       : `<button type="button" class="ztlabel soon" data-zt="soon" data-v="library" style="${at(M.library[0], M.library[1] + 15)}" aria-label="Library, opening soon">LIBRARY<em>SOON</em></button>`}
-    <button type="button" class="ztlabel soon" data-zt="soon" data-v="callig" style="${at(M.callig[0], M.callig[1] + 15)}" aria-label="Calligraphy School, opening soon">CALLIGRAPHY<em>SOON</em></button>
+    ${calligOpen() ? `<a class="ztlabel soon cgbeta" href="#/learn/callig" style="${at(M.callig[0], M.callig[1] + 15)}" aria-label="Calligraphy School (beta, admins only)">CALLIGRAPHY<em>BETA</em></a>`
+      : `<button type="button" class="ztlabel soon" data-zt="soon" data-v="callig" style="${at(M.callig[0], M.callig[1] + 15)}" aria-label="Calligraphy School, opening soon">CALLIGRAPHY<em>SOON</em></button>`}
     <button type="button" class="ztlabel day ${st.wilted ? "dead" : ""}" data-zt="sheet" style="${at(M.plaza[0], M.plaza[1] + 11)}">${st.wilted ? "WILTED" : `DAY ${st.n}`}</button>
   </div>`;
 }
@@ -3358,7 +3362,7 @@ function townView() {
   const st = ztStreak(), L = state.lu, list = L.view === "list";
   const toggle = `<div class="seg ztseg" role="group" aria-label="Show Zest Town as"><button type="button" data-zt="view" data-v="town" aria-pressed="${!list}">Town</button><button type="button" data-zt="view" data-v="list" aria-pressed="${list}">List</button></div>`;
   let body;
-  if (list) body = `${treeCard(st, wide())}${todayCard(st)}<h2 style="margin:4px 0 0">Places</h2><div class="ztplaces">${placeCards(wide())}</div><h2 style="margin:4px 0 0">Opening soon</h2><div class="ztplaces">${soonCards(wide())}</div>`;
+  if (list) body = `${treeCard(st, wide())}${todayCard(st)}<h2 style="margin:4px 0 0">Places</h2><div class="ztplaces">${placeCards(wide())}</div>${soonCards(wide()) ? `<h2 style="margin:4px 0 0">Opening soon</h2><div class="ztplaces">${soonCards(wide())}</div>` : ""}`;
   else if (wide()) body = `<div class="ztwide">${townMap(st)}<div class="ztside">${treeCard(st)}${todayCard(st)}${placeCards()}</div></div>`;
   else body = `${townMap(st)}${todayCard(st)}`;
   setTimeout(ztHop, 50);
@@ -4370,4 +4374,283 @@ document.addEventListener("input", (e) => {
     const ans = libGet(id, `ex.${ex}.a`) || {}; ans[k] = t.value; libSet(id, `ex.${ex}.a`, ans);
     const sh = libGet(id, `ex.${ex}.show`); if (sh?.[k] && libBook(id).exercises[+ex].kind === "write") { delete sh[k]; }
   }
+});
+
+// ---------------------------------------------------------------------------
+// Calligraphy School 书法学校 (Zest Town, beta: admins only since 22 Nov 2026)
+// Stroke order: watch a character stroke by stroke, then write it yourself (Hanzi Writer quiz).
+// Stroke data: hanzi-writer-data (Make Me a Hanzi, Arphic PL) fetched from jsDelivr per character.
+// Character info: table char_info + hsk_words via char_lookup(). No audio on purpose.
+// ---------------------------------------------------------------------------
+const calligOpen = () => isAdmin();
+const CG_INK = "#2a2420", CG_CUR = "#c2410c", CG_FAINT = "#e8dcc8", CG_RAD = "#1b6f1b";
+const CG_TRY = ["学", "爱", "写", "龙", "家", "书", "中", "国", "我", "好"];
+const CG_TRY_T = { 学: "學", 爱: "愛", 写: "寫", 龙: "龍", 书: "書", 国: "國" };
+const CG_SPEEDS = [0.5, 1, 2];
+const cgState = () => (state.cg ??= { text: null, info: new Map(), word: null, data: new Map(), err: null, idx: 0, k: 0, playing: false, run: 0, speed: 1,
+  rad: lsGet("mz-cg-rad") !== "0", outline: true, finished: null, done: 0, mistakes: 0, writer: null });
+const cgCJK = (s) => [...String(s || "")].filter((c) => /\p{Script=Han}/u.test(c)).join("").slice(0, 8);
+const cgRecent = () => { try { return JSON.parse(lsGet("mz-cg-recent") || "[]"); } catch { return []; } };
+function cgRemember(t) { lsSet("mz-cg-recent", JSON.stringify([t, ...cgRecent().filter((x) => x !== t)].slice(0, 8))); }
+let cgHW = null;
+const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=115")).default);
+
+async function cgLoad(text) {
+  const S = cgState();
+  S.text = text; S.info = new Map(); S.word = null; S.err = null; S.idx = 0; S.k = 0; S.playing = false; S.run++; S.finished = null;
+  const chars = [...new Set(text)];
+  try {
+    const HW = await cgLib();
+    const [{ data, error }, ...strokes] = await Promise.all([sb.rpc("char_lookup", { p_text: text }),
+      ...chars.map((c) => S.data.has(c) ? S.data.get(c) : HW.loadCharacterData(c).then((d) => { S.data.set(c, d); return d; }).catch(() => null))]);
+    if (S.text !== text) return;
+    if (error) throw error;
+    for (const i of data?.chars || []) S.info.set(i.ch, i);
+    S.word = data?.word || null;
+    const missing = chars.filter((c, j) => !strokes[j]);
+    if (missing.length === chars.length) S.err = "nodata";
+    else { if (missing.length) toast(`No stroke data for ${missing.join(" ")}.`); cgRemember(text); }
+  } catch (e) { console.error(e); if (S.text === text) S.err = "load"; }
+  if (S.text === text) render();
+}
+
+// ---- drawing (Hanzi Writer data: 1024 box, y up, baseline at 900) ----
+const cgLen = (m) => m.reduce((s, p, i) => i ? s + Math.hypot(p[0] - m[i - 1][0], p[1] - m[i - 1][1]) : 0, 0);
+const cgGridLines = `<rect x="6" y="6" width="1012" height="1012" fill="none" stroke="#c98a7e" stroke-width="12"/>
+  <path d="M6 6 L1018 1018 M1018 6 L6 1018 M512 6 V1018 M6 512 H1018" stroke="#dcaea4" stroke-width="5" stroke-dasharray="26 20" fill="none"/>`;
+function cgColor(d, i, k, rad) { return i < k ? (rad && d.radStrokes?.includes(i) ? CG_RAD : CG_INK) : null; }
+// Small static grid: strokes before i+1 in ink, stroke i in vermilion (the "every stroke" strip, the done card).
+function cgMini(d, upto, cur, rad) {
+  const paths = d.strokes.map((p, i) => { const c = i === cur ? CG_CUR : cgColor(d, i, upto, rad); return c ? `<path d="${p}" fill="${c}"/>` : ""; }).join("");
+  return `<svg class="cggrid" viewBox="0 0 1024 1024" aria-hidden="true">${cgGridLines}<g transform="translate(0,900) scale(1,-1)">${paths}</g></svg>`;
+}
+// The big player: every stroke is a thick median line clipped to the stroke's shape, drawn by animating its dash offset.
+function cgPlayer(d, ch) {
+  const S = cgState();
+  const parts = d.strokes.map((p, i) => {
+    const m = d.medians[i], L = Math.ceil(cgLen(m)) + 10, col = cgColor(d, i, S.k, S.rad) || CG_INK;
+    return `<path d="${p}" fill="${CG_FAINT}"/><clipPath id="cgclip${i}"><path d="${p}"/></clipPath>
+      <path class="cgfg" data-i="${i}" data-l="${L}" d="M${m.map((q) => q.join(" ")).join(" L")}" fill="none" stroke="${col}" stroke-width="200" stroke-linecap="round" stroke-linejoin="round" clip-path="url(#cgclip${i})" stroke-dasharray="${L} ${L}" stroke-dashoffset="${i < S.k ? 0 : L}"/>`;
+  }).join("");
+  return `<svg class="cggrid big" viewBox="0 0 1024 1024" role="img" aria-label="Stroke order of ${esc(ch)}">${cgGridLines}<g transform="translate(0,900) scale(1,-1)">${parts}</g></svg>`;
+}
+function cgPaint() { // static state after a jump, a step back or a restart
+  const S = cgState(), d = S.data.get(S.text?.[S.idx]); if (!d) return;
+  document.querySelectorAll(".cgfg").forEach((el) => {
+    const i = +el.dataset.i; el.style.transition = "none";
+    el.style.strokeDashoffset = i < S.k ? 0 : el.dataset.l; el.style.stroke = cgColor(d, i, S.k, S.rad) || CG_INK;
+  });
+  cgSync();
+}
+function cgSync() { // labels and buttons, without a full render (keeps the animation running)
+  const S = cgState(), d = S.data.get(S.text?.[S.idx]); if (!d) return;
+  const n = d.strokes.length, lab = document.getElementById("cglabel");
+  if (lab) lab.innerHTML = S.k ? `<b>Stroke ${S.k} of ${n}</b>` : `<b>${n} strokes</b> · press play`;
+  const pb = document.getElementById("cgplay");
+  if (pb) { pb.innerHTML = S.playing ? ICON_CG.pause : ICON_CG.play; pb.setAttribute("aria-label", S.playing ? "Pause" : "Play"); }
+  document.querySelectorAll(".cgstep").forEach((b) => b.classList.toggle("on", +b.dataset.i === S.k - 1));
+}
+const cgSleep = (ms) => new Promise((r) => setTimeout(r, ms));
+async function cgStroke(i, run) {
+  const S = cgState(), el = document.querySelector(`.cgfg[data-i="${i}"]`); if (!el) return;
+  const L = +el.dataset.l, dur = Math.max(320, L * 0.9) / S.speed;
+  const lab = document.getElementById("cglabel"); if (lab) lab.innerHTML = `<b>Stroke ${i + 1} of ${document.querySelectorAll(".cgfg").length}</b>`;
+  el.style.transition = "none"; el.style.stroke = CG_CUR; el.style.strokeDashoffset = L;
+  el.getBoundingClientRect();
+  el.style.transition = `stroke-dashoffset ${dur}ms linear`; el.style.strokeDashoffset = 0;
+  await cgSleep(dur);
+  if (run !== S.run) return;
+  const d = S.data.get(S.text[S.idx]), fin = document.querySelector(`.cgfg[data-i="${i}"]`);
+  if (fin) { fin.style.transition = "none"; fin.style.strokeDashoffset = 0; fin.style.stroke = cgColor(d, i, i + 1, S.rad); }
+}
+async function cgPlay() {
+  const S = cgState(), d = S.data.get(S.text[S.idx]); if (!d) return;
+  const run = ++S.run; S.playing = true;
+  if (S.k >= d.strokes.length) { S.k = 0; cgPaint(); await cgSleep(250); }
+  cgSync();
+  while (S.playing && run === S.run && S.k < d.strokes.length) {
+    await cgStroke(S.k, run);
+    if (run !== S.run) return;
+    S.k++; cgSync();
+    await cgSleep(260 / S.speed);
+  }
+  if (run === S.run) { S.playing = false; cgSync(); }
+}
+const cgStop = () => { const S = cgState(); S.run++; S.playing = false; };
+
+// ---- views ----
+const ICON_CG = {
+  play: `<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>`,
+  pause: `<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M7 5h4v14H7zM13 5h4v14h-4z" fill="currentColor"/></svg>`,
+  prev: `<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  next: `<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  restart: `<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4.5h4.5" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  brush: `<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M14 4l6 6-7.5 7.5-6-6z" stroke="currentColor" stroke-width="2" fill="none" stroke-linejoin="round"/><path d="M6.5 11.5c-3 1-3.5 4-3.5 8.5 4.5 0 7.5-.5 8.5-3.5" stroke="currentColor" stroke-width="2" fill="none" stroke-linejoin="round"/></svg>`,
+  search: `<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="11" cy="11" r="6.5" stroke="currentColor" stroke-width="2.2" fill="none"/><path d="M16 16l4.5 4.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>`,
+};
+const cgHead = (href, label) => `<header class="zthead"><a class="ztback" href="${href}">‹ ${label}</a><h1>${cgTitle()}</h1></header>`;
+const cgTitle = () => `Calligraphy School <span class='zhsub'>${trad() ? "書法學校" : "书法学校"}</span><span class="betachip">BETA</span>`;
+const cgSearch = (val = "") => `<form class="cgsearch" data-cgform><label class="cgsbox"><span aria-hidden="true">${ICON_CG.search}</span>
+  <input name="q" class="cgin" value="${esc(val)}" placeholder="Type a character or word" aria-label="Character or word" autocomplete="off" lang="zh"></label><button class="btn" type="submit">Show</button></form>`;
+const cgHref = (t, write) => `#/learn/callig/${encodeURIComponent(t)}${write ? "/write" : ""}`;
+
+function calligView(parts) {
+  if (!calligOpen()) { location.hash = "#/learn"; return townView(); }
+  const [t, mode] = parts.map((x) => { try { return decodeURIComponent(x); } catch { return x; } });
+  const text = cgCJK(t);
+  if (!text) return cgHomeView();
+  const S = cgState();
+  if (S.text !== text) { cgLoad(text); return `${cgHead("#/learn/callig", "Calligraphy School")}<p class="muted small">Opening ${esc(text)}…</p>`; }
+  if (S.err) return `${cgHead("#/learn/callig", "Calligraphy School")}${cgSearch(text)}<div class="card"><b>${S.err === "nodata" ? "No stroke order for that yet" : "Couldn't load that character"}</b><p class="small muted" style="margin:4px 0 0">${S.err === "nodata" ? "We have about 9,500 common characters, simplified and traditional. Try another one." : "Check your connection and try again."}</p></div>`;
+  if (S.idx >= text.length) S.idx = 0;
+  if (!S.data.get(text[S.idx])) S.idx = [...text].findIndex((c) => S.data.get(c));
+  return mode === "write" ? cgWriteView() : cgWatchView();
+}
+
+function cgHomeView() {
+  const tries = CG_TRY.map((c) => trad() ? CG_TRY_T[c] || c : c);
+  const recent = cgRecent();
+  return `${cgHead("#/learn", "Zest Town")}
+    <div class="ztthead"><span class="ztplaceart">${ztImg("callig")}</span><span class="small muted">Learn to write characters the right way, one stroke at a time. Watch the order, then write it yourself.</span></div>
+    ${cgSearch()}
+    <section><h2 class="cgh">Try one</h2><div class="cgtries">${tries.map((c) => `<a class="cgtile" href="${cgHref(c)}">${esc(c)}</a>`).join("")}</div></section>
+    ${recent.length ? `<section><h2 class="cgh">You looked up</h2><div class="cgrecent">${recent.map((w) => `<a href="${cgHref(w)}">${esc(w)}</a>`).join("")}</div></section>` : ""}
+    <section><h2 class="cgh">Classes</h2><div class="stack" style="gap:8px">
+      <div class="card cgclass"><span class="cgclassic">${trad() ? "筆" : "笔"}</span><span class="grow"><b>Stroke order</b> <span class="muted">${trad() ? "筆順" : "笔顺"}</span><br><span class="small muted">Search any character above, or tap one to try</span></span></div>
+      <div class="card cgclass soon"><span class="cgclassic">部</span><span class="grow"><b>More classes</b><br><span class="small muted">Coming later to the School</span></span><span class="ztsoon">Soon</span></div>
+    </div></section>`;
+}
+
+function cgInfoCard(ch, d) {
+  const S = cgState(), i = S.info.get(ch) || {}, other = i.trad || i.simp;
+  const radN = d.radStrokes?.length;
+  const tags = [i.hsk ? `<span class="ltag hsk">HSK ${esc(i.hsk)}</span>` : "", `<span class="ltag">${d.strokes.length} strokes</span>`,
+    i.radical && i.radical !== ch ? `<span class="ltag">Radical <span class="cgzh">${esc(i.radical)}</span>${i.radical_meaning ? ` ${esc(i.radical_meaning)}` : ""}</span>` : i.radical === ch ? `<span class="ltag">It's a radical itself</span>` : "",
+    other ? `<a class="ltag cgalt" href="${cgHref([...S.text].map((c) => { const x = S.info.get(c); return x?.trad || x?.simp || c; }).join(""))}">${i.trad ? "Traditional" : "Simplified"} <span class="cgzh">${esc(other)}</span> ›</a>` : ""].join("");
+  const inDeck = cgInDeck();
+  return `<div class="card cginfo">
+    <div class="cginfotop"><span class="cgzh cgbig">${esc(ch)}</span><b class="cgpy">${esc(i.pinyin || "")}</b><span class="muted">${esc(i.meaning || "")}</span></div>
+    <div class="row" style="gap:6px;flex-wrap:wrap">${tags}</div>
+    ${radN && S.rad && i.radical && i.radical !== ch ? `<p class="tiny muted" style="margin:0">The radical's strokes turn green.</p>` : ""}
+    <div class="row" style="gap:8px;flex-wrap:wrap"><a class="btn" href="${cgHref(S.text, true)}">${ICON_CG.brush} Write it myself</a>
+    ${inDeck ? `<span class="lindeck">✓ In your flashcards</span>` : `<button type="button" class="btn ghost" data-cg="add">+ Add ${esc(cgDeckWord().hanzi)} to flashcards</button>`}</div>
+  </div>`;
+}
+function cgDeckWord() { // the whole word when it's an HSK word, else the character on screen
+  const S = cgState();
+  if (S.text.length > 1 && S.word) return { hanzi: S.text, pinyin: S.word.pinyin, meaning: S.word.meaning, level: S.word.level };
+  const ch = S.text[S.idx], i = S.info.get(ch) || {};
+  return { hanzi: ch, pinyin: i.pinyin || "", meaning: i.meaning || "", level: i.hsk || null };
+}
+function cgInDeck() { const h = cgDeckWord().hanzi; return state.lu.cards.some((c) => c.hanzi === h || c.hanzi_trad === h); }
+
+function cgWatchView() {
+  cgState().finished = null;
+  const S = cgState(), ch = S.text[S.idx], d = S.data.get(ch), n = d.strokes.length;
+  const tabs = S.text.length > 1 ? `<div class="cgtabs" role="group" aria-label="Characters">${[...S.text].map((c, j) => `<button type="button" class="cgtab" data-cg="tab" data-i="${j}" aria-pressed="${j === S.idx}" ${S.data.get(c) ? "" : "disabled"}>${esc(c)}</button>`).join("")}
+    ${S.word ? `<span class="small muted">${esc(S.word.pinyin)} · ${esc(S.word.meaning)}${S.word.level ? ` · HSK ${esc(S.word.level)}` : ""}</span>` : ""}</div>` : "";
+  const strip = [...Array(n)].map((_, i) => `<button type="button" class="cgstep ${i === S.k - 1 ? "on" : ""}" data-cg="jump" data-i="${i + 1}" aria-label="Up to stroke ${i + 1}">${cgMini(d, i, i, S.rad)}<span>${i + 1}</span></button>`).join("");
+  const player = `<section class="card cgplayer">
+    <div class="cggridwrap">${cgPlayer(d, ch)}</div>
+    <div id="cglabel" class="cglabel" aria-live="polite"></div>
+    <div class="cgctrls">
+      <button type="button" class="cgrb" data-cg="restart" aria-label="Start again">${ICON_CG.restart}</button>
+      <button type="button" class="cgrb" data-cg="prev" aria-label="Previous stroke">${ICON_CG.prev}</button>
+      <button type="button" class="cgrb main" id="cgplay" data-cg="play" aria-label="Play">${ICON_CG.play}</button>
+      <button type="button" class="cgrb" data-cg="next" aria-label="Next stroke">${ICON_CG.next}</button>
+      <button type="button" class="cgrb speed" data-cg="speed" aria-label="Speed">${S.speed}×</button>
+    </div>
+    <label class="cgcheck"><input type="checkbox" data-cg="rad" ${S.rad ? "checked" : ""}> Show the radical in green</label>
+  </section>`;
+  const side = `${cgInfoCard(ch, d)}
+    <section class="card"><div class="row between" style="align-items:baseline;margin-bottom:10px"><b>Every stroke</b><span class="tiny muted">tap one to jump there</span></div><div class="cgstrip">${strip}</div></section>
+    ${S.idx < S.text.length - 1 ? `<button type="button" class="linkbtn cgnext" data-cg="tab" data-i="${S.idx + 1}">Next: <span class="cgzh">${esc(S.text[S.idx + 1])}</span> ›</button>` : ""}`;
+  return `${cgHead("#/learn/callig", "Calligraphy School")}${cgSearch(S.text)}${tabs}
+    ${wide() ? `<div class="cgcols"><div>${player}</div><div class="stack" style="gap:14px;min-width:0">${side}</div></div>` : `${player}${side}`}`;
+}
+
+function cgWriteView() {
+  const S = cgState(), ch = S.text[S.idx], d = S.data.get(ch), n = d.strokes.length;
+  const back = `<a class="ztback" href="${cgHref(S.text)}">‹ ${esc(ch)} · stroke order</a>`;
+  if (S.finished) {
+    const good = S.finished.mistakes <= 1, nextJ = [...S.text].findIndex((c, j) => j > S.idx && S.data.get(c));
+    return `${back}<section class="card cgdone">
+      <div class="cgdonegrid">${cgMini(d, n, -1, S.rad)}<span class="cgseal ${good ? "" : "two"}" aria-hidden="true">${good ? "好" : "加油"}</span></div>
+      <h2>${good ? "Beautifully written!" : "Done! Keep practising"}</h2>
+      <p class="muted" style="margin:0">${n} strokes · ${S.finished.mistakes} mistake${S.finished.mistakes === 1 ? "" : "s"}</p>
+      <div class="cgbar">${[...Array(n)].map(() => `<span class="ok"></span>`).join("")}</div>
+      <div class="row" style="gap:8px;width:100%"><button type="button" class="btn ghost grow" data-cg="again">Again</button>
+      ${nextJ > 0 ? `<button type="button" class="btn grow" data-cg="wnext" data-i="${nextJ}">Next: <span class="cgzh">${esc(S.text[nextJ])}</span></button>` : `<a class="btn grow" href="#/learn/callig">Another character</a>`}</div>
+      ${S.outline ? `<button type="button" class="btn ghost block" data-cg="again-bare">Again, without the outline</button>` : ""}
+    </section>`;
+  }
+  return `${back}
+    <div><h1 class="cgwh">Your turn: write <span class="cgzh">${esc(ch)}</span></h1><p class="small muted" style="margin:4px 0 0">Draw each stroke in order with your finger or mouse. A wrong stroke fades away; after 2 misses the hint shows the way.</p></div>
+    <div class="cgbar" id="cgbar">${[...Array(n)].map((_, i) => `<span class="${i < S.done ? "ok" : i === S.done ? "cur" : ""}"></span>`).join("")}</div>
+    <div class="cgquizwrap"><svg class="cggrid" viewBox="0 0 1024 1024" aria-hidden="true">${cgGridLines}</svg><div id="cgquiz" class="cgquiz" aria-label="Writing area for ${esc(ch)}"></div></div>
+    <div class="row between small"><span id="cgcount"><b>${S.done} of ${n}</b> strokes</span><span class="muted" id="cgmiss">${S.mistakes} mistake${S.mistakes === 1 ? "" : "s"}</span></div>
+    <div class="row" style="gap:8px">
+      <button type="button" class="btn ghost grow" data-cg="hint">Hint</button>
+      <button type="button" class="btn ghost grow ${S.outline ? "cgon" : ""}" data-cg="outline" aria-pressed="${S.outline}">Outline ${S.outline ? "on" : "off"}</button>
+      <button type="button" class="cgrb" data-cg="again" aria-label="Start again">${ICON_CG.restart}</button>
+    </div>`;
+}
+
+// Mount the Hanzi Writer quiz after each render of the write view (a re-render starts the character again).
+function cgAfterRender() { if (route() !== "learn") return; if (document.getElementById("cglabel")) cgSync(); cgMount(); }
+async function cgMount() {
+  const el = document.getElementById("cgquiz");
+  if (!el || el.dataset.on) return;
+  el.dataset.on = "1";
+  const S = cgState(), ch = S.text[S.idx], d = S.data.get(ch), n = d.strokes.length;
+  const HW = await cgLib(); if (!el.isConnected) return;
+  const size = Math.round(el.getBoundingClientRect().width) || 300;
+  S.writer = HW.create(el, ch, {
+    width: size, height: size, padding: 0, showCharacter: false, showOutline: S.outline, showHintAfterMisses: 2,
+    strokeColor: CG_INK, radicalColor: S.rad ? CG_RAD : null, outlineColor: "#e6dccb", drawingColor: "#3b5ba5", drawingWidth: Math.max(16, size / 18),
+    highlightColor: CG_CUR, charDataLoader: (c, ok) => ok(S.data.get(c)),
+  });
+  const upd = () => {
+    const bar = document.getElementById("cgbar"); if (bar) [...bar.children].forEach((s, i) => { s.className = i < S.done ? "ok" : i === S.done ? "cur" : ""; });
+    const c = document.getElementById("cgcount"); if (c) c.innerHTML = `<b>${S.done} of ${n}</b> strokes`;
+    const m = document.getElementById("cgmiss"); if (m) m.textContent = `${S.mistakes} mistake${S.mistakes === 1 ? "" : "s"}`;
+  };
+  S.done = 0; S.mistakes = 0; upd();
+  S.writer.quiz({
+    onMistake: (x) => { S.mistakes = x.totalMistakes; upd(); },
+    onCorrectStroke: (x) => { S.mistakes = x.totalMistakes; S.done = x.strokeNum + 1; upd(); },
+    onComplete: (x) => { S.finished = { mistakes: x.totalMistakes }; setTimeout(() => { if (route() === "learn") render(); }, 700); },
+  });
+}
+
+document.addEventListener("submit", (e) => {
+  const f = e.target.closest("[data-cgform]"); if (!f) return;
+  e.preventDefault();
+  const t = cgCJK(f.q.value);
+  if (!t) { toast("Type Chinese characters, for example 学 or 学校."); return; }
+  cgStop(); location.hash = cgHref(t);
+});
+document.addEventListener("change", (e) => {
+  const t = e.target.closest('[data-cg="rad"]'); if (!t) return;
+  const S = cgState(); S.rad = t.checked; lsSet("mz-cg-rad", S.rad ? null : "0"); cgStop(); render();
+});
+document.addEventListener("click", async (e) => {
+  const el = e.target.closest("button[data-cg]"); if (!el) return;
+  const S = cgState(), a = el.dataset.cg, d = S.text && S.data.get(S.text[S.idx]);
+  if (a === "play") { if (S.playing) { cgStop(); S.k = Math.min(S.k + 1, d.strokes.length); cgPaint(); } else cgPlay(); }
+  else if (a === "restart") { cgStop(); S.k = 0; cgPaint(); cgPlay(); }
+  else if (a === "prev") { cgStop(); S.k = Math.max(0, S.k - 1); cgPaint(); }
+  else if (a === "next") { cgStop(); if (S.k < d.strokes.length) { const run = S.run; S.playing = false; cgSync(); await cgStroke(S.k, run); if (run === S.run) { S.k++; cgSync(); } } }
+  else if (a === "jump") { cgStop(); S.k = +el.dataset.i; cgPaint(); }
+  else if (a === "speed") { S.speed = CG_SPEEDS[(CG_SPEEDS.indexOf(S.speed) + 1) % CG_SPEEDS.length]; el.textContent = `${S.speed}×`; }
+  else if (a === "tab") { cgStop(); S.idx = +el.dataset.i; S.k = 0; render(); scrollTo(0, 0); }
+  else if (a === "add") {
+    const w = cgDeckWord(), t = trad();
+    const n = await ztAddWords([{ hanzi: w.hanzi, hanzi_trad: t ? w.hanzi : null, pinyin: w.pinyin, meaning: w.meaning, level: w.level }], w.level ? "hsk" : "own");
+    if (n) toast(`${w.hanzi} is in your flashcards.`); render();
+  }
+  else if (a === "hint") { if (S.writer && S.done < d.strokes.length) S.writer.highlightStroke(S.done); }
+  else if (a === "outline") { S.outline = !S.outline; if (S.writer) S.outline ? S.writer.showOutline() : S.writer.hideOutline(); el.classList.toggle("cgon", S.outline); el.setAttribute("aria-pressed", S.outline); el.textContent = `Outline ${S.outline ? "on" : "off"}`; }
+  else if (a === "again" || a === "again-bare") { if (a === "again-bare") S.outline = false; S.finished = null; S.writer = null; render(); }
+  else if (a === "wnext") { S.idx = +el.dataset.i; S.k = 0; S.finished = null; S.writer = null; render(); }
 });
