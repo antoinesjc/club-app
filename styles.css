@@ -1189,3 +1189,36 @@ details.custom.sbdet > summary b { color: #6b4423; }
 .ztlabel.cgbeta em { background: #ffd95a; color: #5a3d00; }
 .card.cgclass { flex-direction: row; text-align: left; }
 .cgin::placeholder { font: 500 16px var(--font); color: #8a7d74; }
+/* Character box 漢字 */
+.cgsearch .btn { white-space: nowrap; }
+@media (max-width: 520px) { .cgsearch { flex-direction: column; } .cgsearch .cgsbox { flex: none; } .cgsearch .btn { width: 100%; } }
+.card.cgbox { display: flex; flex-direction: row; align-items: center; gap: 14px; padding: 14px 16px; text-decoration: none; color: inherit; background: linear-gradient(#fff, #fff8ef); border-color: #ead6bf; }
+.cgboxt { font-size: 17px; }
+.cgchestwrap { position: relative; width: 92px; flex: none; }
+.cgchest { display: block; width: 100%; height: auto; image-rendering: pixelated; overflow: visible; }
+.cgchest .cglid { animation: cglid 3.2s ease-in-out infinite; transform-origin: 6px 18px; }
+.cgchest .cgglow { animation: cgglow 3.2s ease-in-out infinite; }
+.cgchest .cgspark rect { animation: cgspark 2.4s steps(2) infinite; }
+.cgchest .cgspark rect:nth-child(2) { animation-delay: .6s; } .cgchest .cgspark rect:nth-child(3) { animation-delay: 1.2s; } .cgchest .cgspark rect:nth-child(4) { animation-delay: 1.8s; }
+@keyframes cglid { 0%, 55%, 100% { transform: translateY(0); } 65%, 85% { transform: translateY(-3px) rotate(-4deg); } }
+@keyframes cgglow { 0%, 55%, 100% { opacity: 0; } 65%, 85% { opacity: 1; } }
+@keyframes cgspark { 0% { opacity: 1; } 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .cgchest .cglid, .cgchest .cgglow, .cgchest .cgspark rect { animation: none; } }
+.cgdue { position: absolute; top: -6px; right: -6px; min-width: 24px; height: 24px; padding: 0 6px; border-radius: 99px; background: #f37a48; color: #fff; font: 800 13px/24px var(--font); text-align: center; font-style: normal; border: 2px solid #fff; }
+.cgboxhead { display: flex; align-items: center; gap: 14px; }
+.cgboxhead .cgchest { width: 96px; flex: none; }
+.cgboxdue { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-direction: row; flex-wrap: wrap; }
+.cglegend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 10px; }
+.cglegend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+.cgbtiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(56px, 1fr)); gap: 8px; }
+.cgbtile { position: relative; height: 56px; display: grid; place-items: center; border-radius: 10px; text-decoration: none; color: var(--ink); font: 700 26px/1 "Noto Sans SC", "Noto Sans TC", sans-serif; }
+.cgbtile i { position: absolute; top: 5px; right: 5px; width: 8px; height: 8px; border-radius: 50%; background: #c2410c; }
+.cglegend .s0, .cgbtile.s0 { background: #fbf3e2; box-shadow: inset 0 0 0 1.5px #e3d6cb; }
+.cglegend .s1, .cgbtile.s1 { background: #e9f6e9; }
+.cglegend .s2, .cgbtile.s2 { background: #a8d8a0; }
+.cglegend .m, .cgbtile.m { background: #1b6f1b; color: #fff; }
+.cgprompt { display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; padding: 6px 0; }
+.cgprompt .cgpy { font-size: 26px; }
+.cgprompt span:not(.tiny) { font-size: 17px; color: var(--muted); }
+.cgguide.off { display: none; }
+.cgdone .cgchest { width: 120px; }

@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=115";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=115";
-import { COUNTRIES } from "./countries.js?v=115";
+import { createClient } from "./vendor/supabase.js?v=116";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=116";
+import { COUNTRIES } from "./countries.js?v=116";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=115";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=116";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -39,7 +39,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=115"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=116"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -1383,7 +1383,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=115"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=116"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1989,7 +1989,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=115");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=116");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2887,7 +2887,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=115").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=116").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -3324,7 +3324,7 @@ function placeCards(big) {
     + card("#/learn/temple", "temple", "HSK Temple", trad() ? "漢語廟" : "汉语庙", hskLine, "Every HSK word, and how well you know it", "Explore")
     + (() => { const c = sbCount(); return card("#/learn/gallery", "gallery", "Sticker Gallery", trad() ? "貼紙館" : "贴纸馆", `${c.n} of ${c.total} stickers collected`, "Every sticker you've earned, and how to get the others", "Visit"); })()
     + (libOpen() ? card("#/learn/library", "library", "Library", trad() ? "圖書館" : "图书馆", "Workbooks & graded readers", "Read your books in the app, and get new ones in the Bookshop", "Open") : "")
-    + (calligOpen() ? card("#/learn/callig", "callig", "Calligraphy School", trad() ? "書法學校" : "书法学校", "Stroke order · beta, admins only", "Watch any character stroke by stroke, then write it yourself", "Enter") : "");
+    + (calligOpen() ? card("#/learn/callig", "callig", "Calligraphy School", trad() ? "書法學校" : "书法学校", "Stroke order & your character box · beta, admins only", "Look up any character, watch its strokes, and practise writing it", "Enter") : "");
 }
 function soonCards(big) {
   const card = (img, t, z, line) => `<div class="card ztplace soon ${big ? "big" : ""}"><span class="ztplaceart">${ztImg(img)}</span>
@@ -4378,31 +4378,37 @@ document.addEventListener("input", (e) => {
 
 // ---------------------------------------------------------------------------
 // Calligraphy School 书法学校 (Zest Town, beta: admins only since 22 Nov 2026)
-// Stroke order: watch a character stroke by stroke, then write it yourself (Hanzi Writer quiz).
+// Look up any character: stroke order player + write it yourself (Hanzi Writer quiz).
+// Character box 漢字: the School's own writing deck (table char_box), kept apart from the Flashcard Center,
+// the HSK Temple, the streak tree and XP. Stages: 0 outline shown → 1 only the radical → 2 from memory.
 // Stroke data: hanzi-writer-data (Make Me a Hanzi, Arphic PL) fetched from jsDelivr per character.
 // Character info: table char_info + hsk_words via char_lookup(). No audio on purpose.
 // ---------------------------------------------------------------------------
 const calligOpen = () => isAdmin();
 const CG_INK = "#2a2420", CG_CUR = "#c2410c", CG_FAINT = "#e8dcc8", CG_RAD = "#1b6f1b";
-const CG_TRY = ["学", "爱", "写", "龙", "家", "书", "中", "国", "我", "好"];
-const CG_TRY_T = { 学: "學", 爱: "愛", 写: "寫", 龙: "龍", 书: "書", 国: "國" };
 const CG_SPEEDS = [0.5, 1, 2];
+const CG_STAGE = ["Outline shown", "Radical shown", "From memory"];
+const CG_MASTER_DAYS = 21; // from memory with the next review 3+ weeks away
 const cgState = () => (state.cg ??= { text: null, info: new Map(), word: null, data: new Map(), err: null, idx: 0, k: 0, playing: false, run: 0, speed: 1,
-  rad: lsGet("mz-cg-rad") !== "0", outline: true, finished: null, done: 0, mistakes: 0, writer: null });
+  rad: lsGet("mz-cg-rad") !== "0", outline: true, finished: null, done: 0, mistakes: 0, writer: null,
+  box: null, boxErr: false, rv: null });
 const cgCJK = (s) => [...String(s || "")].filter((c) => /\p{Script=Han}/u.test(c)).join("").slice(0, 8);
 const cgRecent = () => { try { return JSON.parse(lsGet("mz-cg-recent") || "[]"); } catch { return []; } };
 function cgRemember(t) { lsSet("mz-cg-recent", JSON.stringify([t, ...cgRecent().filter((x) => x !== t)].slice(0, 8))); }
 let cgHW = null;
-const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=115")).default);
+const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=116")).default);
+const cgStrokes = async (c) => {
+  const S = cgState(); if (S.data.has(c)) return S.data.get(c);
+  const HW = await cgLib(); const d = await HW.loadCharacterData(c).catch(() => null);
+  if (d) S.data.set(c, d); return d;
+};
 
 async function cgLoad(text) {
   const S = cgState();
   S.text = text; S.info = new Map(); S.word = null; S.err = null; S.idx = 0; S.k = 0; S.playing = false; S.run++; S.finished = null;
   const chars = [...new Set(text)];
   try {
-    const HW = await cgLib();
-    const [{ data, error }, ...strokes] = await Promise.all([sb.rpc("char_lookup", { p_text: text }),
-      ...chars.map((c) => S.data.has(c) ? S.data.get(c) : HW.loadCharacterData(c).then((d) => { S.data.set(c, d); return d; }).catch(() => null))]);
+    const [{ data, error }, ...strokes] = await Promise.all([sb.rpc("char_lookup", { p_text: text }), ...chars.map(cgStrokes)]);
     if (S.text !== text) return;
     if (error) throw error;
     for (const i of data?.chars || []) S.info.set(i.ch, i);
@@ -4414,12 +4420,63 @@ async function cgLoad(text) {
   if (S.text === text) render();
 }
 
+// ---- Character box: data and spaced repetition ----
+async function cgBoxLoad() {
+  const S = cgState(); if (S.boxLoading) return; S.boxLoading = true;
+  const { data, error } = await sb.from("char_box").select("*").eq("user_id", state.user.id).order("created_at");
+  S.boxLoading = false;
+  if (error) { console.error(error); S.boxErr = true; S.box = []; } else S.box = data;
+  if (route() === "learn") render();
+}
+const cgBoxHas = (c) => cgState().box?.some((r) => r.ch === c);
+const cgDue = () => (cgState().box || []).filter((r) => r.due <= todayKey());
+const cgMastered = (r) => r.stage === 2 && r.interval_days >= CG_MASTER_DAYS;
+async function cgBoxAdd(c) {
+  const S = cgState(), i = S.info.get(c) || {};
+  const row = { ch: c, pinyin: i.pinyin || "", meaning: i.meaning || "", due: todayKey() };
+  const { data, error } = await sb.from("char_box").upsert(row, { onConflict: "user_id,ch", ignoreDuplicates: true }).select("*");
+  if (error) { toast("Couldn't add it. Check your connection."); return; }
+  if (data?.length) S.box = [...(S.box || []), ...data];
+  toast(`${c} is in your character box.`); render();
+}
+async function cgBoxRemove(c) {
+  const S = cgState();
+  const { error } = await sb.from("char_box").delete().eq("user_id", state.user.id).eq("ch", c);
+  if (error) { toast("Couldn't remove it. Check your connection."); return; }
+  S.box = (S.box || []).filter((r) => r.ch !== c); toast(`${c} left your character box.`); render();
+}
+// Grade from the writing: 0 = again (3+ mistakes or "I forgot"), 1 = hard (1–2 mistakes), 2 = good (no mistake).
+function cgSchedule(r, grade) {
+  const u = { reps: r.reps + 1, last_review: new Date().toISOString(), stage: r.stage, interval_days: r.interval_days, ease: r.ease, lapses: r.lapses };
+  if (r.stage === 0) { if (grade >= 1) { u.stage = 1; u.interval_days = 1; } else u.interval_days = 0; }
+  else if (r.stage === 1) {
+    if (grade === 2) { u.stage = 2; u.interval_days = 2; }
+    else if (grade === 1) u.interval_days = 1;
+    else { u.stage = 0; u.interval_days = 0; }
+  } else {
+    if (grade === 2) u.interval_days = Math.max(r.interval_days + 1, Math.round(Math.max(1, r.interval_days) * r.ease));
+    else if (grade === 1) { u.interval_days = Math.max(1, Math.round(r.interval_days * 1.2)); u.ease = Math.max(1.3, r.ease - 0.15); }
+    else { u.stage = 1; u.interval_days = 0; u.ease = Math.max(1.3, r.ease - 0.2); u.lapses = r.lapses + 1; }
+  }
+  u.due = addDays(u.interval_days);
+  return u;
+}
+const cgWhen = (n) => n <= 0 ? "again today" : n === 1 ? "tomorrow" : n < 14 ? `in ${n} days` : n < 60 ? `in ${Math.round(n / 7)} weeks` : `in ${Math.round(n / 30)} months`;
+
 // ---- drawing (Hanzi Writer data: 1024 box, y up, baseline at 900) ----
 const cgLen = (m) => m.reduce((s, p, i) => i ? s + Math.hypot(p[0] - m[i - 1][0], p[1] - m[i - 1][1]) : 0, 0);
 const cgGridLines = `<rect x="6" y="6" width="1012" height="1012" fill="none" stroke="#c98a7e" stroke-width="12"/>
   <path d="M6 6 L1018 1018 M1018 6 L6 1018 M512 6 V1018 M6 512 H1018" stroke="#dcaea4" stroke-width="5" stroke-dasharray="26 20" fill="none"/>`;
 function cgColor(d, i, k, rad) { return i < k ? (rad && d.radStrokes?.includes(i) ? CG_RAD : CG_INK) : null; }
-// Small static grid: strokes before i+1 in ink, stroke i in vermilion (the "every stroke" strip, the done card).
+// Which strokes a guide shows: "all" (outline), "radical" (its radical; the first strokes if it has none), "none".
+function cgGuideSet(d, mode) {
+  if (mode === "all") return d.strokes.map((_, i) => i);
+  if (mode !== "radical") return [];
+  const r = d.radStrokes || [];
+  return r.length && r.length < d.strokes.length ? r : d.strokes.map((_, i) => i).slice(0, Math.max(1, Math.floor(d.strokes.length / 3)));
+}
+const cgGuideLabel = (d) => { const r = d.radStrokes || []; return r.length && r.length < d.strokes.length ? "Only the radical is shown" : "Only the first strokes are shown"; };
+// Small static grid: strokes before upto in ink, stroke cur in vermilion (the "every stroke" strip, the done card).
 function cgMini(d, upto, cur, rad) {
   const paths = d.strokes.map((p, i) => { const c = i === cur ? CG_CUR : cgColor(d, i, upto, rad); return c ? `<path d="${p}" fill="${c}"/>` : ""; }).join("");
   return `<svg class="cggrid" viewBox="0 0 1024 1024" aria-hidden="true">${cgGridLines}<g transform="translate(0,900) scale(1,-1)">${paths}</g></svg>`;
@@ -4448,7 +4505,7 @@ function cgSync() { // labels and buttons, without a full render (keeps the anim
   if (lab) lab.innerHTML = S.k ? `<b>Stroke ${S.k} of ${n}</b>` : `<b>${n} strokes</b> · press play`;
   const pb = document.getElementById("cgplay");
   if (pb) { pb.innerHTML = S.playing ? ICON_CG.pause : ICON_CG.play; pb.setAttribute("aria-label", S.playing ? "Pause" : "Play"); }
-  document.querySelectorAll(".cgstep").forEach((b) => b.classList.toggle("on", +b.dataset.i === S.k - 1));
+  document.querySelectorAll(".cgstep").forEach((b) => b.classList.toggle("on", +b.dataset.i === S.k));
 }
 const cgSleep = (ms) => new Promise((r) => setTimeout(r, ms));
 async function cgStroke(i, run) {
@@ -4488,18 +4545,32 @@ const ICON_CG = {
   brush: `<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M14 4l6 6-7.5 7.5-6-6z" stroke="currentColor" stroke-width="2" fill="none" stroke-linejoin="round"/><path d="M6.5 11.5c-3 1-3.5 4-3.5 8.5 4.5 0 7.5-.5 8.5-3.5" stroke="currentColor" stroke-width="2" fill="none" stroke-linejoin="round"/></svg>`,
   search: `<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="11" cy="11" r="6.5" stroke="currentColor" stroke-width="2.2" fill="none"/><path d="M16 16l4.5 4.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>`,
 };
-const cgHead = (href, label) => `<header class="zthead"><a class="ztback" href="${href}">‹ ${label}</a><h1>${cgTitle()}</h1></header>`;
+// The Character box: a pixel-art wooden chest with a red 漢字 plate; the lid lifts and sparkles twinkle.
+const CG_CHEST = `<svg class="cgchest" viewBox="0 0 48 40" aria-hidden="true" shape-rendering="crispEdges">
+  <g class="cgspark"><rect x="7" y="4" width="2" height="2" fill="#ffd95a"/><rect x="38" y="2" width="2" height="2" fill="#ffd95a"/><rect x="43" y="10" width="1" height="1" fill="#fff4b8"/><rect x="3" y="12" width="1" height="1" fill="#fff4b8"/></g>
+  <g class="cglid"><rect x="6" y="9" width="36" height="9" fill="#3b2412"/><rect x="7" y="10" width="34" height="7" fill="#a5642f"/><rect x="7" y="10" width="34" height="2" fill="#c98446"/>
+    <rect x="7" y="15" width="34" height="2" fill="#7a4520"/><rect x="11" y="10" width="2" height="7" fill="#e0b24a"/><rect x="35" y="10" width="2" height="7" fill="#e0b24a"/></g>
+  <rect x="7" y="18" width="34" height="2" fill="#f6d77a" class="cgglow"/>
+  <rect x="5" y="19" width="38" height="18" fill="#3b2412"/><rect x="6" y="20" width="36" height="16" fill="#8a4f25"/><rect x="6" y="20" width="36" height="2" fill="#a5642f"/>
+  <rect x="6" y="34" width="36" height="2" fill="#6b3a18"/><rect x="10" y="20" width="2" height="16" fill="#e0b24a"/><rect x="36" y="20" width="2" height="16" fill="#e0b24a"/>
+  <rect x="14" y="22" width="20" height="11" fill="#3b2412"/><rect x="15" y="23" width="18" height="9" fill="#c23b3b"/><rect x="15" y="23" width="18" height="1" fill="#e0605a"/>
+  <rect x="4" y="37" width="40" height="2" fill="#000" opacity=".12"/>
+  <text x="24" y="30.3" text-anchor="middle" font-size="7" font-weight="700" fill="#fdf3ee" font-family="'Noto Sans TC','Noto Sans SC',sans-serif" shape-rendering="auto">漢字</text>
+</svg>`;
 const cgTitle = () => `Calligraphy School <span class='zhsub'>${trad() ? "書法學校" : "书法学校"}</span><span class="betachip">BETA</span>`;
+const cgHead = (href, label, title = cgTitle()) => `<header class="zthead"><a class="ztback" href="${href}">‹ ${label}</a><h1>${title}</h1></header>`;
 const cgSearch = (val = "") => `<form class="cgsearch" data-cgform><label class="cgsbox"><span aria-hidden="true">${ICON_CG.search}</span>
-  <input name="q" class="cgin" value="${esc(val)}" placeholder="Type a character or word" aria-label="Character or word" autocomplete="off" lang="zh"></label><button class="btn" type="submit">Show</button></form>`;
+  <input name="q" class="cgin" value="${esc(val)}" placeholder="Type character" aria-label="Type character" autocomplete="off" lang="zh"></label><button class="btn" type="submit">Show character information</button></form>`;
 const cgHref = (t, write) => `#/learn/callig/${encodeURIComponent(t)}${write ? "/write" : ""}`;
 
 function calligView(parts) {
   if (!calligOpen()) { location.hash = "#/learn"; return townView(); }
+  const S = cgState();
+  if (!S.box) { cgBoxLoad(); }
   const [t, mode] = parts.map((x) => { try { return decodeURIComponent(x); } catch { return x; } });
+  if (t === "box") return mode === "review" ? cgReviewView() : cgBoxView();
   const text = cgCJK(t);
   if (!text) return cgHomeView();
-  const S = cgState();
   if (S.text !== text) { cgLoad(text); return `${cgHead("#/learn/callig", "Calligraphy School")}<p class="muted small">Opening ${esc(text)}…</p>`; }
   if (S.err) return `${cgHead("#/learn/callig", "Calligraphy School")}${cgSearch(text)}<div class="card"><b>${S.err === "nodata" ? "No stroke order for that yet" : "Couldn't load that character"}</b><p class="small muted" style="margin:4px 0 0">${S.err === "nodata" ? "We have about 9,500 common characters, simplified and traditional. Try another one." : "Check your connection and try again."}</p></div>`;
   if (S.idx >= text.length) S.idx = 0;
@@ -4507,48 +4578,47 @@ function calligView(parts) {
   return mode === "write" ? cgWriteView() : cgWatchView();
 }
 
+function cgBoxCard() {
+  const S = cgState(), n = S.box?.length || 0, due = S.box ? cgDue().length : 0;
+  const line = !S.box ? "Opening your box…" : !n ? "Empty for now. Look up a character and add it to your box." : due ? `${due} character${due === 1 ? "" : "s"} to write today` : "All written for today. Come back tomorrow.";
+  return `<a class="card cgbox" href="#/learn/callig/box"><span class="cgchestwrap">${CG_CHEST}${due ? `<em class="cgdue">${due}</em>` : ""}</span>
+    <span class="grow"><b class="cgboxt">Character box <span class="cgzh">漢字</span></b><br><span class="small">${line}</span>${n ? `<br><span class="small muted">${n} character${n === 1 ? "" : "s"} in your box</span>` : ""}</span>
+    <span class="btn small">${due ? "Write" : "Open"}</span></a>`;
+}
+
 function cgHomeView() {
-  const tries = CG_TRY.map((c) => trad() ? CG_TRY_T[c] || c : c);
   const recent = cgRecent();
   return `${cgHead("#/learn", "Zest Town")}
-    <div class="ztthead"><span class="ztplaceart">${ztImg("callig")}</span><span class="small muted">Learn to write characters the right way, one stroke at a time. Watch the order, then write it yourself.</span></div>
+    <div class="ztthead"><span class="ztplaceart">${ztImg("callig")}</span><span class="small muted">Learn to write characters the right way, one stroke at a time, and keep the ones you want to master in your character box.</span></div>
     ${cgSearch()}
-    <section><h2 class="cgh">Try one</h2><div class="cgtries">${tries.map((c) => `<a class="cgtile" href="${cgHref(c)}">${esc(c)}</a>`).join("")}</div></section>
     ${recent.length ? `<section><h2 class="cgh">You looked up</h2><div class="cgrecent">${recent.map((w) => `<a href="${cgHref(w)}">${esc(w)}</a>`).join("")}</div></section>` : ""}
-    <section><h2 class="cgh">Classes</h2><div class="stack" style="gap:8px">
-      <div class="card cgclass"><span class="cgclassic">${trad() ? "筆" : "笔"}</span><span class="grow"><b>Stroke order</b> <span class="muted">${trad() ? "筆順" : "笔顺"}</span><br><span class="small muted">Search any character above, or tap one to try</span></span></div>
+    ${cgBoxCard()}
+    <section><h2 class="cgh">Classes</h2>
       <div class="card cgclass soon"><span class="cgclassic">部</span><span class="grow"><b>More classes</b><br><span class="small muted">Coming later to the School</span></span><span class="ztsoon">Soon</span></div>
-    </div></section>`;
+    </section>`;
 }
 
 function cgInfoCard(ch, d) {
   const S = cgState(), i = S.info.get(ch) || {}, other = i.trad || i.simp;
-  const radN = d.radStrokes?.length;
   const tags = [i.hsk ? `<span class="ltag hsk">HSK ${esc(i.hsk)}</span>` : "", `<span class="ltag">${d.strokes.length} strokes</span>`,
     i.radical && i.radical !== ch ? `<span class="ltag">Radical <span class="cgzh">${esc(i.radical)}</span>${i.radical_meaning ? ` ${esc(i.radical_meaning)}` : ""}</span>` : i.radical === ch ? `<span class="ltag">It's a radical itself</span>` : "",
     other ? `<a class="ltag cgalt" href="${cgHref([...S.text].map((c) => { const x = S.info.get(c); return x?.trad || x?.simp || c; }).join(""))}">${i.trad ? "Traditional" : "Simplified"} <span class="cgzh">${esc(other)}</span> ›</a>` : ""].join("");
-  const inDeck = cgInDeck();
+  const inBox = cgBoxHas(ch);
   return `<div class="card cginfo">
     <div class="cginfotop"><span class="cgzh cgbig">${esc(ch)}</span><b class="cgpy">${esc(i.pinyin || "")}</b><span class="muted">${esc(i.meaning || "")}</span></div>
     <div class="row" style="gap:6px;flex-wrap:wrap">${tags}</div>
-    ${radN && S.rad && i.radical && i.radical !== ch ? `<p class="tiny muted" style="margin:0">The radical's strokes turn green.</p>` : ""}
+    ${S.rad && i.radical && i.radical !== ch && d.radStrokes?.length ? `<p class="tiny muted" style="margin:0">The radical's strokes turn green.</p>` : ""}
     <div class="row" style="gap:8px;flex-wrap:wrap"><a class="btn" href="${cgHref(S.text, true)}">${ICON_CG.brush} Write it myself</a>
-    ${inDeck ? `<span class="lindeck">✓ In your flashcards</span>` : `<button type="button" class="btn ghost" data-cg="add">+ Add ${esc(cgDeckWord().hanzi)} to flashcards</button>`}</div>
+    ${!S.box ? "" : inBox ? `<span class="lindeck">✓ In your character box</span><button type="button" class="linkbtn" data-cg="boxdel" data-c="${esc(ch)}">Remove</button>`
+      : `<button type="button" class="btn ghost" data-cg="boxadd" data-c="${esc(ch)}">+ Add <span class="cgzh">${esc(ch)}</span> to my character box</button>`}</div>
   </div>`;
 }
-function cgDeckWord() { // the whole word when it's an HSK word, else the character on screen
-  const S = cgState();
-  if (S.text.length > 1 && S.word) return { hanzi: S.text, pinyin: S.word.pinyin, meaning: S.word.meaning, level: S.word.level };
-  const ch = S.text[S.idx], i = S.info.get(ch) || {};
-  return { hanzi: ch, pinyin: i.pinyin || "", meaning: i.meaning || "", level: i.hsk || null };
-}
-function cgInDeck() { const h = cgDeckWord().hanzi; return state.lu.cards.some((c) => c.hanzi === h || c.hanzi_trad === h); }
 
 function cgWatchView() {
   cgState().finished = null;
   const S = cgState(), ch = S.text[S.idx], d = S.data.get(ch), n = d.strokes.length;
   const tabs = S.text.length > 1 ? `<div class="cgtabs" role="group" aria-label="Characters">${[...S.text].map((c, j) => `<button type="button" class="cgtab" data-cg="tab" data-i="${j}" aria-pressed="${j === S.idx}" ${S.data.get(c) ? "" : "disabled"}>${esc(c)}</button>`).join("")}
-    ${S.word ? `<span class="small muted">${esc(S.word.pinyin)} · ${esc(S.word.meaning)}${S.word.level ? ` · HSK ${esc(S.word.level)}` : ""}</span>` : ""}</div>` : "";
+    ${S.word ? `<span class="small muted">${esc(S.word.pinyin)} · ${esc(S.word.meaning)}</span>` : ""}</div>` : "";
   const strip = [...Array(n)].map((_, i) => `<button type="button" class="cgstep ${i === S.k - 1 ? "on" : ""}" data-cg="jump" data-i="${i + 1}" aria-label="Up to stroke ${i + 1}">${cgMini(d, i, i, S.rad)}<span>${i + 1}</span></button>`).join("");
   const player = `<section class="card cgplayer">
     <div class="cggridwrap">${cgPlayer(d, ch)}</div>
@@ -4569,26 +4639,35 @@ function cgWatchView() {
     ${wide() ? `<div class="cgcols"><div>${player}</div><div class="stack" style="gap:14px;min-width:0">${side}</div></div>` : `${player}${side}`}`;
 }
 
+// The writing area: rice-paper grid + our own guide strokes underneath, Hanzi Writer's quiz on top (mounted after render).
+function cgQuizArea(ch, d, guide, hide, mode = "practice") {
+  const set = new Set(cgGuideSet(d, guide));
+  const g = d.strokes.map((p, i) => set.has(i) ? `<path d="${p}"/>` : "").join("");
+  return `<div class="cgquizwrap"><svg class="cggrid" viewBox="0 0 1024 1024" aria-hidden="true">${cgGridLines}<g class="cgguide ${hide ? "off" : ""}" fill="#e6dccb" transform="translate(0,900) scale(1,-1)">${g}</g></svg>
+    <div id="cgquiz" class="cgquiz" data-ch="${esc(ch)}" data-mode="${mode}" data-hints="${mode === "review" && guide !== "all" ? 0 : 2}" aria-label="Writing area"></div></div>`;
+}
+const cgBar = (n, done) => `<div class="cgbar" id="cgbar">${[...Array(n)].map((_, i) => `<span class="${i < done ? "ok" : i === done ? "cur" : ""}"></span>`).join("")}</div>`;
+
 function cgWriteView() {
   const S = cgState(), ch = S.text[S.idx], d = S.data.get(ch), n = d.strokes.length;
-  const back = `<a class="ztback" href="${cgHref(S.text)}">‹ ${esc(ch)} · stroke order</a>`;
+  const back = `<a class="ztback" href="${cgHref(S.text)}">‹ ${esc(ch)} · character information</a>`;
   if (S.finished) {
     const good = S.finished.mistakes <= 1, nextJ = [...S.text].findIndex((c, j) => j > S.idx && S.data.get(c));
     return `${back}<section class="card cgdone">
       <div class="cgdonegrid">${cgMini(d, n, -1, S.rad)}<span class="cgseal ${good ? "" : "two"}" aria-hidden="true">${good ? "好" : "加油"}</span></div>
       <h2>${good ? "Beautifully written!" : "Done! Keep practising"}</h2>
       <p class="muted" style="margin:0">${n} strokes · ${S.finished.mistakes} mistake${S.finished.mistakes === 1 ? "" : "s"}</p>
-      <div class="cgbar">${[...Array(n)].map(() => `<span class="ok"></span>`).join("")}</div>
       <div class="row" style="gap:8px;width:100%"><button type="button" class="btn ghost grow" data-cg="again">Again</button>
       ${nextJ > 0 ? `<button type="button" class="btn grow" data-cg="wnext" data-i="${nextJ}">Next: <span class="cgzh">${esc(S.text[nextJ])}</span></button>` : `<a class="btn grow" href="#/learn/callig">Another character</a>`}</div>
       ${S.outline ? `<button type="button" class="btn ghost block" data-cg="again-bare">Again, without the outline</button>` : ""}
+      ${S.box && !cgBoxHas(ch) ? `<button type="button" class="btn ghost block" data-cg="boxadd" data-c="${esc(ch)}">+ Add <span class="cgzh">${esc(ch)}</span> to my character box</button>` : ""}
     </section>`;
   }
   return `${back}
     <div><h1 class="cgwh">Your turn: write <span class="cgzh">${esc(ch)}</span></h1><p class="small muted" style="margin:4px 0 0">Draw each stroke in order with your finger or mouse. A wrong stroke fades away; after 2 misses the hint shows the way.</p></div>
-    <div class="cgbar" id="cgbar">${[...Array(n)].map((_, i) => `<span class="${i < S.done ? "ok" : i === S.done ? "cur" : ""}"></span>`).join("")}</div>
-    <div class="cgquizwrap"><svg class="cggrid" viewBox="0 0 1024 1024" aria-hidden="true">${cgGridLines}</svg><div id="cgquiz" class="cgquiz" aria-label="Writing area for ${esc(ch)}"></div></div>
-    <div class="row between small"><span id="cgcount"><b>${S.done} of ${n}</b> strokes</span><span class="muted" id="cgmiss">${S.mistakes} mistake${S.mistakes === 1 ? "" : "s"}</span></div>
+    ${cgBar(n, 0)}
+    ${cgQuizArea(ch, d, "all", !S.outline)}
+    <div class="row between small"><span id="cgcount"><b>0 of ${n}</b> strokes</span><span class="muted" id="cgmiss">0 mistakes</span></div>
     <div class="row" style="gap:8px">
       <button type="button" class="btn ghost grow" data-cg="hint">Hint</button>
       <button type="button" class="btn ghost grow ${S.outline ? "cgon" : ""}" data-cg="outline" aria-pressed="${S.outline}">Outline ${S.outline ? "on" : "off"}</button>
@@ -4596,18 +4675,67 @@ function cgWriteView() {
     </div>`;
 }
 
-// Mount the Hanzi Writer quiz after each render of the write view (a re-render starts the character again).
+function cgBoxView() {
+  const S = cgState(), head = cgHead("#/learn/callig", "Calligraphy School", `Character box <span class='zhsub'>漢字</span><span class="betachip">BETA</span>`);
+  if (!S.box) return `${head}<p class="muted small">Opening your box…</p>`;
+  const due = cgDue(), box = S.box;
+  const cnt = [0, 1, 2].map((st) => box.filter((r) => r.stage === st && !cgMastered(r)).length), mast = box.filter(cgMastered).length;
+  const tiles = box.map((r) => { const cls = cgMastered(r) ? "m" : `s${r.stage}`;
+    return `<a class="cgbtile ${cls}" href="${cgHref(r.ch)}" title="${esc(CG_STAGE[r.stage])} · next ${r.due <= todayKey() ? "today" : esc(r.due)}">${esc(r.ch)}${r.due <= todayKey() ? `<i aria-label="due"></i>` : ""}</a>`; }).join("");
+  return `${head}
+    <div class="cgboxhead">${CG_CHEST}<p class="small muted" style="margin:0">Your own writing deck, separate from the Flashcard Center. Each character starts with its outline, then only its radical, then you write it from memory. Good writing sends it further into the future.</p></div>
+    <section class="card cgboxdue">${due.length ? `<div><b style="font-size:18px">${due.length} to write today</b><br><span class="small muted">You see the pinyin and the meaning, and write the character.</span></div><a class="btn" href="#/learn/callig/box/review">Start writing</a>`
+      : `<div><b>All written for today</b><br><span class="small muted">${box.length ? "Come back tomorrow, or look up a new character to add." : "Look up a character in the School and tap “Add to my character box”."}</span></div><a class="btn ghost" href="#/learn/callig">Look up a character</a>`}</section>
+    ${box.length ? `<section><div class="cglegend"><span><i class="s0"></i>Outline ${cnt[0]}</span><span><i class="s1"></i>Radical ${cnt[1]}</span><span><i class="s2"></i>From memory ${cnt[2]}</span><span><i class="m"></i>Mastered ${mast}</span></div>
+      <div class="cgbtiles">${tiles}</div><p class="tiny muted" style="margin:8px 0 0">Tap a character to see its stroke order or remove it from the box. A dot means it's due today.</p></section>` : ""}`;
+}
+
+function cgReviewView() {
+  const S = cgState(), head = `<a class="ztback" href="#/learn/callig/box">‹ Character box</a>`;
+  if (!S.box) return `${head}<p class="muted small">Opening your box…</p>`;
+  if (!S.rv) S.rv = { queue: cgDue().map((r) => r.ch), done: 0, result: null, forgot: false };
+  const R = S.rv;
+  if (!R.queue.length) { S.rv = null; return `${head}<section class="card cgdone">${CG_CHEST}<h2>Box done for today!</h2><p class="muted" style="margin:0">${R.done ? `You wrote ${R.done} character${R.done === 1 ? "" : "s"}.` : "Nothing left to write today."} Come back tomorrow.</p><a class="btn" href="#/learn/callig">Back to the School</a></section>`; }
+  const ch = R.queue[0], r = S.box.find((x) => x.ch === ch), d = S.data.get(ch);
+  if (!r) { R.queue.shift(); return cgReviewView(); }
+  if (!d) { cgStrokes(ch).then((x) => { if (!x) { R.queue.shift(); toast(`No stroke data for ${ch}.`); } render(); }); return `${head}<p class="muted small">Opening ${esc(ch)}…</p>`; }
+  const n = d.strokes.length, left = R.queue.length;
+  const prompt = `<div class="cgprompt"><b class="cgpy">${esc(r.pinyin || "?")}</b><span>${esc(r.meaning || "")}</span><span class="tiny muted">${n} strokes</span></div>`;
+  if (R.result) {
+    const g = R.result.grade, msg = ["Write it again soon", "Not bad", "Perfect"][g];
+    return `${head}<section class="card cgdone">
+      <div class="cgdonegrid">${cgMini(d, n, -1, false)}<span class="cgseal ${g === 2 ? "" : "two"}" aria-hidden="true">${g === 2 ? "好" : g === 1 ? "不错" : "加油"}</span></div>
+      <h2>${msg}</h2>
+      <p class="muted" style="margin:0"><span class="cgzh">${esc(ch)}</span> · ${esc(r.pinyin)} · ${R.result.forgot ? "you peeked" : `${R.result.mistakes} mistake${R.result.mistakes === 1 ? "" : "s"}`}</p>
+      <p class="small" style="margin:0">${R.result.stageUp ? `Next time: <b>${esc(CG_STAGE[R.result.u.stage].toLowerCase())}</b>. ` : R.result.stageDown ? `Back to <b>${esc(CG_STAGE[R.result.u.stage].toLowerCase())}</b>. ` : ""}Comes back <b>${cgWhen(R.result.u.interval_days)}</b>.</p>
+      <button type="button" class="btn block" data-cg="rvnext">${left > 1 || R.result.u.interval_days <= 0 ? "Next character" : "Finish"}</button>
+    </section>`;
+  }
+  const guide = R.forgot ? "all" : ["all", "radical", "none"][r.stage];
+  const note = R.forgot ? "Outline shown: trace it, it'll come back soon." : r.stage === 0 ? "Trace it over the outline." : r.stage === 1 ? `${cgGuideLabel(d)}. Write the whole character.` : "From memory: no help this time.";
+  return `${head}
+    <div class="row between" style="align-items:center"><span class="ltag">${esc(CG_STAGE[r.stage])}</span><span class="small muted">${left} left</span></div>
+    ${prompt}
+    ${cgBar(n, 0)}
+    ${cgQuizArea(ch, d, guide, false, "review")}
+    <p class="small muted" style="margin:0;text-align:center">${note}</p>
+    <div class="row between small"><span id="cgcount"><b>0 of ${n}</b> strokes</span><span class="muted" id="cgmiss">0 mistakes</span></div>
+    ${r.stage > 0 && !R.forgot ? `<button type="button" class="btn ghost block" data-cg="forgot">I don't remember, show me</button>` : ""}`;
+}
+
+// Mount the Hanzi Writer quiz after each render of a writing page (a re-render starts the character again).
 function cgAfterRender() { if (route() !== "learn") return; if (document.getElementById("cglabel")) cgSync(); cgMount(); }
 async function cgMount() {
   const el = document.getElementById("cgquiz");
   if (!el || el.dataset.on) return;
   el.dataset.on = "1";
-  const S = cgState(), ch = S.text[S.idx], d = S.data.get(ch), n = d.strokes.length;
+  const S = cgState(), ch = el.dataset.ch, d = S.data.get(ch), n = d.strokes.length, review = el.dataset.mode === "review";
   const HW = await cgLib(); if (!el.isConnected) return;
+  S.done = 0; S.mistakes = 0;
   const size = Math.round(el.getBoundingClientRect().width) || 300;
   S.writer = HW.create(el, ch, {
-    width: size, height: size, padding: 0, showCharacter: false, showOutline: S.outline, showHintAfterMisses: 2,
-    strokeColor: CG_INK, radicalColor: S.rad ? CG_RAD : null, outlineColor: "#e6dccb", drawingColor: "#3b5ba5", drawingWidth: Math.max(16, size / 18),
+    width: size, height: size, padding: 0, showCharacter: false, showOutline: false, showHintAfterMisses: +el.dataset.hints || false,
+    strokeColor: CG_INK, radicalColor: !review && S.rad ? CG_RAD : null, drawingColor: "#3b5ba5", drawingWidth: Math.max(16, size / 18),
     highlightColor: CG_CUR, charDataLoader: (c, ok) => ok(S.data.get(c)),
   });
   const upd = () => {
@@ -4615,19 +4743,31 @@ async function cgMount() {
     const c = document.getElementById("cgcount"); if (c) c.innerHTML = `<b>${S.done} of ${n}</b> strokes`;
     const m = document.getElementById("cgmiss"); if (m) m.textContent = `${S.mistakes} mistake${S.mistakes === 1 ? "" : "s"}`;
   };
-  S.done = 0; S.mistakes = 0; upd();
   S.writer.quiz({
     onMistake: (x) => { S.mistakes = x.totalMistakes; upd(); },
     onCorrectStroke: (x) => { S.mistakes = x.totalMistakes; S.done = x.strokeNum + 1; upd(); },
-    onComplete: (x) => { S.finished = { mistakes: x.totalMistakes }; setTimeout(() => { if (route() === "learn") render(); }, 700); },
+    onComplete: (x) => {
+      if (review) cgReviewDone(ch, x.totalMistakes);
+      else { S.finished = { mistakes: x.totalMistakes }; setTimeout(() => { if (route() === "learn") render(); }, 700); }
+    },
   });
+}
+async function cgReviewDone(ch, mistakes) {
+  const S = cgState(), R = S.rv, r = S.box.find((x) => x.ch === ch); if (!R || !r) return;
+  const grade = R.forgot || mistakes >= 3 ? 0 : mistakes ? 1 : 2;
+  const u = cgSchedule(r, grade);
+  R.result = { grade, mistakes, forgot: R.forgot, u, stageUp: u.stage > r.stage, stageDown: u.stage < r.stage };
+  Object.assign(r, u);
+  const { error } = await sb.from("char_box").update(u).eq("user_id", state.user.id).eq("ch", ch);
+  if (error) toast("Couldn't save that one. Check your connection.");
+  setTimeout(() => { if (route() === "learn") render(); }, 700);
 }
 
 document.addEventListener("submit", (e) => {
   const f = e.target.closest("[data-cgform]"); if (!f) return;
   e.preventDefault();
   const t = cgCJK(f.q.value);
-  if (!t) { toast("Type Chinese characters, for example 学 or 学校."); return; }
+  if (!t) { toast("Type a Chinese character, for example 学."); return; }
   cgStop(); location.hash = cgHref(t);
 });
 document.addEventListener("change", (e) => {
@@ -4640,17 +4780,21 @@ document.addEventListener("click", async (e) => {
   if (a === "play") { if (S.playing) { cgStop(); S.k = Math.min(S.k + 1, d.strokes.length); cgPaint(); } else cgPlay(); }
   else if (a === "restart") { cgStop(); S.k = 0; cgPaint(); cgPlay(); }
   else if (a === "prev") { cgStop(); S.k = Math.max(0, S.k - 1); cgPaint(); }
-  else if (a === "next") { cgStop(); if (S.k < d.strokes.length) { const run = S.run; S.playing = false; cgSync(); await cgStroke(S.k, run); if (run === S.run) { S.k++; cgSync(); } } }
+  else if (a === "next") { cgStop(); if (S.k < d.strokes.length) { const run = S.run; cgSync(); await cgStroke(S.k, run); if (run === S.run) { S.k++; cgSync(); } } }
   else if (a === "jump") { cgStop(); S.k = +el.dataset.i; cgPaint(); }
   else if (a === "speed") { S.speed = CG_SPEEDS[(CG_SPEEDS.indexOf(S.speed) + 1) % CG_SPEEDS.length]; el.textContent = `${S.speed}×`; }
   else if (a === "tab") { cgStop(); S.idx = +el.dataset.i; S.k = 0; render(); scrollTo(0, 0); }
-  else if (a === "add") {
-    const w = cgDeckWord(), t = trad();
-    const n = await ztAddWords([{ hanzi: w.hanzi, hanzi_trad: t ? w.hanzi : null, pinyin: w.pinyin, meaning: w.meaning, level: w.level }], w.level ? "hsk" : "own");
-    if (n) toast(`${w.hanzi} is in your flashcards.`); render();
-  }
+  else if (a === "boxadd") { el.disabled = true; await cgBoxAdd(el.dataset.c); }
+  else if (a === "boxdel") { await cgBoxRemove(el.dataset.c); }
   else if (a === "hint") { if (S.writer && S.done < d.strokes.length) S.writer.highlightStroke(S.done); }
-  else if (a === "outline") { S.outline = !S.outline; if (S.writer) S.outline ? S.writer.showOutline() : S.writer.hideOutline(); el.classList.toggle("cgon", S.outline); el.setAttribute("aria-pressed", S.outline); el.textContent = `Outline ${S.outline ? "on" : "off"}`; }
+  else if (a === "outline") { S.outline = !S.outline; document.querySelector(".cgguide")?.classList.toggle("off", !S.outline); el.classList.toggle("cgon", S.outline); el.setAttribute("aria-pressed", S.outline); el.textContent = `Outline ${S.outline ? "on" : "off"}`; }
   else if (a === "again" || a === "again-bare") { if (a === "again-bare") S.outline = false; S.finished = null; S.writer = null; render(); }
   else if (a === "wnext") { S.idx = +el.dataset.i; S.k = 0; S.finished = null; S.writer = null; render(); }
+  else if (a === "forgot") { if (S.rv) { S.rv.forgot = true; S.writer = null; render(); } }
+  else if (a === "rvnext") {
+    const R = S.rv; if (!R) return;
+    const ch = R.queue.shift(), r = S.box.find((x) => x.ch === ch);
+    if (R.result?.u.interval_days <= 0 && r) R.queue.push(ch); // not there yet: once more at the end of today's round
+    R.done++; R.result = null; R.forgot = false; S.writer = null; render(); scrollTo(0, 0);
+  }
 });
