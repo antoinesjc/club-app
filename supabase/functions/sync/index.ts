@@ -1,6 +1,6 @@
 // One endpoint for the background jobs:
 //   {action:"calendar"}            Google Calendar → sessions   (every 15 min, pg_cron)
-//   {action:"notify"}              reminders, new sessions, notes, cancelled/moved sessions (every 5 min, pg_cron)
+//   {action:"notify"}              reminders (members and hosts), new sessions, notes, cancelled/moved sessions (every 5 min, pg_cron)
 //   {action:"stripe"}              Stripe → members_stripe      (daily, pg_cron)
 //   {action:"sheet", rows:[...]}   "Members" tab → members_manual, returns the Stripe list
 //                                  for the "From Stripe" tab    (Apps Script, on edit + hourly)
@@ -91,7 +91,7 @@ async function syncCalendar() {
     await db.from("session_changes").insert(changes);
     // A moved session gets a fresh 1-hour reminder at its new time.
     const moved = changes.filter((c) => c.kind === "rescheduled").map((c) => c.session_id);
-    if (moved.length) await db.from("notify_log").delete().eq("kind", "reminder").in("session_id", moved);
+    if (moved.length) await db.from("notify_log").delete().in("kind", ["reminder", "host_reminder"]).in("session_id", moved);
   }
   const announced = await queueNewSeries(db, rows);
   return {

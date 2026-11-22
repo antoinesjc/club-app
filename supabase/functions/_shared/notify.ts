@@ -1,6 +1,7 @@
 // Sends app notifications (Web Push) with an email fallback (Resend).
 // Kinds:
-//   reminder     1 hour before a session, to members who said "I'm in"
+//   host_reminder 1 hour before a session, to its host (Google Meet name or display name = the calendar's Host: line)
+//   reminder     1 hour before a session, to members who said "I'm in" (not the host, who gets host_reminder)
 //   new_session  a new session (new calendar series) appears, to everyone who wants it (push only)
 //   notes        the host published the notes, to attendees and "I'm in" members
 //   cancelled    a session left the calendar, to "I'm in" members (setting: session reminders)
@@ -13,7 +14,7 @@ const APP_URL = "https://app.mandarinzest.com";
 const FROM = "Mandarin Zest Club <club@mandarinzest.com>";
 
 type Target = { user_id: string; email: string; name: string; timezone: string; allow_email: boolean };
-type Session = { id: string; title: string; starts_at: string; meet_url: string; host_name: string; old_starts_at?: string | null };
+type Session = { id: string; title: string; starts_at: string; meet_url: string; host_name: string; old_starts_at?: string | null; going?: number };
 
 function when(s: Session, tz: string) {
   const opts: Intl.DateTimeFormatOptions = { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" };
@@ -22,6 +23,12 @@ function when(s: Session, tz: string) {
 }
 
 function message(kind: string, s: Session, t: Target) {
+  if (kind === "host_reminder") return {
+    title: `You're hosting in 1 hour: ${s.title}`,
+    body: `${when(s, t.timezone)} · ${s.going ? `${s.going} member${s.going === 1 ? "" : "s"} said "I'm in"` : `nobody has said "I'm in" yet`}. Tap to open the session.`,
+    url: `${APP_URL}/#/host/${encodeURIComponent(s.id)}`,
+    tag: `host-${s.id}`,
+  };
   if (kind === "reminder") return {
     title: `Starting in 1 hour: ${s.title}`,
     body: `${when(s, t.timezone)}${s.host_name ? ` · host ${s.host_name}` : ""}. Tap to join.`,
@@ -59,12 +66,12 @@ const esc = (x: string) => x.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&l
 async function sendEmail(to: string, kind: string, s: Session, t: Target, m: { title: string; body: string; url: string }) {
   const key = Deno.env.get("RESEND_API_KEY");
   if (!key) return false;
-  const meet = kind === "reminder" && s.meet_url
+  const meet = (kind === "reminder" || kind === "host_reminder") && s.meet_url
     ? `<p><a href="${esc(s.meet_url)}" style="display:inline-block;background:#f37a48;color:#2a2420;font-weight:bold;padding:12px 20px;border-radius:999px;text-decoration:none">Join on Google Meet</a></p>` : "";
   const html = `<div style="font-family:Arial,sans-serif;color:#2a2420;max-width:480px">
     <p>Hi ${esc(t.name || "there")},</p>
     <h2 style="margin:0 0 8px">${esc(m.title)}</h2>
-    <p>${esc(m.body.replace(" Tap to join.", "").replace('Tap "I\'m in" to save your spot.', ""))}</p>
+    <p>${esc(m.body.replace(" Tap to join.", "").replace(" Tap to open the session.", "").replace('Tap "I\'m in" to save your spot.', ""))}</p>
     ${meet}
     <p><a href="${m.url}" style="color:#a8431a">Open the Club app</a></p>
     <p style="color:#6f625a;font-size:12px">You get this email because app notifications aren't turned on for you. You can change this in the app under Me → Notifications.</p>
@@ -139,7 +146,12 @@ export async function runNotify(db: DB) {
     .eq("cancelled", false)
     .gte("starts_at", new Date(now + 45 * 60e3).toISOString())
     .lte("starts_at", new Date(now + 75 * 60e3).toISOString());
-  for (const s of soon ?? []) out[`reminder:${s.title}`] = await deliver(db, "reminder", s);
+  for (const s of soon ?? []) {
+    // The host first (so a host who also said "I'm in" doesn't get the member reminder too).
+    const { count } = await db.from("interests").select("user_id", { count: "exact", head: true }).eq("session_id", s.id);
+    out[`host_reminder:${s.title}`] = await deliver(db, "host_reminder", { ...s, going: count ?? 0 });
+    out[`reminder:${s.title}`] = await deliver(db, "reminder", s);
+  }
 
   // 2. Cancelled and moved sessions.
   await runChanges(db, out);
