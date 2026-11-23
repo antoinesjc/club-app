@@ -28,6 +28,16 @@ export const STICKERS = [
       <path d="M22 45 l1.5 9" stroke="#fff" stroke-width="2.2" stroke-linecap="round" opacity=".5"/>`,
   },
   {
+    key: "diploma", how: "Finish the HSK 1 Intensive Bootcamp.", zh: ["证书", "證書"], en: "Certificate", bootcamp: "hsk1",
+    svg: `<path d="M12 14 h40 v34 h-40z" fill="#fffaf0" stroke="#5a3a1a" stroke-width="2.6" stroke-linejoin="round"/>
+      <path d="M8 12 a4 4 0 0 1 8 0 v38 a4 4 0 0 1 -8 0z" fill="#e8c98a" stroke="#5a3a1a" stroke-width="2.4"/>
+      <path d="M48 12 a4 4 0 0 1 8 0 v38 a4 4 0 0 1 -8 0z" fill="#e8c98a" stroke="#5a3a1a" stroke-width="2.4"/>
+      <path d="M20 22 h24 M20 28 h24 M20 34 h14" stroke="#b9a58a" stroke-width="2.4" stroke-linecap="round"/>
+      <path d="M36 44 l-4 14 l5 -3 l3 5 l2 -14z M44 44 l4 14 l-5 -3 l-3 5 l-2 -14z" fill="#e2632f" stroke="#7a2f12" stroke-width="1.8" stroke-linejoin="round"/>
+      <circle cx="40" cy="40" r="8" fill="#d7261e" stroke="#7a1410" stroke-width="2.2"/>
+      <path d="M36.5 40 h7 M40 36.5 v7" stroke="#ffd95a" stroke-width="2" stroke-linecap="round"/>`,
+  },
+  {
     key: "lantern", how: "Given during special sessions and initiatives.", zh: ["灯笼", "燈籠"], en: "Lantern", bootcamp: "festival",
     svg: `<path d="M32 2 v6" stroke="#6b4a2b" stroke-width="2.6" stroke-linecap="round"/>
       <rect x="22" y="7" width="20" height="6" rx="2" fill="#f2b631"/>
