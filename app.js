@@ -1,11 +1,11 @@
-import { createClient } from "./vendor/supabase.js?v=119";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=119";
-import { COUNTRIES } from "./countries.js?v=119";
-import { toZhuyin } from "./zhuyin.js?v=119";
+import { createClient } from "./vendor/supabase.js?v=120";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=120";
+import { COUNTRIES } from "./countries.js?v=120";
+import { toZhuyin } from "./zhuyin.js?v=120";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=119";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=120";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -40,7 +40,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=119"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=120"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -1388,7 +1388,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=119"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=120"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -2003,7 +2003,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=119");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=120");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2902,7 +2902,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=119").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=120").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -3479,7 +3479,7 @@ function templeView() {
     const wsel = L.word && words.find((w) => w.id === L.word);
     if (wsel) {
       const s = statusOf(wsel, ws), owned = inDeck.has(wsel.hanzi);
-      side = `<div class="card ztword" ${wide() ? "" : 'role="dialog"'}><div class="row between" style="align-items:flex-start"><span><span class="ztwz">${esc(wordZh(wsel))}</span> <span class="ztwp">${esc(wsel.pinyin)}</span></span>
+      side = `<div class="card ztword" ${wide() ? "" : 'role="dialog"'}><div class="row between" style="align-items:flex-start"><span><span class="ztwz">${esc(wordZh(wsel))}</span> <span class="ztwp">${esc(py(wsel.pinyin))}</span></span>
         <button type="button" class="ztx" data-zt="word" data-id="" aria-label="Close">×</button></div>
         <div>${esc(wsel.meaning)}</div><div class="small muted">HSK ${esc(wsel.level)}${wsel.types ? " · " + esc(wsel.types) : ""}${wsel.hanzi_trad && wsel.hanzi_trad !== wsel.hanzi ? ` · ${trad() ? "简" : "繁"} ${esc(trad() ? wsel.hanzi : wsel.hanzi_trad)}` : ""}</div>
         <span class="ztst ${s}">${s === "learned" ? "Learned" : s === "seen" ? "Seen" : "Not yet"}</span>
@@ -3961,7 +3961,7 @@ const libInDeck = (book, w) => { const h = book.dict[w]?.s || w; return state.lu
 function libPopHtml(id, w) {
   const book = libBook(id), e = book?.dict[w]; if (!e) return "";
   const inDeck = libInDeck(book, w);
-  const parts = (e.parts || []).map((x) => `<button type="button" class="lpart" data-lw="${esc(x)}"><b>${esc(x)}</b> <span>${esc(book.dict[x].p)}</span> ${esc(book.dict[x].m)}</button>`).join("");
+  const parts = (e.parts || []).map((x) => `<button type="button" class="lpart" data-lw="${esc(x)}"><b>${esc(x)}</b> <span>${esc(py(book.dict[x].p))}</span> ${esc(book.dict[x].m)}</button>`).join("");
   const tag = e.b ? `<span class="ltag book">In this book's word list</span>` : "";
   return `<div class="ztover lpopover" data-lib="popclose"><div class="ztsheet lpop" role="dialog" aria-label="${esc(w)}" data-stop>
     <button type="button" class="ztx" data-lib="popclose" aria-label="Close">×</button>
@@ -4075,7 +4075,7 @@ function libBookView(meta) {
       ${nRead < c.chapters.length ? `<a class="btn" href="${base}/ch/${c.chapters.findIndex((_, i) => !read[i])}">${nRead ? "Continue reading" : "Start reading"}</a>` : (c.exercises?.length ? `<a class="btn ghost" href="${base}/ex/0">Practise with the exercises</a>` : `<a class="btn ghost" href="${base}/ch/0">Read it again</a>`)}
     </div></div>
     <details class="card lhow"${how} data-lib-how="${esc(id)}"><summary><b>How this book works</b></summary>${(c.how?.length ? c.how : LIB_HOW).map((p) => `<p class="small">${esc(zhuyin() ? p.replace(/\bpinyin\b/g, "zhuyin").replace(/\bPinyin\b/g, "Zhuyin") : p)}</p>`).join("")}</details>
-    ${c.chars?.length ? "" : "<!--"}<section class="lsec"><h2>Meet the characters <span class="zhsub">人物</span></h2><div class="lchars">${(c.chars || []).map((ch) => `<div class="lchar"><img src="icons/books/${esc(id)}-${esc(ch.key)}.png" alt=""><b>${esc(ch.zh)}${ch.py ? ` <span class="small muted">${esc(ch.py)}</span>` : ""}</b><span class="small muted">${esc(ch.desc)}</span></div>`).join("")}</div></section>${c.chars?.length ? "" : "-->"}
+    ${c.chars?.length ? "" : "<!--"}<section class="lsec"><h2>Meet the characters <span class="zhsub">人物</span></h2><div class="lchars">${(c.chars || []).map((ch) => `<div class="lchar"><img src="icons/books/${esc(id)}-${esc(ch.key)}.png" alt=""><b>${esc(ch.zh)}${ch.py ? ` <span class="small muted">${esc(py(ch.py))}</span>` : ""}</b><span class="small muted">${esc(ch.desc)}</span></div>`).join("")}</div></section>${c.chars?.length ? "" : "-->"}
     <section class="lsec"><h2>Part ${part()} · The story</h2><div class="card llist">${c.chapters.map((ch, i) => row(`${base}/ch/${i}`, `<span class="lzh">${esc(libChLabel(c, i))} ${esc(ch.zh)}</span>`, `${esc(ch.en)} · about ${ch.mins} min · ${ch.words.length} new words`, read[i])).join("")}</div></section>
     ${c.culture?.length ? `<section class="lsec"><h2>Part ${part()} · Cultural background</h2><div class="card llist">${row(`${base}/culture`, libCtitle(c, id), c.culture.map((s) => esc(s.h)).join(" · "), libGet(id, "cultureSeen"))}</div></section>` : ""}
     ${c.grammar?.length ? "" : "<!--"}<section class="lsec"><h2>Part ${c.grammar?.length ? part() : 0} · Grammar</h2><div class="card llist">${c.grammar.map((g, i) => row(`${base}/grammar/${i}`, `${i + 1}. ${esc(g.title)}`, esc(g.pattern), libGet(id, `gram.${i}`))).join("")}</div></section>${c.grammar?.length ? "" : "-->"}
@@ -4127,7 +4127,7 @@ function libWordRow(c, w) {
 function libCultureView(meta) {
   const id = meta.id, c = libBook(id), d = c.dict;
   if (!libGet(id, "cultureSeen")) libSet(id, "cultureSeen", true);
-  const para = (segs) => segs.map((s) => typeof s === "string" ? esc(s) : s.t ? libTok(s.t, d) : `<button type="button" class="lchip" data-lw="${esc(s.w)}"><span class="lzh">${esc(s.w)}</span> <i>${esc(s.p)}</i></button>`).join("");
+  const para = (segs) => segs.map((s) => typeof s === "string" ? esc(s) : s.t ? libTok(s.t, d) : `<button type="button" class="lchip" data-lw="${esc(s.w)}"><span class="lzh">${esc(s.w)}</span> <i>${esc(py(s.p))}</i></button>`).join("");
   return `${libHead(meta, `#/learn/library/${encodeURIComponent(id)}`, meta.title_zh)}
     <article class="lread"><div class="lchlabel">文化背景 · Culture</div><h1 class="lcht" style="font-size:26px">${esc(libCtitle(c, id))}</h1>
     <div class="small muted">${c.culture.some((s) => s.paras.some((p) => p.some((x) => x && x.t))) ? "Tap any word to see it and add it to your flashcards." : "In English, with the key Chinese words. Tap a word to see it and add it to your flashcards."}</div>
@@ -4426,7 +4426,7 @@ async function cgRemember(t) {
   if (data?.length) await sb.from("char_recent").delete().eq("user_id", state.user.id).in("text", data.map((r) => r.text));
 }
 let cgHW = null;
-const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=119")).default);
+const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=120")).default);
 const cgStrokes = async (c) => {
   const S = cgState(); if (S.data.has(c)) return S.data.get(c);
   const HW = await cgLib(); const d = await HW.loadCharacterData(c).catch(() => null);
