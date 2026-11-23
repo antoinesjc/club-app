@@ -1,11 +1,11 @@
-import { createClient } from "./vendor/supabase.js?v=121";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=121";
-import { COUNTRIES } from "./countries.js?v=121";
-import { toZhuyin } from "./zhuyin.js?v=121";
+import { createClient } from "./vendor/supabase.js?v=122";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=122";
+import { COUNTRIES } from "./countries.js?v=122";
+import { toZhuyin } from "./zhuyin.js?v=122";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=121";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=122";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -40,7 +40,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=121"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=122"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -640,7 +640,7 @@ function xpCard() {
     <div class="row">
       <div class="grow">
         <div style="font-size:13px;opacity:.85">Level ${p.level} · ${xp.toLocaleString()} XP</div>
-        <div style="font-size:18px;font-weight:800;margin-top:2px">${p.max ? "Every fruit unlocked!" : `${p.toNext} XP to unlock ${esc(zh(p.next.zh))} <span style="font-weight:600">${esc(py(p.next.py[idx]))}</span>`}</div>
+        <div style="font-size:18px;font-weight:800;margin-top:2px">${p.max ? "Every fruit unlocked!" : `${p.toNext} XP to unlock ${esc(zh(p.next.zh))} <span class="pron">${esc(py(p.next.py[idx]))}</span>`}</div>
       </div>
       ${p.max ? avatar(state.me, 50, { flag: false }) : avatar(state.me, 50, { locked: true, flag: false, fruit: p.next.key })}
     </div>
@@ -1388,7 +1388,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=121"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=122"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1537,7 +1537,7 @@ function memberView() {
   <header class="row" style="gap:16px">${avatar(p, 88)}
     <div class="grow"><div class="eyebrow">${host ? "Host" : "Member"}${me ? " · you" : ""}</div>
       <h1>${esc(p.display_name || "Member")}</h1>
-      <div style="font-size:14.5px;font-weight:700;color:var(--orange-ink);margin-top:4px">${esc(zh(info.zh))} <span style="font-weight:600">${esc(py(info.py[idx]))}</span></div>
+      <div style="font-size:14.5px;font-weight:700;color:var(--orange-ink);margin-top:4px">${esc(zh(info.zh))} <span class="pron">${esc(py(info.py[idx]))}</span></div>
     </div>
   </header>
   ${full?.bio ? `<p class="bio">${esc(full.bio)}</p>` : me ? `<p class="small muted" style="margin:0">Add a short bio in <a href="#/me">Me</a> so others know a bit about you.</p>` : ""}
@@ -1853,7 +1853,7 @@ function profileView() {
     <div class="grow">
       <div class="eyebrow">${state.role === "admin" ? "Admin · all fruits" : state.role === "host" ? "Host · all fruits" : `Level ${level} · ${myXp().toLocaleString()} XP`}</div>
       <h1>${esc(d.display_name || "Me")}</h1>
-      <div style="font-size:15px;font-weight:700;color:var(--orange-ink);margin-top:4px">${zh(info.zh)} <span style="font-weight:600">${esc(py(info.py[idx]))}</span></div>
+      <div style="font-size:15px;font-weight:700;color:var(--orange-ink);margin-top:4px">${zh(info.zh)} <span class="pron">${esc(py(info.py[idx]))}</span></div>
     </div>
     <button type="button" class="ideabtn" data-act="idea-open" aria-haspopup="dialog"><span>${BULB}</span>Idea box</button>
   </header>
@@ -2003,7 +2003,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=121");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=122");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2902,7 +2902,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=121").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=122").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -4426,7 +4426,7 @@ async function cgRemember(t) {
   if (data?.length) await sb.from("char_recent").delete().eq("user_id", state.user.id).in("text", data.map((r) => r.text));
 }
 let cgHW = null;
-const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=121")).default);
+const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=122")).default);
 const cgStrokes = async (c) => {
   const S = cgState(); if (S.data.has(c)) return S.data.get(c);
   const HW = await cgLib(); const d = await HW.loadCharacterData(c).catch(() => null);
