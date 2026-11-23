@@ -251,9 +251,13 @@ export const ORACLE = {
       { title: "Pictures, then ideas, then sounds",
         body: "<p>You met three ways to make a character:</p><ol class=\"cgsteps\"><li><b>Pictures</b> of things: <span class=\"cgzh\">日 山 鱼 门</span></li><li><b>Pictures put together</b> to make an idea: <span class=\"cgzh\">好 家 休 明 从 秋</span></li><li><b>Meaning + sound</b>: most characters today. <span class=\"cgzh\">河</span> river = water <span class=\"cgzh\">氵</span> + the sound of <span class=\"cgzh\">可</span>. <span class=\"cgzh\">妈</span> mom = woman <span class=\"cgzh\">女</span> + the sound of <span class=\"cgzh\">马</span>.</li></ol><p>So the pictures you learned are still there, as the meaning parts of thousands of characters.</p>" },
       { title: "Simplified and traditional",
-        body: "<p>In the 1950s mainland China simplified many characters to make reading and writing easier: <span class=\"cgzh\">馬 → 马, 鳥 → 鸟, 門 → 门, 車 → 车</span>.</p><p>Taiwan, Hong Kong and Macau still use the traditional forms, which often keep more of the old picture: the four legs of the horse <span class=\"cgzh\">馬</span>, the tail of the fish <span class=\"cgzh\">魚</span>.</p>" },
+        body: "<p>In the 1950s mainland China simplified many characters to make reading and writing easier: <span class=\"cgzh nt\">馬 → 马, 鳥 → 鸟, 門 → 门, 車 → 车</span>.</p><p>Taiwan, Hong Kong and Macau still use the traditional forms, which often keep more of the old picture: the four legs of the horse <span class=\"cgzh\">馬</span>, the tail of the fish <span class=\"cgzh\">魚</span>.</p>" },
       { title: 'You are a <span class="cgzh">甲骨文</span> detective!',
         body: "<p>You read <b>42 bones</b> and solved <b>7 challenges</b>, from a pharmacy in 1899 back to the harvest feasts of the Shang kings.</p><p>Next time you write <span class=\"cgzh\">好</span>, <span class=\"cgzh\">家</span> or <span class=\"cgzh\">明</span>, you will know the 3,000-year-old pictures inside them.</p>" },
     ],
   },
 };
+
+// Traditional forms of every run of Chinese characters above that differs (made with OpenCC s2tw), for members
+// who read traditional. Text inside <span class="cgzh nt"> (the simplified-vs-traditional examples) stays as written.
+export const ORACLE_T = {"中国": "中國", "从": "從", "从甲骨到毛笔": "從甲骨到毛筆", "众": "眾", "余": "餘", "再见": "再見", "别": "別", "厘米": "釐米", "妈": "媽", "学生": "學生", "安阳": "安陽", "楷书": "楷書", "汽车": "汽車", "火车": "火車", "热": "熱", "甲骨之谜": "甲骨之謎", "盐": "鹽", "盘": "盤", "种": "種", "笔": "筆", "篆书": "篆書", "脸": "臉", "自行车": "自行車", "见": "見", "车": "車", "门": "門", "问": "問", "隶书": "隸書", "马": "馬", "鱼": "魚", "鲜": "鮮", "鸟": "鳥", "龟": "龜"};

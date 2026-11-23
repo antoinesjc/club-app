@@ -1,12 +1,12 @@
-import { createClient } from "./vendor/supabase.js?v=127";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=127";
-import { COUNTRIES } from "./countries.js?v=127";
-import { toZhuyin } from "./zhuyin.js?v=127";
-import { ORACLE } from "./course-oracle.js?v=127";
+import { createClient } from "./vendor/supabase.js?v=128";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=128";
+import { COUNTRIES } from "./countries.js?v=128";
+import { toZhuyin } from "./zhuyin.js?v=128";
+import { ORACLE, ORACLE_T } from "./course-oracle.js?v=128";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=127";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=128";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -1389,7 +1389,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=127"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=128"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -2004,7 +2004,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=127");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=128");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2903,7 +2903,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=127").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=128").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -4427,7 +4427,7 @@ async function cgRemember(t) {
   if (data?.length) await sb.from("char_recent").delete().eq("user_id", state.user.id).in("text", data.map((r) => r.text));
 }
 let cgHW = null;
-const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=127")).default);
+const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=128")).default);
 const cgStrokes = async (c) => {
   const S = cgState(); if (S.data.has(c)) return S.data.get(c);
   const HW = await cgLib(); const d = await HW.loadCharacterData(c).catch(() => null);
@@ -4988,7 +4988,9 @@ const coState = () => (state.co ??= { done: null, q: null });
 const coGlyph = (c) => `icons/oracle/${encodeURIComponent(c)}.svg`;
 const coCh = (b) => (trad() && b.tr ? b.tr : b.ch);                 // modern form in the member's script
 const coImgCh = (b) => b.tr || b.ch;                                  // glyph files are named by the traditional form
-const coProse = (html) => String(html).replace(/<i class="py">([^<]*)<\/i>/g, (_, x) => `<i class="py">${esc(py(x))}</i>`);
+// Traditional-script members get the course text in traditional (whole runs of characters, so 中国 → 中國).
+const coT = (html) => !trad() ? String(html ?? "") : String(html ?? "").replace(/(<span class="cgzh nt">[\s\S]*?<\/span>)|([\u3400-\u9fff]+)/g, (m, keep, run) => keep || ORACLE_T[run] || run);
+const coProse = (html) => coT(html).replace(/<i class="py">([^<]*)<\/i>/g, (_, x) => `<i class="py">${esc(py(x))}</i>`);
 const coTitle = () => `${CO.title} <span class='zhsub'>${trad() ? CO.title_zh_t : CO.title_zh}</span><span class="betachip">BETA</span>`;
 const coHref = (n) => `#/learn/callig/course/${CO.id}${n == null ? "" : `/${n}`}`;
 const coChapterName = (n) => n === 0 ? CO.intro.title : n === CO_LAST ? CO.conclusion.title : CO.chapters[n - 1].title;
@@ -5053,7 +5055,7 @@ function coOverview() {
 function coSlidesView(part, n) {
   const S = coState(), q = S.q, sl = part.slides[q.i], last = q.i === part.slides.length - 1;
   const label = n === 0 ? "Introduction" : "Conclusion";
-  return `${cgHead(coHref(), CO.title, `${esc(part.title)} <span class='zhsub'>${esc(part.title_zh)}</span>`)}
+  return `${cgHead(coHref(), CO.title, `${esc(part.title)} <span class='zhsub'>${esc(coT(part.title_zh))}</span>`)}
     <div class="cgdots" aria-label="Slide ${q.i + 1} of ${part.slides.length}">${part.slides.map((_, k) => `<span class="${k < q.i ? "ok" : k === q.i ? "cur" : ""}"></span>`).join("")}</div>
     <section class="card cgslide">
       <div class="tiny muted">${label} · ${q.i + 1} / ${part.slides.length}</div>
