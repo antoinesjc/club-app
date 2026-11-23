@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
     for (const r of rows) {
       const m = {
         title: `🌱 1 hour left for your ${r.streak}-day streak`,
-        body: "Your tree hasn't grown today. Review a few flashcards or read a Library chapter in Zest Town to keep it alive.",
+        body: "Your tree hasn't grown today. Review a few flashcards, read a Library chapter, write a character or send a letter in Zest Town to keep it alive.",
         url: `${APP_URL}/#/learn/cards`, tag: `streak-${r.day}`,
       };
       if ((await pushTo(r.user_id, JSON.stringify(m))) > 0) sent++;

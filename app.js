@@ -1,12 +1,12 @@
-import { createClient } from "./vendor/supabase.js?v=132";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=132";
-import { COUNTRIES } from "./countries.js?v=132";
-import { toZhuyin } from "./zhuyin.js?v=132";
-import { ORACLE, ORACLE_T } from "./course-oracle.js?v=132";
+import { createClient } from "./vendor/supabase.js?v=133";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=133";
+import { COUNTRIES } from "./countries.js?v=133";
+import { toZhuyin } from "./zhuyin.js?v=133";
+import { ORACLE, ORACLE_T } from "./course-oracle.js?v=133";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=132";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=133";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -1277,7 +1277,7 @@ function leaderboard() {
   ${podium}
   <div class="stack" style="gap:6px">${rest}${meRow}</div>
   ${!isHost() && mine && mine <= 3 ? `<p class="small" style="text-align:center;margin:0"><b>You're #${mine}!</b></p>` : ""}
-  <p class="small muted" style="margin:0">+${XP_SESSION} XP per session · +${XP_STREAK} XP every 4 weeks in a row · XP for bootcamps · +${XP_HONGBAO} XP per hongbao received${isBeta() ? " · +1 XP a day for a flashcard review or a Library chapter · +2 XP every 10 days of your streak tree" : ""}. Hosts don't take part.</p>`;
+  <p class="small muted" style="margin:0">+${XP_SESSION} XP per session · +${XP_STREAK} XP every 4 weeks in a row · XP for bootcamps · +${XP_HONGBAO} XP per hongbao received${isBeta() ? " · +1 XP a day for a flashcard review, a Library chapter, writing a character or sending a letter · +2 XP every 10 days of your streak tree" : ""}. Hosts don't take part.</p>`;
 }
 
 function directory() {
@@ -1390,7 +1390,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=132"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=133"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -2006,7 +2006,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=132");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=133");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2905,7 +2905,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=132").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=133").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -3263,7 +3263,8 @@ async function ztGrade(g) {
   if (R.i >= R.queue.length) await ztFinish();
   render();
 }
-// A flashcard review or a Library chapter read today makes the streak tree grow (one "game" day, +1 XP).
+// A flashcard review, a Library chapter read, a character written in the Calligraphy School or a letter sent
+// today makes the streak tree grow (one "game" day, +1 XP).
 // Returns true when this call counted today for the first time.
 async function ztCountDay() {
   const days = state.lu?.days;
@@ -3330,7 +3331,7 @@ function ztHeader(st, back) {
 function todayCard(st) {
   return st.doneToday
     ? `<div class="zttoday done">${ZT_LEAF}<span><b>Today counts!</b><br><span class="small">Your tree grows again tomorrow. Come back for day ${st.n + 1}.</span></span></div>`
-    : `<div class="zttoday">${ZT_LEAF}<span><b>Keep your tree growing</b><br><span class="small">Review flashcards, read a Library chapter or join a session today.</span></span></div>`;
+    : `<div class="zttoday">${ZT_LEAF}<span><b>Keep your tree growing</b><br><span class="small">Review flashcards, read a Library chapter, write characters, send a letter or join a session today.</span></span></div>`;
 }
 function treeCard(st, big) {
   const nx = ztNext(st);
@@ -3355,7 +3356,7 @@ function placeCards(big) {
     + (() => { const c = sbCount(); return card("#/learn/gallery", "gallery", "Sticker Gallery", trad() ? "貼紙館" : "贴纸馆", `${c.n} of ${c.total} stickers collected`, "Every sticker you've earned, and how to get the others", "Visit"); })()
     + (libOpen() ? card("#/learn/library", "library", "Library", trad() ? "圖書館" : "图书馆", "Workbooks & graded readers", "Read your books in the app, and get new ones in the Bookshop", "Open") : "")
     + (calligOpen() ? card("#/learn/callig", "callig", "Calligraphy School", trad() ? "書法學校" : "书法学校", "Stroke order, character box & packages", "Look up any character, watch its strokes, and practise writing it", "Enter") : "")
-    + (postOpen() ? (() => { const n = postUnread(); postLoad(); return card("#/learn/post", "post", "Post Office", trad() ? "郵局" : "邮局", n ? `✉️ ${n} new letter${n === 1 ? "" : "s"}` : "Letters in Chinese", "Write short letters to members and hosts (beta: admins only)", n ? "Read" : "Open"); })() : "");
+    + (postOpen() ? (() => { const n = postUnread(); postLoad(); return card("#/learn/post", "post", "Post Office", trad() ? "郵局" : "邮局", n ? `✉️ ${n} new letter${n === 1 ? "" : "s"}` : "Letters in Chinese", "Write short letters to members and hosts", n ? "Read" : "Open"); })() : "");
 }
 function soonCards(big) {
   const card = (img, t, z, line) => `<div class="card ztplace soon ${big ? "big" : ""}"><span class="ztplaceart">${ztImg(img)}</span>
@@ -3415,7 +3416,7 @@ function treeSheet(st) {
       <div><div class="eyebrow">Your streak tree</div><div class="ztday">${st.wilted ? "Wilted" : `Day ${st.n}`}</div><div class="ztstage">${esc(stageName(st.stage))}</div>
       ${st.wilted ? "" : `<div class="small muted" style="margin-top:6px">${nx.text}</div><span class="ztbar"><i style="width:${nx.pct}%"></i></span>`}</div></div>
     <div class="card" style="gap:8px"><b>This week</b><div class="ztweek">${week}</div></div>
-    <div class="ztinfo"><div class="card"><b>What counts</b><span class="small">Joining a session, a flashcard review in Zest Town, or reading a Library chapter (tap “I’ve read this chapter”), once a day.</span></div>
+    <div class="ztinfo"><div class="card"><b>What counts</b><span class="small">Joining a session, a flashcard review, reading a Library chapter (tap “I’ve read this chapter”), writing a character in the Calligraphy School (practice or character box), or sending a letter at the Post Office, once a day.</span></div>
       <div class="card water">${ZT_DROP}<b>${w} watering can</b><span class="small">${w ? "left this month. If you miss a day, it brings your tree back." : "used this month. You get a new one on the 1st."}</span></div></div>
     ${state.push?.subscribed ? "" : `<a class="ztnotif" href="#/settings" data-scroll="notifications">${ICON.bell}<span><b>Turn on notifications</b> so you never lose your streak. We'll remind you 1 hour before your day ends.</span><span class="chev" aria-hidden="true">›</span></a>`}
     <details class="ztstages"><summary>All 9 stages</summary><div class="ztstagegrid">${ZT_STAGES.map((s, i) => `<span>${ztImg("tree-" + i)}<b>${esc(s[0])}</b><small>Day ${s[3]}${i < 8 ? "+" : ""}</small></span>`).join("")}</div></details>
@@ -4410,13 +4411,13 @@ document.addEventListener("input", (e) => {
 });
 
 // ---------------------------------------------------------------------------
-// Post Office 郵局 (Zest Town; beta for admins from 24 Nov 2026)
+// Post Office 郵局 (Zest Town; live for everyone since 24 Nov 2026, after a short admin beta)
 // Short letters in Chinese (1–140 characters, Chinese characters + Chinese punctuation) to a member or a host.
 // Table letters, private between the two people. send_letter() allows 10 a day. A new letter calls the
 // letter-notify edge function: a push (or an email when the app can't notify them), and a count on the town sign.
 // Read a letter: tap a word for its pinyin/zhuyin and meaning, add its words to flashcards, reply, or report it.
 // ---------------------------------------------------------------------------
-const postOpen = () => isAdmin(); // beta: admins only (and letters can only go to admins while in beta)
+const postOpen = () => true; // live for everyone with Zest Town since 24 Nov 2026 (beta for admins earlier that day)
 const POST_MAX = 140, POST_PER_DAY = 10;
 const POST_OK = /^[㐀-䶿一-鿿　-〿！（），：；？～…—·“”‘’ \n]+$/u, POST_HAN = /[㐀-䶿一-鿿]/u;
 const POST_ENV = `<svg viewBox="0 0 14 10" aria-hidden="true" shape-rendering="crispEdges"><rect width="14" height="10" fill="#2a2420"/><rect x="1" y="1" width="12" height="8" fill="#fff"/><path d="M1 1h1v1h1v1h1v1h1v1h1v1h2v-1h1v-1h1v-1h1v-1h1v-1h1v-1" fill="none" stroke="#a39b8b" stroke-width="1"/><rect x="6" y="5" width="2" height="2" fill="#a62f22"/></svg>`;
@@ -4441,7 +4442,7 @@ const postAv = (p, s = 40) => `<span class="postav" style="width:${s}px;height:$
 const postWhen = (d) => { const t = new Date(d), h = (Date.now() - t) / 36e5; return h < 20 ? ago(d) : t.toLocaleString([], { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); };
 const postHead = (back, href) => `<header class="zthead"><a class="ztback" href="${href}">‹ ${back}</a></header>`;
 // While in beta only admins can open the Post Office, so they're the only ones you can write to.
-const postPeople = () => [...(postState().people?.values() || [])].filter((p) => p.role === "admin");
+const postPeople = () => [...(postState().people?.values() || [])];
 
 function postView(parts, qs) {
   if (!postOpen()) { location.hash = "#/learn"; return townView(); }
@@ -4468,7 +4469,6 @@ function postInboxView() {
   const sentToday = sent.filter((l) => Date.now() - new Date(l.created_at) < 864e5).length;
   return `${ztHeader(ztStreak(), postTitle())}
     <div class="ztthead"><span class="ztplaceart">${ztImg("post")}</span><span class="small muted">Write short letters in Chinese to other members and to our hosts. Up to ${POST_MAX} characters, like a postcard.</span></div>
-    <span class="betapill">Beta · only admins see the Post Office for now</span>
     ${sentToday >= POST_PER_DAY ? `<p class="small muted" style="margin:0">You've sent ${POST_PER_DAY} letters today. You can write again tomorrow.</p>` : `<a class="btn postwrite" href="#/learn/post/write">✉️ Write a letter</a>`}
     <div class="seg postseg" role="group" aria-label="Mailbox"><button type="button" data-post="tab" data-v="in" aria-pressed="${P.tab !== "sent"}">Inbox${unread ? ` · ${unread} new` : ""}</button><button type="button" data-post="tab" data-v="sent" aria-pressed="${P.tab === "sent"}">Sent</button></div>
     <div class="postlist">${list.length ? list.map(row).join("") : `<div class="card postempty">${POST_ENV}<p class="muted small" style="margin:0">${P.tab === "sent" ? "You haven't sent a letter yet." : "No letters yet. Write one, and you might get one back!"}</p></div>`}</div>
@@ -4483,8 +4483,7 @@ function postWriteView(qs) {
     const q = P.q.trim().toLowerCase(), people = postPeople().filter((p) => !q || p.name.toLowerCase().includes(q));
     return `${head}<h1 style="margin:0">Write a letter</h1><p class="muted small" style="margin:0">Who is it for?</p>
       <input class="postfind" type="search" placeholder="Search a name" value="${esc(P.q)}" data-post-find aria-label="Search a name">
-      <div class="postlist">${people.map((p) => `<a class="card postrow" href="#/learn/post/write?to=${p.id}">${postAv(p, 36)}<span class="grow"><b>${postName(p)}</b></span><span class="small muted">Choose ›</span></a>`).join("") || `<p class="muted small">Nobody found.</p>`}</div>
-      <p class="small muted" style="margin:0">Beta: for now you can only write to admins. Members and hosts join when the Post Office opens to everyone.</p>`;
+      <div class="postlist">${people.map((p) => `<a class="card postrow" href="#/learn/post/write?to=${p.id}">${postAv(p, 36)}<span class="grow"><b>${postName(p)}</b></span><span class="small muted">Choose ›</span></a>`).join("") || `<p class="muted small">Nobody found.</p>`}</div>`;
   }
   const n = [...P.draft].length;
   return `${head}<h1 style="margin:0">${reply ? "Write back" : "Write a letter"}</h1>
@@ -4597,7 +4596,8 @@ document.addEventListener("click", async (e) => {
       el.disabled = false; el.textContent = "Send the letter";
       return toast(/daily_limit/.test(error.message) ? `You've sent ${POST_PER_DAY} letters today. You can write again tomorrow.` : /letter_chinese/.test(error.message) ? "Chinese characters and punctuation only, please." : "Couldn't send your letter. Check your connection and try again.");
     }
-    P.draft = ""; P.tab = "sent"; toast("✉️ Letter sent!");
+    P.draft = ""; P.tab = "sent";
+    toast(await ztCountDay() ? "✉️ Letter sent! Your streak tree grew today 🌱" : "✉️ Letter sent!");
     await postLoad(true); location.hash = "#/learn/post";
   } else if (a === "addone" || a === "addall") {
     const l = P.letters.find((x) => x.id === el.dataset.id); if (!l) return;
@@ -4621,7 +4621,7 @@ document.addEventListener("click", async (e) => {
 // Calligraphy School 书法学校 (Zest Town; beta for admins from 22 Nov 2026, live for everyone since 23 Nov)
 // Look up any character: stroke order player + write it yourself (Hanzi Writer quiz).
 // Character box 漢字: the School's own writing deck (table char_box), kept apart from the Flashcard Center,
-// the HSK Temple, the streak tree and XP. Stages: 0 outline shown → 1 only the radical → 2 from memory.
+// the HSK Temple and XP (but writing a character counts for the streak tree since 24 Nov). Stages: 0 outline shown → 1 only the radical → 2 from memory.
 // Stroke data: hanzi-writer-data (Make Me a Hanzi, Arphic PL) fetched from jsDelivr per character.
 // Character info: table char_info + hsk_words via char_lookup(). No audio on purpose.
 // ---------------------------------------------------------------------------
@@ -4652,7 +4652,7 @@ async function cgRemember(t) {
   if (data?.length) await sb.from("char_recent").delete().eq("user_id", state.user.id).in("text", data.map((r) => r.text));
 }
 let cgHW = null;
-const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=132")).default);
+const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=133")).default);
 const cgStrokes = async (c) => {
   const S = cgState(); if (S.data.has(c)) return S.data.get(c);
   const HW = await cgLib(); const d = await HW.loadCharacterData(c).catch(() => null);
@@ -5114,6 +5114,7 @@ async function cgMount() {
     onMistake: (x) => { S.mistakes = x.totalMistakes; upd(); },
     onCorrectStroke: (x) => { S.mistakes = x.totalMistakes; S.done = x.strokeNum + 1; upd(); },
     onComplete: (x) => {
+      ztCountDay().then((grew) => { if (grew) toast("Character written. Your streak tree grew today 🌱"); });
       if (review) cgReviewDone(ch, x.totalMistakes);
       else { S.finished = { mistakes: x.totalMistakes }; setTimeout(() => { if (route() === "learn") render(); }, 700); }
     },
