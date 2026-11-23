@@ -13,7 +13,8 @@ const FRUITS: [number, string][] = [[1, "Orange"], [1, "Apple"], [1, "Peach"], [
   [6, "Pineapple"], [7, "Kiwi"], [8, "Cherry"], [9, "Coconut"], [10, "Dragon fruit"], [11, "Lychee"], [12, "Pomelo"], [13, "Star fruit"],
   [14, "Guava"], [15, "Passion fruit"], [16, "Persimmon"], [17, "Rambutan"], [18, "Durian"]];
 const STICKERS: Record<string, string> = { boba: "Bubble tea", tones: "Four tones", lantern: "Lantern", dumpling: "Dumpling", brush: "Brush",
-  mooncake: "Mooncake", phone: "Smartphone", heart: "Orange heart", medal: "Medal", founder: "Founding member", turkey: "Turkey" };
+  mooncake: "Mooncake", phone: "Smartphone", heart: "Orange heart", medal: "Medal", founder: "Founding member", turkey: "Turkey",
+  sprout: "Sprout", book: "Open book", diploma: "Certificate", letter: "Letter" };
 const AVATARS: Record<string, string> = { corn: "Corn" };
 
 async function pushTo(userId: string, payload: string) {

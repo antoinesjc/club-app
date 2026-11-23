@@ -112,6 +112,16 @@ export const STICKERS = [
       <path d="M11 23 q8 -2 16 1 M11 30 q8 -2 16 1 M11 37 q8 -2 16 1 M37 24 q8 -3 16 -1 M37 31 q8 -3 16 -1" stroke="#d2c1b0" stroke-width="2.2" fill="none" stroke-linecap="round"/>
       <path d="M44 37 v25 l3.5 -3.5 l3.5 3.5 v-26" fill="#1b6f1b"/>`,
   },
+  {
+    key: "letter", how: "Send a letter at the Post Office in Zest Town and get one back.", zh: ["来信", "來信"], en: "Letter",
+    svg: `<path d="M4 18 a3 3 0 0 1 3 -3 h50 a3 3 0 0 1 3 3 v31 a3 3 0 0 1 -3 3 h-50 a3 3 0 0 1 -3 -3z" fill="#fffaf2" stroke="#6b4a2b" stroke-width="2.6" stroke-linejoin="round"/>
+      <path d="M6 17 l26 18 l26 -18" fill="none" stroke="#6b4a2b" stroke-width="2.2" stroke-linejoin="round"/>
+      <path d="M11 43 h16 M11 47.5 h11" stroke="#d2c1b0" stroke-width="2.2" stroke-linecap="round"/>
+      <rect x="40" y="19" width="15" height="17" rx="1" fill="#fff" stroke="#6b4a2b" stroke-width="1.6" stroke-dasharray="2 1.4"/>
+      <rect x="42.2" y="21.2" width="10.6" height="12.6" fill="#f37a48"/>
+      <circle cx="47.5" cy="29" r="3.4" fill="#ffb067"/><path d="M47.5 25.6 v-1.6" stroke="#6b4a2b" stroke-width="1.2" stroke-linecap="round"/><path d="M48 24.4 q2.6 -2.2 4.4 -0.2 q-2.2 1.8 -4.4 0.2z" fill="#1b6f1b"/>
+      <circle cx="37" cy="26" r="6" fill="none" stroke="#a62f22" stroke-width="1.6" opacity=".8"/><path d="M17 23.5 q2.5 -2 5 0 t5 0 M17 28.5 q2.5 -2 5 0 t5 0" stroke="#a62f22" stroke-width="1.6" fill="none" opacity=".75" stroke-linecap="round"/>`,
+  },
 ];
 
 const BY_KEY = new Map(STICKERS.map((s) => [s.key, s]));
@@ -131,7 +141,7 @@ export function stickerForBootcamp(title) {
 // Stickers in MYSTERY_STICKERS show as a grey "?" until collected (no unlock info given).
 export const STICKER_PAGES = [
   { en: "Bootcamps", zh: ["训练营", "訓練營"], color: "#f37a48", keys: ["boba", "tones", "brush"] },
-  { en: "Club life", zh: ["社团生活", "社團生活"], color: "#1b6f1b", keys: ["phone", "heart"] },
+  { en: "Club life", zh: ["社团生活", "社團生活"], color: "#1b6f1b", keys: ["phone", "heart", "letter"] },
   { en: "Achievements", zh: ["成就", "成就"], color: "#c98d12", keys: ["medal", "sprout"] },
   { en: "Festivals & events", zh: ["节日活动", "節日活動"], color: "#a63d6b", keys: ["turkey", "lantern", "mooncake", "dumpling"] },
   { en: "Reading", zh: ["读书", "讀書"], color: "#2f6f8f", keys: ["book"] },
