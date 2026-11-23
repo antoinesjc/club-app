@@ -1,11 +1,12 @@
-import { createClient } from "./vendor/supabase.js?v=124";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=124";
-import { COUNTRIES } from "./countries.js?v=124";
-import { toZhuyin } from "./zhuyin.js?v=124";
+import { createClient } from "./vendor/supabase.js?v=125";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=125";
+import { COUNTRIES } from "./countries.js?v=125";
+import { toZhuyin } from "./zhuyin.js?v=125";
+import { ORACLE } from "./course-oracle.js?v=125";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=124";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=125";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -1388,7 +1389,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=124"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=125"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -2003,7 +2004,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=124");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=125");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2902,7 +2903,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=124").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=125").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -4426,7 +4427,7 @@ async function cgRemember(t) {
   if (data?.length) await sb.from("char_recent").delete().eq("user_id", state.user.id).in("text", data.map((r) => r.text));
 }
 let cgHW = null;
-const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=124")).default);
+const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=125")).default);
 const cgStrokes = async (c) => {
   const S = cgState(); if (S.data.has(c)) return S.data.get(c);
   const HW = await cgLib(); const d = await HW.loadCharacterData(c).catch(() => null);
@@ -4649,6 +4650,7 @@ function calligView(parts) {
   const [t, mode] = parts.map((x) => { try { return decodeURIComponent(x); } catch { return x; } });
   if (t === "box") return mode === "review" ? cgReviewView() : cgBoxView();
   if (t === "pack") return cgPackView(mode);
+  if (t === "course") return coView(mode, parts[2]);
   const text = cgCJK(t);
   if (!text) return cgHomeView();
   if (S.text !== text) cgLoad(text);
@@ -4722,6 +4724,7 @@ function cgHomeView() {
     ${cgBoxCard()}
     ${cgPacksSection()}
     <section><h2 class="cgh">Classes</h2>
+      ${coOpen() ? coCard() : ""}
       <div class="card cgclass soon"><span class="cgclassic">部</span><span class="grow"><b>More classes</b><br><span class="small muted">Coming later to the School</span></span><span class="ztsoon">Soon</span></div>
     </section>`;
 }
@@ -4970,5 +4973,233 @@ document.addEventListener("click", async (e) => {
     const ch = R.queue.shift(), r = S.box.find((x) => x.ch === ch);
     if (R.result?.u.interval_days <= 0 && r) R.queue.push(ch); // not there yet: once more at the end of today's round
     R.done++; R.result = null; R.forgot = false; S.writer = null; render(); scrollTo(0, 0);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Calligraphy School course: Oracle Bone Mystery 甲骨之谜 (beta: admins only since 23 Nov 2026)
+// Chapter 0 = slides, chapters 1–7 = 6 bones + a final challenge each, chapter 8 = conclusion and the
+// characters learned (offered for the Character box). Progress per member in course_progress.done.
+// For each bone: 1) what does it show? (type an English word) 2) which modern character? (4 choices) 3) fun fact.
+// ---------------------------------------------------------------------------
+const coOpen = () => isAdmin();
+const CO = ORACLE, CO_LAST = CO.chapters.length + 1; // 0 intro, 1..7 chapters, 8 conclusion
+const coState = () => (state.co ??= { done: null, q: null });
+const coGlyph = (c) => `icons/oracle/${encodeURIComponent(c)}.svg`;
+const coCh = (b) => (trad() && b.tr ? b.tr : b.ch);                 // modern form in the member's script
+const coImgCh = (b) => b.tr || b.ch;                                  // glyph files are named by the traditional form
+const coProse = (html) => String(html).replace(/<i class="py">([^<]*)<\/i>/g, (_, x) => `<i class="py">${esc(py(x))}</i>`);
+const coTitle = () => `${CO.title} <span class='zhsub'>${trad() ? CO.title_zh_t : CO.title_zh}</span><span class="betachip">BETA</span>`;
+const coHref = (n) => `#/learn/callig/course/${CO.id}${n == null ? "" : `/${n}`}`;
+const coChapterName = (n) => n === 0 ? CO.intro.title : n === CO_LAST ? CO.conclusion.title : CO.chapters[n - 1].title;
+// Every character the course teaches, in order: the bones, then each chapter's answer (and 今 from the first one).
+function coLearned() {
+  const out = [], seen = new Set();
+  const add = (ch, tr, p, en) => { const c = trad() && tr ? tr : ch; if (!seen.has(c)) { seen.add(c); out.push({ ch: c, pinyin: p, meaning: en.replace(/[“”]/g, "") }); } };
+  CO.chapters.forEach((c) => {
+    c.bones.forEach((b) => add(b.ch, b.tr, b.py, b.en));
+    if (c.finale.type === "read") add("今", null, "jīn", "now, today");
+    else add(c.finale.answer, c.finale.tr, c.finale.py, c.finale.en);
+  });
+  return out;
+}
+async function coLoad() {
+  const S = coState(); if (S.loading) return; S.loading = true;
+  const { data, error } = await sb.from("course_progress").select("done").eq("user_id", state.user.id).eq("course", CO.id).maybeSingle();
+  S.loading = false; S.done = error ? [] : (data?.done || []);
+  if (route() === "learn") render();
+}
+async function coMarkDone(n) {
+  const S = coState(); if (!S.done || S.done.includes(n)) return;
+  S.done = [...S.done, n].sort((a, b) => a - b);
+  const { error } = await sb.from("course_progress").upsert({ course: CO.id, done: S.done, updated_at: new Date().toISOString() }, { onConflict: "user_id,course" });
+  if (error) console.error(error);
+}
+function coCard() {
+  const S = coState(); if (!S.done) coLoad();
+  const n = S.done?.filter((x) => x >= 1 && x < CO_LAST).length || 0, total = CO.chapters.length;
+  return `<a class="card cgclass cgcourse" href="${coHref()}"><span class="cgcourseic" aria-hidden="true"><img src="${coGlyph("卜")}" alt=""></span>
+    <span class="grow"><b>${esc(CO.title)}</b> <span class="cgzh muted small">${trad() ? CO.title_zh_t : CO.title_zh}</span><span class="betachip">BETA</span><br>
+    <span class="small muted">Course · ${total} chapters · ${coLearned().length} characters</span>${S.done?.length ? `<br><span class="tiny cgok">${S.done.includes(CO_LAST) ? "Finished ✓" : `${n} of ${total} chapters done`}</span>` : ""}</span>
+    <span class="btn small ghost">${S.done?.length ? "Continue" : "Start"}</span></a>`;
+}
+
+function coView(id, n) {
+  if (!coOpen() || id !== CO.id) { location.hash = "#/learn/callig"; return ""; }
+  const S = coState(); if (!S.done) { coLoad(); return `${cgHead("#/learn/callig", "Calligraphy School", coTitle())}<p class="muted small">Opening…</p>`; }
+  if (n == null) return coOverview();
+  n = +n; if (!(n >= 0 && n <= CO_LAST)) { location.hash = coHref(); return ""; }
+  if (!S.q || S.q.n !== n) S.q = { n, phase: n >= 1 && n < CO_LAST ? "story" : "slides", i: 0 };
+  return n === 0 ? coSlidesView(CO.intro, 0) : n === CO_LAST ? (S.q.phase === "chars" ? coCharsView() : coSlidesView(CO.conclusion, CO_LAST)) : coChapterView(n);
+}
+
+function coOverview() {
+  coState().q = null; // opening a chapter from here starts it fresh
+  const S = coState(), done = new Set(S.done), next = [...Array(CO_LAST + 1).keys()].find((k) => !done.has(k)) ?? 0;
+  const row = (k) => {
+    const c = k >= 1 && k < CO_LAST ? CO.chapters[k - 1] : null;
+    const pic = c ? `<img src="${coGlyph(coImgCh(c.bones[0]))}" alt="">` : `<span class="cgzh">${k === 0 ? "甲" : "筆"}</span>`;
+    return `<a class="card cgchap ${done.has(k) ? "done" : ""} ${k === next ? "next" : ""}" href="${coHref(k)}"><span class="cgchapic" aria-hidden="true">${pic}</span>
+      <span class="grow"><span class="tiny muted">${k === 0 ? "Introduction" : k === CO_LAST ? "Conclusion" : `Chapter ${k} · ${esc(c.theme)}`}</span><br><b>${esc(coChapterName(k))}</b>${c ? `<br><span class="tiny muted">${esc(c.place)}</span>` : ""}</span>
+      <span class="cgchapst">${done.has(k) ? "✓" : k === next ? "Start ›" : "›"}</span></a>`;
+  };
+  return `${cgHead("#/learn/callig", "Calligraphy School", coTitle())}
+    <section class="card cgcohero"><div class="cgbone small"><img class="cgglyph" src="${coGlyph("龜")}" alt=""></div>
+      <div><p style="margin:0">${esc(CO.blurb)}</p><p class="tiny muted" style="margin:6px 0 0">${CO.chapters.length} chapters of 6 bones and a final challenge, an introduction and a conclusion. At the end, add the ${coLearned().length} characters you met to your character box.</p></div></section>
+    <div class="stack" style="gap:8px">${[...Array(CO_LAST + 1).keys()].map(row).join("")}</div>
+    <p class="tiny muted">${esc(CO.credit)} Adapted from Mandarin Zest’s classroom game.</p>`;
+}
+
+function coSlidesView(part, n) {
+  const S = coState(), q = S.q, sl = part.slides[q.i], last = q.i === part.slides.length - 1;
+  const label = n === 0 ? "Introduction" : "Conclusion";
+  return `${cgHead(coHref(), CO.title, `${esc(part.title)} <span class='zhsub'>${esc(part.title_zh)}</span>`)}
+    <div class="cgdots" aria-label="Slide ${q.i + 1} of ${part.slides.length}">${part.slides.map((_, k) => `<span class="${k < q.i ? "ok" : k === q.i ? "cur" : ""}"></span>`).join("")}</div>
+    <section class="card cgslide">
+      <div class="tiny muted">${label} · ${q.i + 1} / ${part.slides.length}</div>
+      <h2>${coProse(sl.title)}</h2>
+      ${sl.img ? `<figure class="cgphoto"><img src="icons/oracle/${sl.img}" alt="${esc(sl.alt || "")}"><figcaption class="tiny muted">${esc(sl.credit || "")}</figcaption></figure>` : ""}
+      <div class="cgslidebody">${coProse(sl.body)}</div>
+    </section>
+    <div class="row" style="gap:8px">${q.i ? `<button type="button" class="btn ghost" data-co="prev">‹ Back</button>` : ""}
+      <button type="button" class="btn grow" data-co="${last ? "slidesdone" : "next"}">${last ? (n === 0 ? "Start Chapter 1 ›" : "See the characters you learned ›") : "Next ›"}</button></div>`;
+}
+
+const coCurator = (text) => `<div class="cgcurator"><span class="cgcurav" aria-hidden="true"><img src="${coGlyph("卜")}" alt=""></span><div class="cgbubble"><b>The Curator</b><br>${text}</div></div>`;
+function coPick(pool, answer, k, seed) { // stable "random" choices for one question
+  const opts = [...new Set(pool.filter((x) => x !== answer))];
+  let h = [...seed].reduce((a, c) => (a * 31 + c.codePointAt(0)) >>> 0, 7);
+  const rnd = () => (h = (h * 1103515245 + 12345) >>> 0) / 2 ** 32;
+  for (let j = opts.length - 1; j > 0; j--) { const r = Math.floor(rnd() * (j + 1)); [opts[j], opts[r]] = [opts[r], opts[j]]; }
+  const out = [answer, ...opts.slice(0, k - 1)];
+  for (let j = out.length - 1; j > 0; j--) { const r = Math.floor(rnd() * (j + 1)); [out[j], out[r]] = [out[r], out[j]]; }
+  return out;
+}
+
+function coChapterView(n) {
+  const S = coState(), q = S.q, c = CO.chapters[n - 1], head = cgHead(coHref(), CO.title, `${esc(c.title)}`);
+  const kick = `<div class="tiny muted">Chapter ${n} · ${esc(c.place)} · ${esc(c.theme)}</div>`;
+  const dots = `<div class="cgdots">${c.bones.map((_, k) => `<span class="${k < q.i || (k === q.i && q.stage === "reveal") || (q.phase !== "bone" && q.phase !== "story") ? "ok" : k === q.i && q.phase === "bone" ? "cur" : ""}"></span>`).join("")}<span class="${q.phase === "done" ? "ok" : q.phase === "finale" ? "cur" : ""} fin"></span></div>`;
+  if (q.phase === "story") return `${head}${kick}
+    <section class="card cgslide">${c.story.map((p) => `<p>${coProse(p)}</p>`).join("")}</section>
+    ${coCurator(coProse(c.curator))}
+    <button type="button" class="btn block" data-co="begin">Open the first bone ›</button>`;
+  if (q.phase === "bone") {
+    const b = c.bones[q.i], ans = coCh(b);
+    q.stage ??= "meaning";
+    q.opts ??= coPick(c.bones.map(coCh).concat(CO.chapters.flatMap((x) => x.bones.map(coCh))), ans, 4, `${n}-${q.i}`);
+    const rot = b.rotate && (q.clue || q.stage !== "meaning");
+    let body;
+    if (q.stage === "meaning") body = `<form class="cgguess" data-coform><label class="small" for="cgguessin"><b>What does it show?</b> One English word is enough.</label>
+        <div class="row" style="gap:8px"><input id="cgguessin" name="g" class="cgguessin" autocomplete="off" autocapitalize="off" placeholder="e.g. sun, person, boat…"><button class="btn" type="submit">Check</button></div></form>
+      ${q.miss ? `<p class="small cgmiss" role="status">Not quite${q.lastTry ? `: not “${esc(q.lastTry)}”` : ""}. ${q.miss >= 2 && !q.clue ? "Want a clue?" : "Look again!"}</p>` : ""}
+      ${q.clue ? `<p class="small cgclue"><b>Clue:</b> ${coProse(b.clue)}</p>` : ""}
+      <div class="row" style="gap:8px;flex-wrap:wrap">${q.clue ? "" : `<button type="button" class="btn ghost small" data-co="clue">Clue</button>`}<button type="button" class="linkbtn" data-co="giveup">Show me the answer</button></div>`;
+    else if (q.stage === "char") body = `<p class="small" style="margin:0">${q.gaveUp ? "It shows" : "Yes! It shows"} <b>${esc(b.en)}</b>.</p>
+      <p style="margin:6px 0 4px"><b>Which modern character did it become?</b></p>
+      <div class="cgopts">${q.opts.map((o) => `<button type="button" class="cgopt cgzh ${q.wrong?.includes(o) ? "no" : ""}" data-co="pick" data-v="${esc(o)}" ${q.wrong?.includes(o) ? "disabled" : ""}>${esc(o)}</button>`).join("")}</div>
+      ${q.wrong?.length ? `<p class="small cgmiss" role="status">Not that one. Compare the shapes again!</p>` : ""}`;
+    else body = `<div class="cgreveal"><span class="cgzh cgbig">${esc(ans)}</span><b class="cgpy">${esc(py(b.py))}</b><span class="muted">${esc(b.en)}</span></div>
+      <p class="small cgfact">${coProse(b.fact)}</p>
+      <div class="row" style="gap:8px;flex-wrap:wrap"><a class="btn ghost small" href="${cgHref(ans)}">${ICON_CG.brush} See its strokes</a>
+      <button type="button" class="btn grow" data-co="nextbone">${q.i === c.bones.length - 1 ? "Final challenge ›" : "Next bone ›"}</button></div>`;
+    return `${head}${kick}${dots}
+      <section class="card cgbonecard"><div class="tiny muted">Bone ${q.i + 1} of ${c.bones.length}</div>
+        <div class="cgbone"><img class="cgglyph ${rot ? "rot" : ""}" src="${coGlyph(coImgCh(b))}" alt="An oracle bone glyph"></div>
+        <p class="cgnarr">${coProse(b.narr)}</p>${body}</section>`;
+  }
+  if (q.phase === "finale") {
+    const f = c.finale, ans = trad() && f.tr ? f.tr : f.answer;
+    const glyphs = f.type === "read" ? `<div class="cgbone tall">${f.glyphs.map((g) => `<img class="cgglyph sm" src="${coGlyph(g)}" alt="">`).join("")}</div>`
+      : `<div class="cgcombine">${f.glyphs.map((g) => `<div class="cgbone small"><img class="cgglyph" src="${coGlyph(g)}" alt=""></div>`).join('<span class="cgplus" aria-hidden="true">+</span>')}</div>`;
+    if (!q.fdone) {
+      q.fopts ??= f.type === "read" ? coPick(f.options, f.options[0], 3, `f${n}`) : coPick(["好", "家", "休", "明", trad() ? "從" : "从", "秋", "林", "男", "安", "字", "看", "早"], ans, 4, `f${n}`);
+      return `${head}${kick}${dots}<section class="card cgbonecard"><div class="tiny muted">Final challenge · ${esc(f.kicker)}</div>${glyphs}
+        <p class="cgnarr">${coProse(f.title)}</p>
+        <div class="${f.type === "read" ? "cgoptsl" : "cgopts"}">${q.fopts.map((o) => `<button type="button" class="cgopt ${f.type === "read" ? "line" : "cgzh"} ${q.wrong?.includes(o) ? "no" : ""}" data-co="fpick" data-v="${esc(o)}" ${q.wrong?.includes(o) ? "disabled" : ""}>${esc(o)}</button>`).join("")}</div>
+        ${q.wrong?.length ? `<p class="small cgmiss" role="status">Not quite. Look at the pictures again!</p>` : ""}</section>`;
+    }
+    return `${head}${kick}${dots}<section class="card cgbonecard">${glyphs}
+      <div class="cgreveal"><span class="cgzh cgbig">${esc(f.type === "read" ? f.answer : ans)}</span><b class="cgpy">${esc(py(f.py))}</b><span class="muted">${esc(f.en)}</span></div>
+      <p class="small cgfact">${coProse(f.text)}</p>
+      <button type="button" class="btn block" data-co="finish">Finish the chapter ›</button></section>`;
+  }
+  // chapter done
+  const chars = c.bones.map(coCh).concat(c.finale.type === "read" ? ["今"] : [trad() && c.finale.tr ? c.finale.tr : c.finale.answer]);
+  return `${head}${kick}<section class="card cgdone"><div class="cgseal" style="position:static;transform:rotate(-6deg)">好</div>
+    <h2>Chapter ${n} solved!</h2><p class="muted" style="margin:0">${esc(c.title)}: you read ${c.bones.length} bones and the final challenge.</p>
+    <div class="cgchips">${chars.map((x) => `<a class="cgzh" href="${cgHref(x)}">${esc(x)}</a>`).join("")}</div>
+    <a class="btn block" href="${coHref(n + 1)}">${n + 1 === CO_LAST ? "Go to the conclusion ›" : `Chapter ${n + 1}: ${esc(CO.chapters[n].title)} ›`}</a>
+    <a class="linkbtn" href="${coHref()}">All chapters</a></section>`;
+}
+
+function coCharsView() {
+  const S = coState(), q = S.q, list = coLearned(), cg = cgState();
+  if (!cg.box) return `${cgHead(coHref(), CO.title, "Characters you learned")}<p class="muted small">Opening your box…</p>`;
+  const have = new Set(cg.box.map((r) => r.ch));
+  q.sel ??= new Set(list.filter((x) => !have.has(x.ch)).map((x) => x.ch));
+  const tiles = list.map((x) => have.has(x.ch) ? `<span class="cgbtile s2" title="Already in your character box">${esc(x.ch)}</span>`
+    : `<button type="button" class="cgbtile out ${q.sel.has(x.ch) ? "sel" : ""}" data-co="csel" data-c="${esc(x.ch)}" aria-pressed="${q.sel.has(x.ch)}" title="${esc(py(x.pinyin))} · ${esc(x.meaning)}">${esc(x.ch)}</button>`).join("");
+  const missing = list.filter((x) => !have.has(x.ch)).length;
+  return `${cgHead(coHref(), CO.title, "Characters you learned")}
+    <section class="card cgdone"><div class="cgseal" style="position:static;transform:rotate(-6deg)">好</div><h2>Course complete!</h2>
+      <p class="muted" style="margin:0">You met <b>${list.length} characters</b> on 3,000-year-old bones. Add them to your character box to learn to write them, ${CG_NEW_PER_DAY} new ones a day.</p></section>
+    ${missing ? `<div class="cgselbar"><span class="small"><b>${q.sel.size}</b> of ${missing} selected</span><button type="button" class="linkbtn" data-co="callsel">${q.sel.size === missing ? "Select none" : "Select all"}</button>
+      <button type="button" class="btn small" data-co="cadd" ${q.sel.size ? "" : "disabled"}>Add ${q.sel.size} to my character box</button></div>` : `<p class="lindeck">✓ All of them are in your character box</p>`}
+    <div class="cgbtiles">${tiles}</div>
+    <p class="tiny muted">Tap a character to leave it out. Green ones are already in your box.</p>
+    <div class="row" style="gap:8px;flex-wrap:wrap"><a class="btn ghost" href="#/learn/callig/box">Open my character box</a><a class="btn ghost" href="${coHref()}">All chapters</a></div>`;
+}
+
+function coCheck(b, guess) {
+  const words = String(guess).toLowerCase().replace(/[^a-z\s]/g, " ").split(/\s+/).filter(Boolean);
+  const ok = new Set(b.ok.concat(b.en.toLowerCase().split(/\s+/)));
+  return words.some((w) => ok.has(w) || ok.has(w.replace(/s$/, "")) || (w.length > 4 && [...ok].some((o) => o.length > 4 && (o.startsWith(w) || w.startsWith(o)))));
+}
+document.addEventListener("submit", (e) => {
+  const f = e.target.closest("[data-coform]"); if (!f) return;
+  e.preventDefault();
+  const S = coState(), q = S.q, b = CO.chapters[q.n - 1].bones[q.i], g = f.g.value.trim();
+  if (!g) return;
+  if (coCheck(b, g)) { q.stage = "char"; q.miss = 0; }
+  else { q.miss = (q.miss || 0) + 1; q.lastTry = g; }
+  render();
+  if (q.stage === "meaning") setTimeout(() => document.getElementById("cgguessin")?.focus(), 0);
+});
+document.addEventListener("click", async (e) => {
+  const el = e.target.closest("button[data-co]"); if (!el) return;
+  const S = coState(), q = S.q, a = el.dataset.co; if (!q) return;
+  const c = q.n >= 1 && q.n < CO_LAST ? CO.chapters[q.n - 1] : null;
+  if (a === "next") { q.i++; render(); scrollTo(0, 0); }
+  else if (a === "prev") { q.i = Math.max(0, q.i - 1); render(); scrollTo(0, 0); }
+  else if (a === "slidesdone") {
+    await coMarkDone(q.n);
+    if (q.n === 0) location.hash = coHref(1); else { q.phase = "chars"; render(); scrollTo(0, 0); }
+  }
+  else if (a === "begin") { q.phase = "bone"; q.i = 0; render(); scrollTo(0, 0); }
+  else if (a === "clue") { q.clue = true; render(); }
+  else if (a === "giveup") { q.stage = "char"; q.gaveUp = true; render(); }
+  else if (a === "pick") {
+    if (el.dataset.v === coCh(c.bones[q.i])) q.stage = "reveal"; else (q.wrong ??= []).push(el.dataset.v);
+    render();
+  }
+  else if (a === "nextbone") {
+    const nq = { n: q.n, phase: "bone", i: q.i + 1 };
+    if (q.i + 1 >= c.bones.length) { nq.phase = "finale"; nq.i = q.i; }
+    S.q = nq; render(); scrollTo(0, 0);
+  }
+  else if (a === "fpick") {
+    const f = c.finale, right = f.type === "read" ? f.options[0] : (trad() && f.tr ? f.tr : f.answer);
+    if (el.dataset.v === right) q.fdone = true; else (q.wrong ??= []).push(el.dataset.v);
+    render();
+  }
+  else if (a === "finish") { await coMarkDone(q.n); q.phase = "done"; render(); scrollTo(0, 0); }
+  else if (a === "csel") { const ch = el.dataset.c; q.sel.has(ch) ? q.sel.delete(ch) : q.sel.add(ch); render(); }
+  else if (a === "callsel") { const have = new Set((cgState().box || []).map((r) => r.ch)), miss = coLearned().filter((x) => !have.has(x.ch)); q.sel = q.sel.size === miss.length ? new Set() : new Set(miss.map((x) => x.ch)); render(); }
+  else if (a === "cadd") {
+    el.disabled = true;
+    const n = await cgBoxAddMany(coLearned().filter((x) => q.sel.has(x.ch)));
+    if (n) toast(`${n} characters added to your box. They start ${CG_NEW_PER_DAY} a day.`);
+    q.sel = new Set(); cgState().rv = null; render();
   }
 });
