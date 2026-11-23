@@ -350,6 +350,7 @@ a.hostcard:hover, .podium a:hover b { border-color: var(--orange); color: inheri
 .stkbig.none { border-radius: 50%; transform: scale(.8); background: var(--line, #ecdcd2); color: var(--muted, #6f625a); font-weight: 800; font-size: 18px; }
 .stkpick, .stkrow { display: grid; grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); gap: 8px 4px; }
 .stkpick .stkbig, .stkrow .stkbig { --z: 46px; }
+.stkpick .stkbig { --z: 36px; } /* picker: a bit smaller, closer to the fruit size (24 Nov) */
 .stkbtn .small, .stkitem .small { font-size: 12px; line-height: 1.25; text-align: center; overflow-wrap: anywhere; }
 .stkbtn {
   display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 2px; min-height: 44px; min-width: 0;
