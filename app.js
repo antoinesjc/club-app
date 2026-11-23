@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=116";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=116";
-import { COUNTRIES } from "./countries.js?v=116";
+import { createClient } from "./vendor/supabase.js?v=117";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=117";
+import { COUNTRIES } from "./countries.js?v=117";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=116";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=117";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -39,7 +39,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=116"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=117"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -1383,7 +1383,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=116"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=117"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1989,7 +1989,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=116");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=117");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2887,7 +2887,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=116").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=117").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -4393,10 +4393,23 @@ const cgState = () => (state.cg ??= { text: null, info: new Map(), word: null, d
   rad: lsGet("mz-cg-rad") !== "0", outline: true, finished: null, done: 0, mistakes: 0, writer: null,
   box: null, boxErr: false, rv: null });
 const cgCJK = (s) => [...String(s || "")].filter((c) => /\p{Script=Han}/u.test(c)).join("").slice(0, 8);
-const cgRecent = () => { try { return JSON.parse(lsGet("mz-cg-recent") || "[]"); } catch { return []; } };
-function cgRemember(t) { lsSet("mz-cg-recent", JSON.stringify([t, ...cgRecent().filter((x) => x !== t)].slice(0, 8))); }
+// "You looked up": saved in char_recent so phone and computer show the same list (last 8).
+const cgRecent = () => cgState().recent || [];
+async function cgRecentLoad() {
+  const S = cgState(); if (S.recentLoading) return; S.recentLoading = true;
+  const { data, error } = await sb.from("char_recent").select("text, looked_at").eq("user_id", state.user.id).order("looked_at", { ascending: false }).limit(8);
+  S.recentLoading = false; S.recent = error ? [] : data.map((r) => r.text);
+  if (route() === "learn") render();
+}
+async function cgRemember(t) {
+  const S = cgState(); S.recent = [t, ...cgRecent().filter((x) => x !== t)].slice(0, 8);
+  await sb.from("char_recent").upsert({ text: t, looked_at: new Date().toISOString() }, { onConflict: "user_id,text" });
+  // keep the table short: drop anything older than the 8 newest
+  const { data } = await sb.from("char_recent").select("text").eq("user_id", state.user.id).order("looked_at", { ascending: false }).range(8, 50);
+  if (data?.length) await sb.from("char_recent").delete().eq("user_id", state.user.id).in("text", data.map((r) => r.text));
+}
 let cgHW = null;
-const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=116")).default);
+const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=117")).default);
 const cgStrokes = async (c) => {
   const S = cgState(); if (S.data.has(c)) return S.data.get(c);
   const HW = await cgLib(); const d = await HW.loadCharacterData(c).catch(() => null);
@@ -4587,6 +4600,8 @@ function cgBoxCard() {
 }
 
 function cgHomeView() {
+  const S = cgState();
+  if (!S.recentAt || Date.now() - S.recentAt > 30e3) { S.recentAt = Date.now(); cgRecentLoad(); } // picks up the other device's look-ups
   const recent = cgRecent();
   return `${cgHead("#/learn", "Zest Town")}
     <div class="ztthead"><span class="ztplaceart">${ztImg("callig")}</span><span class="small muted">Learn to write characters the right way, one stroke at a time, and keep the ones you want to master in your character box.</span></div>
