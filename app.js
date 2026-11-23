@@ -1,12 +1,12 @@
-import { createClient } from "./vendor/supabase.js?v=130";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=130";
-import { COUNTRIES } from "./countries.js?v=130";
-import { toZhuyin } from "./zhuyin.js?v=130";
-import { ORACLE, ORACLE_T } from "./course-oracle.js?v=130";
+import { createClient } from "./vendor/supabase.js?v=131";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=131";
+import { COUNTRIES } from "./countries.js?v=131";
+import { toZhuyin } from "./zhuyin.js?v=131";
+import { ORACLE, ORACLE_T } from "./course-oracle.js?v=131";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=130";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=131";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -1390,7 +1390,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=130"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=131"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -2006,7 +2006,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=130");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=131");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2905,7 +2905,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=130").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=131").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -3024,15 +3024,22 @@ document.addEventListener("focusout", (e) => { if (vsugg.input && e.target === v
 // Streak tree, HSK Temple and Flashcard Center. Art: icons/zt/*.png (pixel art, see the design canvas).
 // ---------------------------------------------------------------------------
 const ZT_MAP = { // town4-*.png (20 Nov): sandy plots, stone paths, flowers, fences; trees are swaying overlays [x, y, big]
-  phone: { w: 118, h: 266, tree: [38, 49], temple: [86, 31], house: [31, 36], library: [30, 172], callig: [88, 172], gallery: [59, 236], plaza: [59, 86],
+  phone: { w: 118, h: 266, tree: [38, 49], temple: [86, 31], house: [31, 36], library: [30, 172], callig: [88, 172], gallery: [59, 236], plaza: [59, 86], post: [86, 276],
     river: [110, 29], bridge: [54, 117, 11, 18], fsign: [91, 98, 24],
     trees: [[42, -10, 0], [-6, -8, 1], [100, -8, 1], [106, 116, 0], [-4, 120, 0], [102, 194, 1], [-6, 196, 1], [-4, 248, 1], [100, 250, 1]],
     hops: [[11, 71], [16, 93], [79, 98], [91, 74], [71, 105], [33, 105]] },
-  wide: { w: 235, h: 216, tree: [97, 84], temple: [172, 43], house: [62, 49], library: [40, 128], callig: [195, 128], gallery: [117, 36], plaza: [118, 120],
+  wide: { w: 235, h: 216, tree: [97, 84], temple: [172, 43], house: [62, 49], library: [40, 128], callig: [195, 128], gallery: [117, 36], plaza: [118, 120], post: [60, 236],
     river: [160, 30], bridge: [113, 160, 11, 17], fsign: [196, 186, 32],
     trees: [[-4, -6, 1], [178, -6, 0], [196, -6, 1], [28, -4, 0], [214, 2, 1], [12, 4, 1], [2, 18, 0], [222, 30, 0], [216, 80, 1], [2, 82, 1], [222, 100, 0], [-2, 104, 0], [0, 188, 1], [18, 196, 1], [150, 196, 1], [222, 196, 0], [34, 196, 0], [170, 200, 0]],
     hops: [[71, 115], [76, 141], [146, 141], [151, 115], [127, 151], [93, 151]] },
 };
+// With the Post Office (town5 backgrounds): the town is ~50px taller (the post office sits in the new strip at the bottom), and the trees over its lot go.
+function ztMap(k) {
+  const M = ZT_MAP[k];
+  if (!postOpen()) return { ...M, bg: `town4-${k}` };
+  const [px, py] = M.post, clear = ([x, y, big]) => x + (big ? 24 : 17) < px - 30 || x > px + 30 || y + (big ? 30 : 22) < py - 20 || y > py + 30;
+  return { ...M, bg: `town5-${k}`, h: M.h + (k === "phone" ? 50 : 46), trees: M.trees.filter(clear) };
+}
 const ZT_STAGES = [ // [en, simplified, traditional, first day]
   ["Seed", "种子", "種子", 0], ["Sprout", "嫩芽", "嫩芽", 1], ["Seedling", "幼苗", "幼苗", 7], ["Sapling", "小树", "小樹", 30],
   ["Young tree", "青年树", "青年樹", 90], ["Leafy tree", "茂盛树", "茂盛樹", 180], ["Blossom tree", "开花树", "開花樹", 270],
@@ -3303,6 +3310,10 @@ function learnView() {
   if (sub === "temple") return templeView();
   if (sub === "forest") return forestView();
   if (sub === "gallery") return galleryView();
+  if (sub === "post" || sub.startsWith("post/") || sub.startsWith("post?")) {
+    const [path, qs] = sub.split("?");
+    return postView(path.split("/").slice(1).filter(Boolean), Object.fromEntries(new URLSearchParams(qs || "")));
+  }
   if (sub === "callig" || sub.startsWith("callig/")) return calligView(sub.split("?")[0].split("/").slice(1).filter(Boolean));
   if (sub === "library" || sub.startsWith("library/") || sub.startsWith("library?")) {
     const [path, qs] = sub.split("?");
@@ -3342,7 +3353,8 @@ function placeCards(big) {
     + card("#/learn/temple", "temple", "HSK Temple", trad() ? "漢語廟" : "汉语庙", hskLine, "Every HSK word, and how well you know it", "Explore")
     + (() => { const c = sbCount(); return card("#/learn/gallery", "gallery", "Sticker Gallery", trad() ? "貼紙館" : "贴纸馆", `${c.n} of ${c.total} stickers collected`, "Every sticker you've earned, and how to get the others", "Visit"); })()
     + (libOpen() ? card("#/learn/library", "library", "Library", trad() ? "圖書館" : "图书馆", "Workbooks & graded readers", "Read your books in the app, and get new ones in the Bookshop", "Open") : "")
-    + (calligOpen() ? card("#/learn/callig", "callig", "Calligraphy School", trad() ? "書法學校" : "书法学校", "Stroke order, character box & packages", "Look up any character, watch its strokes, and practise writing it", "Enter") : "");
+    + (calligOpen() ? card("#/learn/callig", "callig", "Calligraphy School", trad() ? "書法學校" : "书法学校", "Stroke order, character box & packages", "Look up any character, watch its strokes, and practise writing it", "Enter") : "")
+    + (postOpen() ? (() => { const n = postUnread(); postLoad(); return card("#/learn/post", "post", "Post Office", trad() ? "郵局" : "邮局", n ? `✉️ ${n} new letter${n === 1 ? "" : "s"}` : "Letters in Chinese", "Write short letters to members and hosts (beta: admins only)", n ? "Read" : "Open"); })() : "");
 }
 function soonCards(big) {
   const card = (img, t, z, line) => `<div class="card ztplace soon ${big ? "big" : ""}"><span class="ztplaceart">${ztImg(img)}</span>
@@ -3351,13 +3363,14 @@ function soonCards(big) {
     + (calligOpen() ? "" : card("callig", "Calligraphy School", trad() ? "書法學校" : "书法学校", "Still closed. Coming soon to Zest Town."));
 }
 function townMap(st) {
-  const k = wide() ? "wide" : "phone", M = ZT_MAP[k], pct = (x, w) => `${(x / w) * 100}%`;
+  const k = wide() ? "wide" : "phone", M = ztMap(k), pct = (x, w) => `${(x / w) * 100}%`;
   const at = (x, y) => `left:${pct(x, M.w)};top:${pct(y, M.h)}`;
   const dueN = ztQueueAll().length, fruit = myFruitKey(), h0 = M.hops[0];
   return `<div class="ztmap ${k}" style="aspect-ratio:${M.w}/${M.h}">
-    ${ztImg(`town4-${k}`, "ztbg")}
+    ${ztImg(M.bg, "ztbg")}
     ${[["house", 21, 18, 43, 33, "a", "#/learn/cards", "Flashcard Center"], ["temple", 23, 19, 46, 36, "a", "#/learn/temple", "HSK Temple"], ["gallery", 21, 18, 42, 34, "a", "#/learn/gallery", "Sticker Gallery"],
-      libOpen() ? ["library", 21, 18, 42, 34, "a", "#/learn/library", "Library"] : ["library", 21, 18, 42, 34, "b", "library", "Library, opening soon"], calligOpen() ? ["callig", 21, 18, 42, 34, "a", "#/learn/callig", "Calligraphy School"] : ["callig", 21, 18, 42, 34, "b", "callig", "Calligraphy School, opening soon"]]
+      libOpen() ? ["library", 21, 18, 42, 34, "a", "#/learn/library", "Library"] : ["library", 21, 18, 42, 34, "b", "library", "Library, opening soon"], calligOpen() ? ["callig", 21, 18, 42, 34, "a", "#/learn/callig", "Calligraphy School"] : ["callig", 21, 18, 42, 34, "b", "callig", "Calligraphy School, opening soon"],
+      ...(postOpen() ? [["post", 21, 18, 42, 34, "a", "#/learn/post", "Post Office"]] : [])]
       .map(([key, ox, oy, bw, bh, tag, to, label]) => { const [x, y] = M[key], st = `${at(x - ox, y - oy)};width:${pct(bw, M.w)};height:${pct(bh, M.h)}`;
         return tag === "a" ? `<a class="zthit" href="${to}" style="${st}" aria-label="${label}"></a>` : `<button type="button" class="zthit" data-zt="soon" data-v="${to}" style="${st}" aria-label="${label}"></button>`; }).join("")}
     <div class="ztriver" style="top:${pct(M.river[0], M.h)};height:${pct(M.river[1], M.h)}" aria-hidden="true"><img class="px" src="icons/zt/river3-${k}.png" alt="" draggable="false"></div>
@@ -3373,6 +3386,7 @@ function townMap(st) {
       : `<button type="button" class="ztlabel soon" data-zt="soon" data-v="library" style="${at(M.library[0], M.library[1] + 15)}" aria-label="Library, opening soon">LIBRARY<em>SOON</em></button>`}
     ${calligOpen() ? `<a class="ztlabel cg" href="#/learn/callig" style="${at(M.callig[0], M.callig[1] + 15)}" aria-label="Calligraphy School">CALLIGRAPHY</a>`
       : `<button type="button" class="ztlabel soon" data-zt="soon" data-v="callig" style="${at(M.callig[0], M.callig[1] + 15)}" aria-label="Calligraphy School, opening soon">CALLIGRAPHY<em>SOON</em></button>`}
+    ${postOpen() ? (() => { const n = postUnread(); postLoad(); return `${n ? `<span class="ztmail" style="${at(M.post[0], M.post[1] - 27)};width:${pct(12, M.w)}" aria-hidden="true">${POST_ENV}</span>` : ""}<a class="ztlabel post" href="#/learn/post" style="${at(M.post[0], M.post[1] + 15)}" aria-label="Post Office${n ? `, ${n} new letter${n === 1 ? "" : "s"}` : ""}">POST OFFICE${n ? `<em>${n}</em>` : ""}</a>`; })() : ""}
     <button type="button" class="ztlabel day ${st.wilted ? "dead" : ""}" data-zt="sheet" style="${at(M.plaza[0], M.plaza[1] + 11)}">${st.wilted ? "WILTED" : `DAY ${st.n}`}</button>
   </div>`;
 }
@@ -3557,7 +3571,7 @@ function ztHop() {
     const f = document.querySelector(".ztfruit"), map = f?.closest(".ztmap");
     if (!f) { clearInterval(ztHopTimer); ztHopTimer = null; return; }
     if (f.classList.contains("talk")) return;
-    const M = ZT_MAP[map.classList.contains("wide") ? "wide" : "phone"];
+    const M = ztMap(map.classList.contains("wide") ? "wide" : "phone");
     const prev = M.hops[ztHopAt % M.hops.length];
     ztHopAt = (ztHopAt + 1 + Math.floor(Math.random() * 2)) % M.hops.length;
     const [x, y] = M.hops[ztHopAt];
@@ -4395,6 +4409,214 @@ document.addEventListener("input", (e) => {
 });
 
 // ---------------------------------------------------------------------------
+// Post Office 郵局 (Zest Town; beta for admins from 24 Nov 2026)
+// Short letters in Chinese (1–140 characters, Chinese characters + Chinese punctuation) to a member or a host.
+// Table letters, private between the two people. send_letter() allows 10 a day. A new letter calls the
+// letter-notify edge function: a push (or an email when the app can't notify them), and a count on the town sign.
+// Read a letter: tap a word for its pinyin/zhuyin and meaning, add its words to flashcards, reply, or report it.
+// ---------------------------------------------------------------------------
+const postOpen = () => isAdmin(); // beta: admins only (and letters can only go to admins while in beta)
+const POST_MAX = 140, POST_PER_DAY = 10;
+const POST_OK = /^[㐀-䶿一-鿿　-〿！（），：；？～…—·“”‘’ \n]+$/u, POST_HAN = /[㐀-䶿一-鿿]/u;
+const POST_ENV = `<svg viewBox="0 0 14 10" aria-hidden="true" shape-rendering="crispEdges"><rect width="14" height="10" fill="#2a2420"/><rect x="1" y="1" width="12" height="8" fill="#fff"/><path d="M1 1h1v1h1v1h1v1h1v1h1v1h2v-1h1v-1h1v-1h1v-1h1v-1h1v-1" fill="none" stroke="#a39b8b" stroke-width="1"/><rect x="6" y="5" width="2" height="2" fill="#a62f22"/></svg>`;
+const postState = () => (state.post ??= { loaded: false, loading: false, at: 0, letters: [], people: null, tab: "in", draft: "", q: "", words: new Map(), sel: null, reported: null, err: false });
+async function postLoad(force) {
+  const P = postState();
+  if (P.loading || (!force && Date.now() - P.at < 60e3)) return;
+  P.loading = true;
+  const [l, p] = await Promise.all([
+    sb.from("letters").select("id, sender, recipient, body, reply_to, created_at, read_at, reported_at").order("created_at", { ascending: false }).limit(300),
+    sb.rpc("letter_people"),
+  ]);
+  P.loading = false; P.at = Date.now();
+  if (l.error) P.err = true; else { P.letters = l.data; P.loaded = true; P.err = false; }
+  if (!p.error) P.people = new Map(p.data.map((x) => [x.id, x]));
+  if (route() === "learn") render();
+}
+const postUnread = () => { const P = postState(); return P.loaded ? P.letters.filter((l) => l.recipient === state.user.id && !l.read_at).length : 0; };
+const postPerson = (id) => id === state.user.id ? { id, name: state.me?.display_name || "Me", fruit: state.me?.fruit, role: state.role } : (postState().people?.get(id) || { id, name: "A club member" });
+const postName = (p) => `${esc(p.name)}${p.role === "host" ? ` <span class="muted small">(host)</span>` : ""}`;
+const postAv = (p, s = 40) => `<span class="postav" style="width:${s}px;height:${s}px">${ztImg("fruit-" + (ZT_FRUITS.has(p.fruit) ? p.fruit : "orange"))}</span>`;
+const postWhen = (d) => { const t = new Date(d), h = (Date.now() - t) / 36e5; return h < 20 ? ago(d) : t.toLocaleString([], { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); };
+const postHead = (back, href) => `<header class="zthead"><a class="ztback" href="${href}">‹ ${back}</a></header>`;
+// While in beta only admins can open the Post Office, so they're the only ones you can write to.
+const postPeople = () => [...(postState().people?.values() || [])].filter((p) => p.role === "admin");
+
+function postView(parts, qs) {
+  if (!postOpen()) { location.hash = "#/learn"; return townView(); }
+  const P = postState();
+  if (!P.loaded) { postLoad(); return `${ztHeader(null, postTitle())}<p class="muted small">${P.err ? "Couldn't open the Post Office. Check your connection and try again." : "Opening the Post Office…"}</p>`; }
+  postLoad(); // refresh in the background (at most once a minute)
+  if (parts[0] === "write") return postWriteView(qs);
+  if (parts[0] === "reported" && isAdmin()) return postReportedView();
+  if (parts[0]) return postReadView(parts[0]);
+  return postInboxView();
+}
+const postTitle = () => `Post Office <span class='zhsub'>${trad() ? "郵局" : "邮局"}</span>`;
+
+function postInboxView() {
+  const P = postState(), me = state.user.id;
+  const inbox = P.letters.filter((l) => l.recipient === me), sent = P.letters.filter((l) => l.sender === me);
+  const unread = inbox.filter((l) => !l.read_at).length, list = P.tab === "sent" ? sent : inbox;
+  const row = (l) => {
+    const mine = l.sender === me, who = postPerson(mine ? l.recipient : l.sender), isNew = !mine && !l.read_at;
+    return `<a class="card postrow ${isNew ? "new" : ""}" href="#/learn/post/${l.id}">${postAv(who)}
+      <span class="grow" style="min-width:0"><span class="row between" style="gap:8px"><b>${mine ? "To " : ""}${postName(who)}</b><span class="small muted">${ago(l.created_at)}</span></span>
+      <span class="postline cgzh">${esc(l.body.replace(/\n+/g, " "))}</span></span>${isNew ? `<i class="postdot" aria-label="New"></i>` : ""}</a>`;
+  };
+  const sentToday = sent.filter((l) => Date.now() - new Date(l.created_at) < 864e5).length;
+  return `${ztHeader(ztStreak(), postTitle())}
+    <div class="ztthead"><span class="ztplaceart">${ztImg("post")}</span><span class="small muted">Write short letters in Chinese to other members and to our hosts. Up to ${POST_MAX} characters, like a postcard.</span></div>
+    <span class="betapill">Beta · only admins see the Post Office for now</span>
+    ${sentToday >= POST_PER_DAY ? `<p class="small muted" style="margin:0">You've sent ${POST_PER_DAY} letters today. You can write again tomorrow.</p>` : `<a class="btn postwrite" href="#/learn/post/write">✉️ Write a letter</a>`}
+    <div class="seg postseg" role="group" aria-label="Mailbox"><button type="button" data-post="tab" data-v="in" aria-pressed="${P.tab !== "sent"}">Inbox${unread ? ` · ${unread} new` : ""}</button><button type="button" data-post="tab" data-v="sent" aria-pressed="${P.tab === "sent"}">Sent</button></div>
+    <div class="postlist">${list.length ? list.map(row).join("") : `<div class="card postempty">${POST_ENV}<p class="muted small" style="margin:0">${P.tab === "sent" ? "You haven't sent a letter yet." : "No letters yet. Write one, and you might get one back!"}</p></div>`}</div>
+    ${isAdmin() ? `<a class="small" href="#/learn/post/reported" style="font-weight:800">🚩 Reported letters (admins)</a>` : ""}`;
+}
+
+function postWriteView(qs) {
+  const P = postState(), to = qs.to && postState().people?.get(qs.to);
+  const reply = qs.reply && P.letters.find((l) => l.id === qs.reply);
+  const head = postHead(reply ? "Back to the letter" : "Post Office", reply ? `#/learn/post/${reply.id}` : "#/learn/post");
+  if (!to) {
+    const q = P.q.trim().toLowerCase(), people = postPeople().filter((p) => !q || p.name.toLowerCase().includes(q));
+    return `${head}<h1 style="margin:0">Write a letter</h1><p class="muted small" style="margin:0">Who is it for?</p>
+      <input class="postfind" type="search" placeholder="Search a name" value="${esc(P.q)}" data-post-find aria-label="Search a name">
+      <div class="postlist">${people.map((p) => `<a class="card postrow" href="#/learn/post/write?to=${p.id}">${postAv(p, 36)}<span class="grow"><b>${postName(p)}</b></span><span class="small muted">Choose ›</span></a>`).join("") || `<p class="muted small">Nobody found.</p>`}</div>
+      <p class="small muted" style="margin:0">Beta: for now you can only write to admins. Members and hosts join when the Post Office opens to everyone.</p>`;
+  }
+  const n = [...P.draft].length;
+  return `${head}<h1 style="margin:0">${reply ? "Write back" : "Write a letter"}</h1>
+    <div class="card postto">${postAv(to, 32)}<span class="grow"><span class="small muted">To</span> <b>${postName(to)}</b></span>${reply ? "" : `<a class="small" href="#/learn/post/write" style="font-weight:800">Change</a>`}</div>
+    ${reply ? `<p class="small muted postquote cgzh" style="margin:0">↩ ${esc(reply.body.replace(/\n+/g, " "))}</p>` : ""}
+    <div class="postpaper write"><span class="poststamp">${ztImg("post")}</span>
+      <textarea class="cgzh" data-post-draft maxlength="${POST_MAX + 20}" rows="6" placeholder="${trad() ? "你好！" : "你好！"}" aria-label="Your letter, in Chinese">${esc(P.draft)}</textarea>
+      <div class="postsign">${esc(state.me?.display_name || "")}</div></div>
+    <div class="row between small"><span class="muted" data-post-hint>${postHint(P.draft)}</span><b data-post-count class="${n > POST_MAX ? "over" : ""}">${n} / ${POST_MAX}</b></div>
+    <button type="button" class="btn postsend" data-post="send" data-to="${to.id}" ${reply ? `data-reply="${reply.id}"` : ""} ${postValid(P.draft) ? "" : "disabled"}>Send the letter</button>`;
+}
+const postValid = (t) => { const s = t.trim(), n = [...s].length; return n >= 1 && n <= POST_MAX && POST_OK.test(s) && POST_HAN.test(s); };
+function postHint(t) {
+  const s = t.trim(); if (!s) return "Chinese characters and punctuation only";
+  if ([...s].length > POST_MAX) return `Too long: ${POST_MAX} characters at most`;
+  const bad = [...new Set([...s].filter((c) => !POST_OK.test(c)))];
+  if (bad.length) return `Chinese only, please: remove ${bad.slice(0, 5).map((c) => `“${esc(c)}”`).join(" ")}${bad.some((c) => /[,.!?:;()]/.test(c)) ? " (use ，。！？ from a Chinese keyboard)" : ""}`;
+  if (!POST_HAN.test(s)) return "Write at least one character";
+  return "Looks good!";
+}
+
+// Split a letter into words: the longest HSK word (up to 4 characters) at each spot, else a single character.
+function postSegments(body, words) {
+  const hsk = new Map(), ch = new Map();
+  for (const w of words || []) {
+    if (w.src === "hsk") { for (const k of [w.hanzi, w.hanzi_trad]) if (k && !hsk.has(k)) hsk.set(k, w); }
+    else if (w.hanzi && !ch.has(w.hanzi)) ch.set(w.hanzi, w);
+  }
+  const cs = [...body], out = [];
+  for (let i = 0; i < cs.length;) {
+    if (!POST_HAN.test(cs[i])) { out.push({ t: cs[i] }); i++; continue; }
+    let hit = null;
+    for (let n = Math.min(4, cs.length - i); n >= 1 && !hit; n--) { const t = cs.slice(i, i + n).join(""); if (hsk.has(t)) hit = { t, w: hsk.get(t) }; }
+    if (!hit) hit = { t: cs[i], w: ch.get(cs[i]) || null };
+    out.push(hit); i += [...hit.t].length;
+  }
+  return out;
+}
+async function postWordsLoad(l) {
+  const P = postState(); if (P.words.has(l.id)) return;
+  P.words.set(l.id, null);
+  const { data, error } = await sb.rpc("letter_words", { p_text: l.body });
+  P.words.set(l.id, error ? [] : data);
+  if (route() === "learn") render();
+}
+
+function postReadView(id) {
+  const P = postState(), me = state.user.id, l = P.letters.find((x) => x.id === id);
+  const head = postHead("Post Office", "#/learn/post");
+  if (!l) return `${head}<div class="card"><b>Letter not found</b><p class="small muted" style="margin:4px 0 0">It may have been sent to someone else.</p></div>`;
+  const mine = l.sender === me, other = postPerson(mine ? l.recipient : l.sender);
+  if (!mine && !l.read_at) { l.read_at = new Date().toISOString(); sb.rpc("letter_read", { p_id: l.id }).then(() => {}); }
+  const words = P.words.get(l.id);
+  if (words === undefined) postWordsLoad(l);
+  const segs = postSegments(l.body, words), sel = P.sel?.id === l.id ? P.sel.i : -1;
+  const text = segs.map((s, i) => s.w ? `<button type="button" class="postw ${i === sel ? "on" : ""}" data-post="word" data-i="${i}" data-id="${l.id}">${esc(s.t)}</button>` : s.t === "\n" ? "<br>" : esc(s.t)).join("");
+  const sw = sel >= 0 ? segs[sel]?.w : null;
+  const have = new Set(state.lu.cards.flatMap((c) => [c.hanzi, c.hanzi_trad]));
+  const card = sw ? `<div class="card postword"><div class="row between" style="align-items:flex-start;gap:10px"><span><span class="cgzh" style="font-size:28px;font-weight:700">${esc(segs[sel].t)}</span> <span class="pron">${esc(py(sw.pinyin))}</span>
+      ${sw.level ? `<span class="small muted"> · HSK ${esc(sw.level)}</span>` : ""}<br><span class="small">${esc(sw.meaning || "")}</span></span>
+      <button type="button" class="iconbtn" data-post="word" data-i="-1" data-id="${l.id}" aria-label="Close">✕</button></div>
+      ${sw.src === "hsk" ? (have.has(sw.hanzi) ? `<span class="small muted">In your flashcards</span>` : `<button type="button" class="btn small green" data-post="addone" data-id="${l.id}" data-i="${sel}">+ Add to my flashcards</button>`) : `<a class="small" style="font-weight:800" href="${cgHref(segs[sel].t)}">See it in the Calligraphy School ›</a>`}</div>` : "";
+  const hskWords = segs.filter((s) => s.w?.src === "hsk" && !have.has(s.w.hanzi));
+  return `${head}
+    <div class="row" style="gap:10px;align-items:center">${postAv(other, 44)}<div><b style="font-size:17px">${mine ? "To" : "From"} ${postName(other)}</b><br><span class="small muted">${postWhen(l.created_at)}${mine ? ` · ${l.read_at ? "Read ✓" : "Not read yet"}` : ""}</span></div></div>
+    <div class="postpaper read"><span class="postseal cgzh" aria-hidden="true">信</span>
+      <div class="postbody cgzh">${text}</div>
+      <div class="postsign">${esc(postPerson(l.sender).name)}</div></div>
+    ${words === null || words === undefined ? `<p class="small muted" style="margin:0">Looking up the words…</p>` : `<span class="posttip">Tap a word for its ${pyName()} and meaning</span>`}
+    ${card}
+    ${mine ? `<a class="btn ghost" href="#/learn/post/write?to=${l.recipient}">Write another letter to ${esc(other.name)}</a>`
+      : `<a class="btn postsend" href="#/learn/post/write?to=${l.sender}&reply=${l.id}">Reply</a>`}
+    <div class="row between" style="gap:10px;flex-wrap:wrap">${hskWords.length ? `<button type="button" class="linkbtn" data-post="addall" data-id="${l.id}">+ Add ${hskWords.length === 1 ? "its HSK word" : `its ${new Set(hskWords.map((s) => s.w.hanzi)).size} HSK words`} to flashcards</button>` : `<span class="small muted">${segs.some((s) => s.w?.src === "hsk") ? "Its HSK words are in your flashcards" : ""}</span>`}
+      ${mine ? "" : l.reported_at ? `<span class="small muted">Reported to the admins</span>` : `<button type="button" class="linkbtn report" data-post="report" data-id="${l.id}">Report</button>`}</div>`;
+}
+
+function postReportedView() {
+  const P = postState();
+  if (P.reported === null) {
+    P.reported = undefined;
+    sb.rpc("admin_reported_letters").then(({ data, error }) => { P.reported = error ? [] : data; if (route() === "learn") render(); });
+  }
+  const list = P.reported || [];
+  return `${postHead("Post Office", "#/learn/post")}<h1 style="margin:0">Reported letters</h1>
+    <p class="small muted" style="margin:0">Only admins see this. A letter shows up here when the person who got it taps Report.</p>
+    ${P.reported === undefined ? `<p class="muted small">Loading…</p>` : list.length ? list.map((r) => `<div class="card"><div class="small muted">${esc(r.sender_name)} → ${esc(r.recipient_name)} · sent ${postWhen(r.created_at)} · reported ${ago(r.reported_at)}</div>
+      <p class="cgzh" style="font-size:18px;margin:6px 0 0;white-space:pre-wrap">${esc(r.body)}</p></div>`).join("") : `<div class="card"><p class="muted small" style="margin:0">Nothing reported. 🎉</p></div>`}`;
+}
+
+document.addEventListener("input", (e) => {
+  const P = state.post; if (!P) return;
+  if (e.target.matches("[data-post-find]")) { P.q = e.target.value; keepForm(() => render()); const f = document.querySelector("[data-post-find]"); if (f) { f.focus(); f.setSelectionRange(f.value.length, f.value.length); } return; }
+  if (!e.target.matches("[data-post-draft]")) return;
+  P.draft = e.target.value;
+  const n = [...P.draft.trim()].length, c = document.querySelector("[data-post-count]"), h = document.querySelector("[data-post-hint]"), b = document.querySelector('[data-post="send"]');
+  if (c) { c.textContent = `${n} / ${POST_MAX}`; c.classList.toggle("over", n > POST_MAX); }
+  if (h) h.innerHTML = postHint(P.draft);
+  if (b) b.disabled = !postValid(P.draft);
+});
+document.addEventListener("click", async (e) => {
+  const el = e.target.closest("[data-post]"); if (!el) return;
+  const P = postState(), a = el.dataset.post;
+  if (a === "tab") { P.tab = el.dataset.v; render(); }
+  else if (a === "word") { const i = +el.dataset.i; P.sel = i < 0 || (P.sel?.id === el.dataset.id && P.sel.i === i) ? null : { id: el.dataset.id, i }; keepForm(() => render()); }
+  else if (a === "send") {
+    const body = P.draft.trim(); if (!postValid(body)) return;
+    el.disabled = true; el.textContent = "Sending…";
+    const { error } = await sb.rpc("send_letter", { p_to: el.dataset.to, p_body: body, p_reply: el.dataset.reply || null });
+    if (error) {
+      el.disabled = false; el.textContent = "Send the letter";
+      return toast(/daily_limit/.test(error.message) ? `You've sent ${POST_PER_DAY} letters today. You can write again tomorrow.` : /letter_chinese/.test(error.message) ? "Chinese characters and punctuation only, please." : "Couldn't send your letter. Check your connection and try again.");
+    }
+    P.draft = ""; P.tab = "sent"; toast("✉️ Letter sent!");
+    await postLoad(true); location.hash = "#/learn/post";
+  } else if (a === "addone" || a === "addall") {
+    const l = P.letters.find((x) => x.id === el.dataset.id); if (!l) return;
+    const segs = postSegments(l.body, P.words.get(l.id));
+    const ws = (a === "addone" ? [segs[+el.dataset.i]] : segs).filter((s) => s?.w?.src === "hsk").map((s) => ({ hanzi: s.w.hanzi, hanzi_trad: s.w.hanzi_trad, pinyin: s.w.pinyin, meaning: s.w.meaning, level: s.w.level }));
+    el.disabled = true;
+    const n = await ztAddWords(ws, "letter");
+    toast(n ? `Added ${n} word${n === 1 ? "" : "s"} to your flashcards.` : "Those words are already in your flashcards.");
+    keepForm(() => render());
+  } else if (a === "report") {
+    if (!confirm("Report this letter?\n\nThe admins will read it and take care of it. The person who wrote it isn't told.")) return;
+    el.disabled = true;
+    const { error } = await sb.rpc("letter_report", { p_id: el.dataset.id });
+    if (error) { el.disabled = false; return toast("Couldn't report it. Check your connection and try again."); }
+    const l = P.letters.find((x) => x.id === el.dataset.id); if (l) l.reported_at = new Date().toISOString();
+    toast("Thanks. The admins will take a look."); render();
+  }
+});
+
+// ---------------------------------------------------------------------------
 // Calligraphy School 书法学校 (Zest Town; beta for admins from 22 Nov 2026, live for everyone since 23 Nov)
 // Look up any character: stroke order player + write it yourself (Hanzi Writer quiz).
 // Character box 漢字: the School's own writing deck (table char_box), kept apart from the Flashcard Center,
@@ -4429,7 +4651,7 @@ async function cgRemember(t) {
   if (data?.length) await sb.from("char_recent").delete().eq("user_id", state.user.id).in("text", data.map((r) => r.text));
 }
 let cgHW = null;
-const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=130")).default);
+const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=131")).default);
 const cgStrokes = async (c) => {
   const S = cgState(); if (S.data.has(c)) return S.data.get(c);
   const HW = await cgLib(); const d = await HW.loadCharacterData(c).catch(() => null);
