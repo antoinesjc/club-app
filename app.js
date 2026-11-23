@@ -1,11 +1,11 @@
-import { createClient } from "./vendor/supabase.js?v=120";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=120";
-import { COUNTRIES } from "./countries.js?v=120";
-import { toZhuyin } from "./zhuyin.js?v=120";
+import { createClient } from "./vendor/supabase.js?v=121";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=121";
+import { COUNTRIES } from "./countries.js?v=121";
+import { toZhuyin } from "./zhuyin.js?v=121";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=120";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=121";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -40,7 +40,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=120"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=121"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -1388,7 +1388,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=120"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=121"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -2003,7 +2003,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=120");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=121");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2902,7 +2902,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=120").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=121").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -3339,7 +3339,7 @@ function placeCards(big) {
     + card("#/learn/temple", "temple", "HSK Temple", trad() ? "漢語廟" : "汉语庙", hskLine, "Every HSK word, and how well you know it", "Explore")
     + (() => { const c = sbCount(); return card("#/learn/gallery", "gallery", "Sticker Gallery", trad() ? "貼紙館" : "贴纸馆", `${c.n} of ${c.total} stickers collected`, "Every sticker you've earned, and how to get the others", "Visit"); })()
     + (libOpen() ? card("#/learn/library", "library", "Library", trad() ? "圖書館" : "图书馆", "Workbooks & graded readers", "Read your books in the app, and get new ones in the Bookshop", "Open") : "")
-    + (calligOpen() ? card("#/learn/callig", "callig", "Calligraphy School", trad() ? "書法學校" : "书法学校", "Stroke order & your character box · beta, admins only", "Look up any character, watch its strokes, and practise writing it", "Enter") : "");
+    + (calligOpen() ? card("#/learn/callig", "callig", "Calligraphy School", trad() ? "書法學校" : "书法学校", "Stroke order, character box & packages", "Look up any character, watch its strokes, and practise writing it", "Enter") : "");
 }
 function soonCards(big) {
   const card = (img, t, z, line) => `<div class="card ztplace soon ${big ? "big" : ""}"><span class="ztplaceart">${ztImg(img)}</span>
@@ -3368,7 +3368,7 @@ function townMap(st) {
     <a class="ztlabel gal" href="#/learn/gallery" style="${at(M.gallery[0], M.gallery[1] + 15)}" aria-label="Sticker Gallery">STICKER GALLERY</a>
     ${libOpen() ? `<a class="ztlabel lib" href="#/learn/library" style="${at(M.library[0], M.library[1] + 15)}" aria-label="Library">LIBRARY</a>`
       : `<button type="button" class="ztlabel soon" data-zt="soon" data-v="library" style="${at(M.library[0], M.library[1] + 15)}" aria-label="Library, opening soon">LIBRARY<em>SOON</em></button>`}
-    ${calligOpen() ? `<a class="ztlabel soon cgbeta" href="#/learn/callig" style="${at(M.callig[0], M.callig[1] + 15)}" aria-label="Calligraphy School (beta, admins only)">CALLIGRAPHY<em>BETA</em></a>`
+    ${calligOpen() ? `<a class="ztlabel cg" href="#/learn/callig" style="${at(M.callig[0], M.callig[1] + 15)}" aria-label="Calligraphy School">CALLIGRAPHY</a>`
       : `<button type="button" class="ztlabel soon" data-zt="soon" data-v="callig" style="${at(M.callig[0], M.callig[1] + 15)}" aria-label="Calligraphy School, opening soon">CALLIGRAPHY<em>SOON</em></button>`}
     <button type="button" class="ztlabel day ${st.wilted ? "dead" : ""}" data-zt="sheet" style="${at(M.plaza[0], M.plaza[1] + 11)}">${st.wilted ? "WILTED" : `DAY ${st.n}`}</button>
   </div>`;
@@ -4392,14 +4392,14 @@ document.addEventListener("input", (e) => {
 });
 
 // ---------------------------------------------------------------------------
-// Calligraphy School 书法学校 (Zest Town, beta: admins only since 22 Nov 2026)
+// Calligraphy School 书法学校 (Zest Town; beta for admins from 22 Nov 2026, live for everyone since 23 Nov)
 // Look up any character: stroke order player + write it yourself (Hanzi Writer quiz).
 // Character box 漢字: the School's own writing deck (table char_box), kept apart from the Flashcard Center,
 // the HSK Temple, the streak tree and XP. Stages: 0 outline shown → 1 only the radical → 2 from memory.
 // Stroke data: hanzi-writer-data (Make Me a Hanzi, Arphic PL) fetched from jsDelivr per character.
 // Character info: table char_info + hsk_words via char_lookup(). No audio on purpose.
 // ---------------------------------------------------------------------------
-const calligOpen = () => isAdmin();
+const calligOpen = () => true; // live for everyone with Zest Town since 23 Nov 2026 (was admins only)
 const CG_INK = "#2a2420", CG_CUR = "#c2410c", CG_FAINT = "#e8dcc8", CG_RAD = "#1b6f1b";
 const CG_SPEEDS = [0.5, 1, 2];
 const CG_STAGE = ["Outline shown", "Radical shown", "From memory"];
@@ -4426,7 +4426,7 @@ async function cgRemember(t) {
   if (data?.length) await sb.from("char_recent").delete().eq("user_id", state.user.id).in("text", data.map((r) => r.text));
 }
 let cgHW = null;
-const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=120")).default);
+const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=121")).default);
 const cgStrokes = async (c) => {
   const S = cgState(); if (S.data.has(c)) return S.data.get(c);
   const HW = await cgLib(); const d = await HW.loadCharacterData(c).catch(() => null);
@@ -4636,7 +4636,7 @@ const CG_CHEST = `<svg class="cgchest" viewBox="0 0 48 40" aria-hidden="true" sh
   <rect x="4" y="37" width="40" height="2" fill="#000" opacity=".12"/>
   <text x="24" y="30.3" text-anchor="middle" font-size="7" font-weight="700" fill="#fdf3ee" font-family="'Noto Sans TC','Noto Sans SC',sans-serif" shape-rendering="auto">漢字</text>
 </svg>`;
-const cgTitle = () => `Calligraphy School <span class='zhsub'>${trad() ? "書法學校" : "书法学校"}</span><span class="betachip">BETA</span>`;
+const cgTitle = () => `Calligraphy School <span class='zhsub'>${trad() ? "書法學校" : "书法学校"}</span>`;
 const cgHead = (href, label, title = cgTitle()) => `<header class="zthead"><a class="ztback" href="${href}">‹ ${label}</a><h1>${title}</h1></header>`;
 const cgSearch = (val = "") => `<form class="cgsearch" data-cgform><label class="cgsbox"><span aria-hidden="true">${ICON_CG.search}</span>
   <input name="q" class="cgin" value="${esc(val)}" placeholder="Type character" aria-label="Type character" autocomplete="off" lang="zh"></label><button class="btn" type="submit">Show character information</button></form>`;
@@ -4683,7 +4683,7 @@ function cgPacksSection() {
 }
 
 function cgPackView(id) {
-  const S = cgState(), head = cgHead("#/learn/callig", "Calligraphy School", `Character package<span class="betachip">BETA</span>`);
+  const S = cgState(), head = cgHead("#/learn/callig", "Calligraphy School", `Character package`);
   if (!S.packs) { cgPacksLoad(); return `${head}<p class="muted small">Opening…</p>`; }
   const p = S.packs.find((x) => x.id === id);
   if (!p) return `${head}<p class="muted">This package isn't available.</p>`;
@@ -4804,7 +4804,7 @@ function cgWriteView() {
 }
 
 function cgBoxView() {
-  const S = cgState(), head = cgHead("#/learn/callig", "Calligraphy School", `Character box <span class='zhsub'>漢字</span><span class="betachip">BETA</span>`);
+  const S = cgState(), head = cgHead("#/learn/callig", "Calligraphy School", `Character box <span class='zhsub'>漢字</span>`);
   if (!S.box) return `${head}<p class="muted small">Opening your box…</p>`;
   const due = cgDue(), box = S.box;
   const cnt = [0, 1, 2].map((st) => box.filter((r) => r.stage === st && !cgMastered(r)).length), mast = box.filter(cgMastered).length;
