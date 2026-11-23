@@ -1,10 +1,10 @@
-import { createClient } from "./vendor/supabase.js?v=117";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=117";
-import { COUNTRIES } from "./countries.js?v=117";
+import { createClient } from "./vendor/supabase.js?v=118";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=118";
+import { COUNTRIES } from "./countries.js?v=118";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=117";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=118";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -39,7 +39,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=117"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=118"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -1383,7 +1383,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=117"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=118"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1989,7 +1989,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=117");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=118");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2887,7 +2887,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=117").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=118").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -4389,6 +4389,8 @@ const CG_INK = "#2a2420", CG_CUR = "#c2410c", CG_FAINT = "#e8dcc8", CG_RAD = "#1
 const CG_SPEEDS = [0.5, 1, 2];
 const CG_STAGE = ["Outline shown", "Radical shown", "From memory"];
 const CG_MASTER_DAYS = 21; // from memory with the next review 3+ weeks away
+const CG_NEW_PER_DAY = 10;  // new characters started per day (packages can add 100 at once)
+const CG_KNOWN_DAYS = 90;   // "I already know it": straight to from memory, back in 90 days (like the HSK Temple)
 const cgState = () => (state.cg ??= { text: null, info: new Map(), word: null, data: new Map(), err: null, idx: 0, k: 0, playing: false, run: 0, speed: 1,
   rad: lsGet("mz-cg-rad") !== "0", outline: true, finished: null, done: 0, mistakes: 0, writer: null,
   box: null, boxErr: false, rv: null });
@@ -4409,7 +4411,7 @@ async function cgRemember(t) {
   if (data?.length) await sb.from("char_recent").delete().eq("user_id", state.user.id).in("text", data.map((r) => r.text));
 }
 let cgHW = null;
-const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=117")).default);
+const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=118")).default);
 const cgStrokes = async (c) => {
   const S = cgState(); if (S.data.has(c)) return S.data.get(c);
   const HW = await cgLib(); const d = await HW.loadCharacterData(c).catch(() => null);
@@ -4442,15 +4444,64 @@ async function cgBoxLoad() {
   if (route() === "learn") render();
 }
 const cgBoxHas = (c) => cgState().box?.some((r) => r.ch === c);
-const cgDue = () => (cgState().box || []).filter((r) => r.due <= todayKey());
+const cgIsNew = (r) => !r.reps && !r.first_review && !r.last_review;
+// Today's round: every started character that's due, plus up to 10 new ones a day (oldest added first).
+function cgDue() {
+  const box = cgState().box || [], t = todayKey();
+  const started = box.filter((r) => !cgIsNew(r) && r.due <= t);
+  const room = Math.max(0, CG_NEW_PER_DAY - box.filter((r) => r.first_review === t).length);
+  const fresh = box.filter((r) => cgIsNew(r) && r.due <= t).sort((a, b) => a.created_at.localeCompare(b.created_at)).slice(0, room);
+  return [...started, ...fresh];
+}
+const cgNewWaiting = () => (cgState().box || []).filter(cgIsNew).length;
 const cgMastered = (r) => r.stage === 2 && r.interval_days >= CG_MASTER_DAYS;
 async function cgBoxAdd(c) {
-  const S = cgState(), i = S.info.get(c) || {};
-  const row = { ch: c, pinyin: i.pinyin || "", meaning: i.meaning || "", due: todayKey() };
-  const { data, error } = await sb.from("char_box").upsert(row, { onConflict: "user_id,ch", ignoreDuplicates: true }).select("*");
-  if (error) { toast("Couldn't add it. Check your connection."); return; }
-  if (data?.length) S.box = [...(S.box || []), ...data];
-  toast(`${c} is in your character box.`); render();
+  const i = cgState().info.get(c) || {};
+  const n = await cgBoxAddMany([{ ch: c, pinyin: i.pinyin, meaning: i.meaning }]);
+  if (n) toast(`${c} is in your character box.`); render();
+}
+// Add several characters (in order); known = already learned (from memory, back in 90 days).
+async function cgBoxAddMany(list, known = false) {
+  const S = cgState(), have = new Set((S.box || []).map((r) => r.ch)), t0 = Date.now();
+  const rows = list.filter((x) => !have.has(x.ch)).map((x, j) => ({ ch: x.ch, pinyin: x.pinyin || "", meaning: x.meaning || "", due: todayKey(),
+    created_at: new Date(t0 + j).toISOString(), ...(known ? cgKnownFields() : {}) }));
+  if (!rows.length) return 0;
+  const { data, error } = await sb.from("char_box").upsert(rows, { onConflict: "user_id,ch", ignoreDuplicates: true }).select("*");
+  if (error) { console.error(error); toast("Couldn't add them. Check your connection."); return 0; }
+  S.box = [...(S.box || []), ...(data || [])];
+  return data?.length || 0;
+}
+const cgKnownFields = () => ({ stage: 2, interval_days: CG_KNOWN_DAYS, due: addDays(CG_KNOWN_DAYS), last_review: new Date().toISOString() });
+async function cgBoxKnown(chars) {
+  const S = cgState(), u = cgKnownFields();
+  const { error } = await sb.from("char_box").update(u).eq("user_id", state.user.id).in("ch", chars);
+  if (error) { toast("Couldn't save that. Check your connection."); return false; }
+  for (const r of S.box || []) if (chars.includes(r.ch)) Object.assign(r, u);
+  return true;
+}
+async function cgBoxRemoveMany(chars) {
+  const S = cgState();
+  const { error } = await sb.from("char_box").delete().eq("user_id", state.user.id).in("ch", chars);
+  if (error) { toast("Couldn't remove them. Check your connection."); return false; }
+  S.box = (S.box || []).filter((r) => !chars.includes(r.ch)); return true;
+}
+// ---- Character packages (table char_packages) ----
+async function cgPacksLoad() {
+  const S = cgState(); if (S.packsLoading) return; S.packsLoading = true;
+  const { data, error } = await sb.from("char_packages").select("*").order("sort");
+  S.packsLoading = false; S.packs = error ? [] : data;
+  if (route() === "learn") render();
+}
+// A package's characters in the member's script (traditional members get 們 for 们), with pinyin and meaning.
+async function cgPackChars(p) {
+  const S = cgState(); S.packInfo ??= new Map();
+  if (S.packInfo.has(p.id)) return S.packInfo.get(p.id);
+  const { data, error } = await sb.rpc("char_lookup", { p_text: p.chars });
+  if (error) { console.error(error); return null; }
+  const info = new Map((data?.chars || []).map((i) => [i.ch, i]));
+  const list = [...p.chars].map((c) => { const i = info.get(c) || {}; return { ch: trad() && i.trad ? i.trad : c, pinyin: i.pinyin || "", meaning: i.meaning || "" }; });
+  S.packInfo.set(p.id, list);
+  return list;
 }
 async function cgBoxRemove(c) {
   const S = cgState();
@@ -4582,6 +4633,7 @@ function calligView(parts) {
   if (!S.box) { cgBoxLoad(); }
   const [t, mode] = parts.map((x) => { try { return decodeURIComponent(x); } catch { return x; } });
   if (t === "box") return mode === "review" ? cgReviewView() : cgBoxView();
+  if (t === "pack") return cgPackView(mode);
   const text = cgCJK(t);
   if (!text) return cgHomeView();
   if (S.text !== text) { cgLoad(text); return `${cgHead("#/learn/callig", "Calligraphy School")}<p class="muted small">Opening ${esc(text)}…</p>`; }
@@ -4599,6 +4651,50 @@ function cgBoxCard() {
     <span class="btn small">${due ? "Write" : "Open"}</span></a>`;
 }
 
+function cgPacksSection() {
+  const S = cgState();
+  if (!S.packs) { cgPacksLoad(); return ""; }
+  if (!S.packs.length) return "";
+  const have = new Set((S.box || []).map((r) => r.ch));
+  return `<section><h2 class="cgh">Character packages</h2><div class="stack" style="gap:8px">${S.packs.map((p) => {
+    const chars = [...p.chars], list = S.packInfo?.get(p.id);
+    if (!list) cgPackChars(p).then((l) => { if (l) render(); });
+    const n = list ? list.filter((x) => have.has(x.ch)).length : 0;
+    return `<a class="card cgpack" href="#/learn/callig/pack/${esc(p.id)}"><span class="cgpackic cgzh" aria-hidden="true">${(list || chars.map((ch) => ({ ch }))).slice(0, 4).map((x) => `<span>${esc(x.ch)}</span>`).join("")}</span>
+      <span class="grow"><b>${esc(p.title)}</b> <span class="cgzh muted small">${esc(p.title_zh)}</span><br><span class="small muted">${esc(p.subtitle)}</span>
+      <br><span class="tiny ${n ? "cgok" : "muted"}">${n ? `${n} of ${chars.length} in your box` : `${chars.length} characters`}</span></span><span class="btn small ghost">Open</span></a>`;
+  }).join("")}</div></section>`;
+}
+
+function cgPackView(id) {
+  const S = cgState(), head = cgHead("#/learn/callig", "Calligraphy School", `Character package<span class="betachip">BETA</span>`);
+  if (!S.packs) { cgPacksLoad(); return `${head}<p class="muted small">Opening…</p>`; }
+  const p = S.packs.find((x) => x.id === id);
+  if (!p) return `${head}<p class="muted">This package isn't available.</p>`;
+  const list = S.packInfo?.get(p.id);
+  if (!list) { cgPackChars(p).then(() => render()); return `${head}<p class="muted small">Opening ${esc(p.title)}…</p>`; }
+  if (!S.box) return `${head}<p class="muted small">Opening your box…</p>`;
+  const byCh = new Map(S.box.map((r) => [r.ch, r])), sel = S.packSel?.id === p.id ? S.packSel.set : null;
+  const missing = list.filter((x) => !byCh.has(x.ch));
+  const tiles = list.map((x) => { const r = byCh.get(x.ch), cls = !r ? "out" : cgMastered(r) ? "m" : `s${r.stage}`;
+    return sel ? `<button type="button" class="cgbtile ${cls} ${sel.has(x.ch) ? "sel" : ""}" data-cg="psel" data-c="${esc(x.ch)}" aria-pressed="${sel.has(x.ch)}">${esc(x.ch)}</button>`
+      : `<a class="cgbtile ${cls}" href="${cgHref(x.ch)}" title="${esc(x.pinyin)} · ${esc(x.meaning)}">${esc(x.ch)}</a>`; }).join("");
+  const bar = sel ? `<div class="cgselbar"><span class="small"><b>${sel.size}</b> selected</span>
+      <button type="button" class="linkbtn" data-cg="pselall">${sel.size === list.length ? "Select none" : "Select all"}</button>
+      <button type="button" class="btn small" data-cg="padd" ${sel.size ? "" : "disabled"}>Add to my box</button>
+      <button type="button" class="btn small ghost" data-cg="pknown" ${sel.size ? "" : "disabled"}>I already know these</button>
+      <button type="button" class="linkbtn" data-cg="pselx">Cancel</button></div>`
+    : `<div class="row" style="gap:8px;flex-wrap:wrap">${missing.length ? `<button type="button" class="btn" data-cg="paddall">Add the ${missing.length === list.length ? "" : "other "}${missing.length} to my box</button>` : `<span class="lindeck">✓ All in your box</span>`}
+      <button type="button" class="btn ghost" data-cg="psel">Choose characters</button></div>`;
+  return `${head}
+    <section class="card cgpackhead"><div class="cgpackbig cgzh" aria-hidden="true">${list.slice(0, 4).map((x) => `<span>${esc(x.ch)}</span>`).join("")}</div><div><h2 style="margin:0">${esc(p.title)}</h2><p class="cgzh muted" style="margin:2px 0 0">${esc(p.title_zh)}</p>
+      <p class="small" style="margin:6px 0 0">${esc(p.subtitle)}. ${list.length} characters, most frequent first.</p></div></section>
+    <p class="small muted" style="margin:0">Characters you add start in your box ${CG_NEW_PER_DAY} a day, in this order. Already know some? Choose them and tap “I already know these”: they won't show up in your daily writing.</p>
+    ${bar}
+    <div class="cglegend"><span><i class="out"></i>Not in your box ${missing.length}</span><span><i class="s0"></i>Outline</span><span><i class="s1"></i>Radical</span><span><i class="s2"></i>From memory</span><span><i class="m"></i>Learned</span></div>
+    <div class="cgbtiles">${tiles}</div>`;
+}
+
 function cgHomeView() {
   const S = cgState();
   if (!S.recentAt || Date.now() - S.recentAt > 30e3) { S.recentAt = Date.now(); cgRecentLoad(); } // picks up the other device's look-ups
@@ -4608,6 +4704,7 @@ function cgHomeView() {
     ${cgSearch()}
     ${recent.length ? `<section><h2 class="cgh">You looked up</h2><div class="cgrecent">${recent.map((w) => `<a href="${cgHref(w)}">${esc(w)}</a>`).join("")}</div></section>` : ""}
     ${cgBoxCard()}
+    ${cgPacksSection()}
     <section><h2 class="cgh">Classes</h2>
       <div class="card cgclass soon"><span class="cgclassic">部</span><span class="grow"><b>More classes</b><br><span class="small muted">Coming later to the School</span></span><span class="ztsoon">Soon</span></div>
     </section>`;
@@ -4624,7 +4721,7 @@ function cgInfoCard(ch, d) {
     <div class="row" style="gap:6px;flex-wrap:wrap">${tags}</div>
     ${S.rad && i.radical && i.radical !== ch && d.radStrokes?.length ? `<p class="tiny muted" style="margin:0">The radical's strokes turn green.</p>` : ""}
     <div class="row" style="gap:8px;flex-wrap:wrap"><a class="btn" href="${cgHref(S.text, true)}">${ICON_CG.brush} Write it myself</a>
-    ${!S.box ? "" : inBox ? `<span class="lindeck">✓ In your character box</span><button type="button" class="linkbtn" data-cg="boxdel" data-c="${esc(ch)}">Remove</button>`
+    ${!S.box ? "" : inBox ? `<span class="lindeck">✓ In your character box</span>${cgMastered(S.box.find((r) => r.ch === ch)) ? "" : `<button type="button" class="linkbtn" data-cg="cknown" data-c="${esc(ch)}">Mark as learned</button>`}<button type="button" class="linkbtn" data-cg="boxdel" data-c="${esc(ch)}">Remove</button>`
       : `<button type="button" class="btn ghost" data-cg="boxadd" data-c="${esc(ch)}">+ Add <span class="cgzh">${esc(ch)}</span> to my character box</button>`}</div>
   </div>`;
 }
@@ -4695,14 +4792,24 @@ function cgBoxView() {
   if (!S.box) return `${head}<p class="muted small">Opening your box…</p>`;
   const due = cgDue(), box = S.box;
   const cnt = [0, 1, 2].map((st) => box.filter((r) => r.stage === st && !cgMastered(r)).length), mast = box.filter(cgMastered).length;
-  const tiles = box.map((r) => { const cls = cgMastered(r) ? "m" : `s${r.stage}`;
-    return `<a class="cgbtile ${cls}" href="${cgHref(r.ch)}" title="${esc(CG_STAGE[r.stage])} · next ${r.due <= todayKey() ? "today" : esc(r.due)}">${esc(r.ch)}${r.due <= todayKey() ? `<i aria-label="due"></i>` : ""}</a>`; }).join("");
+  const sel = S.boxSel, dueSet = new Set(due.map((r) => r.ch)), waiting = cgNewWaiting();
+  const tiles = box.map((r) => { const cls = cgMastered(r) ? "m" : `s${r.stage}`, dot = dueSet.has(r.ch) ? `<i aria-label="due today"></i>` : "";
+    return sel ? `<button type="button" class="cgbtile ${cls} ${sel.has(r.ch) ? "sel" : ""}" data-cg="bsel" data-c="${esc(r.ch)}" aria-pressed="${sel.has(r.ch)}">${esc(r.ch)}</button>`
+      : `<a class="cgbtile ${cls}" href="${cgHref(r.ch)}" title="${esc(cgIsNew(r) ? "New" : CG_STAGE[r.stage])} · ${dueSet.has(r.ch) ? "today" : cgIsNew(r) ? "waiting" : "next " + esc(r.due)}">${esc(r.ch)}${dot}</a>`; }).join("");
+  const bar = sel ? `<div class="cgselbar"><span class="small"><b>${sel.size}</b> selected</span>
+      <button type="button" class="linkbtn" data-cg="bselall">${sel.size === box.length ? "Select none" : "Select all"}</button>
+      <button type="button" class="btn small" data-cg="bknown" ${sel.size ? "" : "disabled"}>Mark as learned</button>
+      <button type="button" class="btn small ghost" data-cg="bdel" ${sel.size ? "" : "disabled"}>Remove</button>
+      <button type="button" class="linkbtn" data-cg="bselx">Cancel</button></div>`
+    : `<div class="row between" style="align-items:center"><span class="tiny muted">Tap a character for its stroke order. A dot means it's in today's round.</span><button type="button" class="btn small ghost" data-cg="bsel">Select</button></div>`;
   return `${head}
     <div class="cgboxhead">${CG_CHEST}<p class="small muted" style="margin:0">Your own writing deck, separate from the Flashcard Center. Each character starts with its outline, then only its radical, then you write it from memory. Good writing sends it further into the future.</p></div>
-    <section class="card cgboxdue">${due.length ? `<div><b style="font-size:18px">${due.length} to write today</b><br><span class="small muted">You see the pinyin and the meaning, and write the character.</span></div><a class="btn" href="#/learn/callig/box/review">Start writing</a>`
+    <section class="card cgboxdue">${due.length ? `<div><b style="font-size:18px">${due.length} to write today</b><br><span class="small muted">You see the pinyin and the meaning, and write the character.${waiting > due.filter(cgIsNew).length ? ` ${waiting - due.filter(cgIsNew).length} new ones are waiting: they come ${CG_NEW_PER_DAY} a day.` : ""}</span></div><a class="btn" href="#/learn/callig/box/review">Start writing</a>`
       : `<div><b>All written for today</b><br><span class="small muted">${box.length ? "Come back tomorrow, or look up a new character to add." : "Look up a character in the School and tap “Add to my character box”."}</span></div><a class="btn ghost" href="#/learn/callig">Look up a character</a>`}</section>
     ${box.length ? `<section><div class="cglegend"><span><i class="s0"></i>Outline ${cnt[0]}</span><span><i class="s1"></i>Radical ${cnt[1]}</span><span><i class="s2"></i>From memory ${cnt[2]}</span><span><i class="m"></i>Mastered ${mast}</span></div>
-      <div class="cgbtiles">${tiles}</div><p class="tiny muted" style="margin:8px 0 0">Tap a character to see its stroke order or remove it from the box. A dot means it's due today.</p></section>` : ""}`;
+      ${bar}<div class="cgbtiles" style="margin-top:10px">${tiles}</div>
+      <p class="tiny muted" style="margin:8px 0 0">Already know some? Tap Select, choose them and “Mark as learned”: they leave your daily round and come back in ${CG_KNOWN_DAYS} days for a check.</p></section>` : ""}
+    ${cgPacksSection()}`;
 }
 
 function cgReviewView() {
@@ -4735,7 +4842,8 @@ function cgReviewView() {
     ${cgQuizArea(ch, d, guide, false, "review")}
     <p class="small muted" style="margin:0;text-align:center">${note}</p>
     <div class="row between small"><span id="cgcount"><b>0 of ${n}</b> strokes</span><span class="muted" id="cgmiss">0 mistakes</span></div>
-    ${r.stage > 0 && !R.forgot ? `<button type="button" class="btn ghost block" data-cg="forgot">I don't remember, show me</button>` : ""}`;
+    ${r.stage > 0 && !R.forgot ? `<button type="button" class="btn ghost block" data-cg="forgot">I don't remember, show me</button>` : ""}
+    <button type="button" class="linkbtn cgknown" data-cg="rvknown">I already know this character</button>`;
 }
 
 // Mount the Hanzi Writer quiz after each render of a writing page (a re-render starts the character again).
@@ -4771,6 +4879,7 @@ async function cgReviewDone(ch, mistakes) {
   const S = cgState(), R = S.rv, r = S.box.find((x) => x.ch === ch); if (!R || !r) return;
   const grade = R.forgot || mistakes >= 3 ? 0 : mistakes ? 1 : 2;
   const u = cgSchedule(r, grade);
+  if (!r.first_review) u.first_review = todayKey();
   R.result = { grade, mistakes, forgot: R.forgot, u, stageUp: u.stage > r.stage, stageDown: u.stage < r.stage };
   Object.assign(r, u);
   const { error } = await sb.from("char_box").update(u).eq("user_id", state.user.id).eq("ch", ch);
@@ -4800,6 +4909,40 @@ document.addEventListener("click", async (e) => {
   else if (a === "speed") { S.speed = CG_SPEEDS[(CG_SPEEDS.indexOf(S.speed) + 1) % CG_SPEEDS.length]; el.textContent = `${S.speed}×`; }
   else if (a === "tab") { cgStop(); S.idx = +el.dataset.i; S.k = 0; render(); scrollTo(0, 0); }
   else if (a === "boxadd") { el.disabled = true; await cgBoxAdd(el.dataset.c); }
+  else if (a === "cknown") { if (await cgBoxKnown([el.dataset.c])) { toast(`${el.dataset.c} is marked as learned. It comes back in ${CG_KNOWN_DAYS} days.`); render(); } }
+  else if (a === "bsel" || a === "psel") {
+    const box = a === "bsel", key = box ? "boxSel" : "packSel", c = el.dataset.c, pid = location.hash.split("/pack/")[1];
+    if (!c) { S[key] = box ? new Set() : { id: pid, set: new Set() }; }
+    else { const set = box ? S.boxSel : S.packSel.set; set.has(c) ? set.delete(c) : set.add(c); }
+    render();
+  }
+  else if (a === "bselall") { S.boxSel = S.boxSel.size === S.box.length ? new Set() : new Set(S.box.map((r) => r.ch)); render(); }
+  else if (a === "pselall") { const list = S.packInfo.get(S.packSel.id); S.packSel.set = S.packSel.set.size === list.length ? new Set() : new Set(list.map((x) => x.ch)); render(); }
+  else if (a === "bselx") { S.boxSel = null; render(); }
+  else if (a === "pselx") { S.packSel = null; render(); }
+  else if (a === "bknown" || a === "bdel") {
+    const chars = [...S.boxSel]; if (!chars.length) return;
+    if (a === "bdel" && !el.dataset.sure) { el.dataset.sure = "1"; el.textContent = `Tap again to remove ${chars.length}`; return; }
+    const ok = a === "bknown" ? await cgBoxKnown(chars) : await cgBoxRemoveMany(chars);
+    if (ok) { toast(a === "bknown" ? `${chars.length} marked as learned.` : `${chars.length} removed from your box.`); S.boxSel = null; S.rv = null; render(); }
+  }
+  else if (a === "paddall" || a === "padd" || a === "pknown") {
+    const pid = location.hash.split("/pack/")[1], list = S.packInfo?.get(pid) || [];
+    const chosen = a === "paddall" ? list : list.filter((x) => S.packSel?.set.has(x.ch));
+    el.disabled = true;
+    let n = 0;
+    if (a === "pknown") {
+      const inBox = chosen.filter((x) => cgBoxHas(x.ch)).map((x) => x.ch);
+      if (inBox.length) await cgBoxKnown(inBox);
+      n = inBox.length + await cgBoxAddMany(chosen.filter((x) => !inBox.includes(x.ch)), true);
+      toast(`${n} marked as learned.`);
+    } else { n = await cgBoxAddMany(chosen); toast(n ? `${n} added to your box. They start ${CG_NEW_PER_DAY} a day.` : "They're already in your box."); }
+    S.packSel = null; S.rv = null; render();
+  }
+  else if (a === "rvknown") {
+    const R = S.rv; if (!R) return; const ch = R.queue[0];
+    if (await cgBoxKnown([ch])) { R.queue.shift(); R.result = null; R.forgot = false; S.writer = null; toast(`${ch} is marked as learned.`); render(); scrollTo(0, 0); }
+  }
   else if (a === "boxdel") { await cgBoxRemove(el.dataset.c); }
   else if (a === "hint") { if (S.writer && S.done < d.strokes.length) S.writer.highlightStroke(S.done); }
   else if (a === "outline") { S.outline = !S.outline; document.querySelector(".cgguide")?.classList.toggle("off", !S.outline); el.classList.toggle("cgon", S.outline); el.setAttribute("aria-pressed", S.outline); el.textContent = `Outline ${S.outline ? "on" : "off"}`; }
