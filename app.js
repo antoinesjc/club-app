@@ -1,12 +1,12 @@
-import { createClient } from "./vendor/supabase.js?v=129";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=129";
-import { COUNTRIES } from "./countries.js?v=129";
-import { toZhuyin } from "./zhuyin.js?v=129";
-import { ORACLE, ORACLE_T } from "./course-oracle.js?v=129";
+import { createClient } from "./vendor/supabase.js?v=130";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=130";
+import { COUNTRIES } from "./countries.js?v=130";
+import { toZhuyin } from "./zhuyin.js?v=130";
+import { ORACLE, ORACLE_T } from "./course-oracle.js?v=130";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=129";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=130";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -494,11 +494,12 @@ function render() {
   const views = { home: homeView, sessions: mySessionsView, members: membersView, me: profileView, host: hostView, member: memberView, bootcamps: bootcampsView, unlocks: unlocksView, notes: notesView, settings: settingsView, admin: adminView, learn: learnView };
   const blocked = route() === "host" && !isHost();
   const view = blocked ? homeView : (views[route()] || homeView);
-  app.innerHTML = `<div class="shell ${trad() ? "zh-trad" : ""}">${nav()}<main class="main" id="main">${view()}</main></div>${seasonalOverlay() || hongbaoOverlay()}`;
-  if (state.pushAsk && !app.querySelector(".hbover")) app.insertAdjacentHTML("beforeend", pushOverlay());
+  const tour = tourOn(); // the welcome tour comes first; other pop-ups wait until it's closed
+  app.innerHTML = `<div class="shell ${trad() ? "zh-trad" : ""}">${nav()}<main class="main" id="main">${view()}</main></div>${tour ? tourOverlay() : seasonalOverlay() || hongbaoOverlay()}`;
+  if (!tour && state.pushAsk && !app.querySelector(".hbover")) app.insertAdjacentHTML("beforeend", pushOverlay());
   if (state.scrollTo) { const t = document.getElementById(state.scrollTo); state.scrollTo = null; if (t) setTimeout(() => t.scrollIntoView({ block: "start", behavior: "smooth" }), 60); }
   if (state.idea?.open) app.insertAdjacentHTML("beforeend", ideaOverlay());
-  else if (state.rewardQueue?.length && !app.querySelector(".hbover")) app.insertAdjacentHTML("beforeend", rewardOverlay());
+  else if (!tour && state.rewardQueue?.length && !app.querySelector(".hbover")) app.insertAdjacentHTML("beforeend", rewardOverlay());
   wireMap();
   cgAfterRender();
 }
@@ -1389,7 +1390,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=129"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=130"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1968,6 +1969,7 @@ function profileView() {
   </section>
   <div class="mobonly" style="display:contents">${notificationsCard()}<p class="small muted privnote">Privacy: the Club team can see when you last opened the app and your Club activity (sessions, XP, stickers), only to keep the Club running well. It’s never shared.</p><p class="small muted privnote">App version ${APP_BUILD.slice(2)} · <button type="button" class="linkbtn" data-act="app-reload">Check for updates</button></p></div>
   ${installHint(true)}
+  <button type="button" class="btn ghost block" data-tour-start>Take the app tour</button>
   <div class="row between">
     <span class="small muted">${esc(state.user.email)}</span>
     <button class="linkbtn" data-act="logout">Log out</button>
@@ -2004,7 +2006,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=129");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=130");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2903,7 +2905,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=129").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=130").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -4427,7 +4429,7 @@ async function cgRemember(t) {
   if (data?.length) await sb.from("char_recent").delete().eq("user_id", state.user.id).in("text", data.map((r) => r.text));
 }
 let cgHW = null;
-const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=129")).default);
+const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=130")).default);
 const cgStrokes = async (c) => {
   const S = cgState(); if (S.data.has(c)) return S.data.get(c);
   const HW = await cgLib(); const d = await HW.loadCharacterData(c).catch(() => null);
@@ -5205,3 +5207,91 @@ document.addEventListener("click", async (e) => {
     q.sel = new Set(); cgState().rv = null; render();
   }
 });
+
+// ---------------------------------------------------------------------------
+// Welcome tour (23 Nov 2026): 5 slides, shown once to new members (profiles.tour_seen is null), on top of
+// everything else; Skip or "Let's go!" sets tour_seen. Me → "Take the app tour" shows it again.
+// Slide 5 uses the real settings (script, pronunciation, notifications), saved straight away.
+// ---------------------------------------------------------------------------
+const TOUR_N = 5;
+const tourOn = () => !!state.tour || (state.loaded && state.me && !state.me.tour_seen && !state.tourClosed);
+function tourArt(k) {
+  const card = "tcard";
+  if (k === 0) return `<div class="tart0"><img src="icons/mascot.svg" alt="The Mandarin Zest mascot, an orange reading a book and saying 你好"></div>`;
+  if (k === 1) return `<div class="tart">
+    <div class="${card}"><div class="row" style="gap:6px"><span class="tchip g">Conversation</span><span class="tchip">Intermediate</span></div>
+      <b>Taiwanese Mandarin Conversation</b><span class="small muted">Sat · with your host</span>
+      <div class="row" style="gap:8px"><span class="tbtn g">✓ I'm in</span><span class="tbtn">Can't make it</span></div></div>
+    <div class="${card} row tilt1"><span class="tbell">${ICON.bell}</span><span class="small"><b>Starting in 1 hour</b><br><span class="muted">Tap to join on Google Meet</span></span></div>
+    <div class="${card} row tilt2"><span class="cgzh" style="font-size:20px">${trad() ? "學校" : "学校"}</span><span class="small muted">Notes are up · PDF · + flashcards</span></div></div>`;
+  if (k === 2) {
+    const b = (img, lab) => `<span class="tbld"><span>${ztImg(img)}</span>${lab}</span>`;
+    return `<div class="tart"><div class="ttown"><img src="icons/zt/town4-phone.png" alt="Zest Town, the pixel-art learning town"></div>
+      <div class="row" style="gap:8px;justify-content:center">${b("house", "Flashcards")}${b("temple", "HSK Temple")}${b("library", "Library")}${b("callig", "Calligraphy")}</div>
+      <div class="${card} row" style="padding:6px 12px 6px 6px;align-self:center"><img class="pix" src="icons/zt/tree-3.png" alt="" style="width:36px"><span class="small"><b>Streak tree</b> · grows when you practise each day</span></div></div>`;
+  }
+  if (k === 3) {
+    const mine = ZT_FRUITS.has(state.me?.fruit) ? state.me.fruit : "orange";
+    const fr = (f, lv, big) => `<span class="tfr ${big ? "big" : ""}"><span><img class="pix" src="icons/zt/fruit-${f}.png" alt=""></span><em>${lv}</em></span>`;
+    return `<div class="tart"><div class="row" style="gap:12px;align-items:flex-end;justify-content:center">${fr(mine, "LV 1", true)}<span class="tarrow">›</span>${fr("strawberry", "LV 2")}<span class="tarrow">›</span>${fr("mango", "LV 4")}</div>
+      <div class="txp"><span></span></div>
+      <div class="row" style="gap:8px;flex-wrap:wrap;justify-content:center"><span class="tchip w">+20 XP · each session</span><span class="tchip w">+1 XP · a day in Zest Town</span><span class="tchip r"><span class="cgzh">${trad() ? "紅包" : "红包"}</span> one hongbao a month</span><span class="tchip y">Stickers to collect</span></div></div>`;
+  }
+  const seg = (act, cur, opts) => `<div class="seg tseg" role="group">${opts.map(([v, l]) => `<button type="button" data-tour="${act}" data-v="${v}" aria-pressed="${cur === v}">${l}</button>`).join("")}</div>`;
+  const pushOk = state.push?.supported, on = state.push?.subscribed;
+  return `<div class="tart"><div class="${card}" style="gap:12px;width:100%">
+    <span class="tlab">CHARACTERS</span>${seg("script", state.me?.script === "traditional" ? "traditional" : "simplified", [["simplified", "<span class='cgzh'>简体</span> Simplified"], ["traditional", "<span class='cgzh'>繁體</span> Traditional"]])}
+    <span class="tlab">PRONUNCIATION</span>${seg("phonetic", state.me?.phonetic === "zhuyin" ? "zhuyin" : "pinyin", [["pinyin", "Pinyin"], ["zhuyin", "<span class='cgzh'>注音</span> Zhuyin"]])}
+    <div class="row between" style="gap:10px"><span class="small"><b>Notifications</b><br><span class="muted">Reminders, notes, new sessions</span></span>
+      ${pushOk ? `<button type="button" class="tswitch ${on ? "on" : ""}" data-tour="push" role="switch" aria-checked="${!!on}" aria-label="Notifications"><span></span></button>` : `<span class="tiny muted" style="max-width:130px;text-align:right">Add the app to your Home Screen first, then turn them on in Me.</span>`}</div>
+    <div class="ttip"><img class="pix" src="icons/zt/fruit-orange.png" alt=""><span><b>Tip:</b> add the app to your Home Screen to open it like any other app.</span></div></div></div>`;
+}
+function tourOverlay() {
+  const T = (state.tour ??= { i: 0 }), k = T.i, name = String(state.me?.display_name || "").trim().split(/\s+/)[0];
+  const S = [
+    ["WELCOME 欢迎", name ? `Hi ${esc(name)}, welcome to the Club!` : "Welcome to the Club!", "This app is your home for Mandarin Zest Club: live sessions with our hosts, your class notes, and fun ways to practise in between."],
+    ["SESSIONS · HOME", "Join live sessions", "Tap “I'm in” on any session and we remind you an hour before. After class, your host's notes show up in My sessions."],
+    ["LEARNING · ZEST TOWN", "Practise in Zest Town", "Flashcards, every HSK word, books to read and a calligraphy school. Do a little each day and watch your streak tree grow."],
+    ["XP · FRUITS · STICKERS", "Grow your fruit", "Earn XP to level up and unlock new fruit avatars. Collect stickers, send a hongbao to another member each month, and climb the monthly leaderboard."],
+    ["YOUR SETTINGS", "Make it yours", `Pick simplified or traditional characters, pinyin or zhuyin, and turn on notifications. You can change all of this later in ${wide() ? "Settings and Me" : "Me"}.`],
+  ][k];
+  const dots = [...Array(TOUR_N)].map((_, i) => `<span class="${i === k ? "on" : ""}"></span>`).join("");
+  return `<div class="tourover ${T.shown ? "still" : ""}" role="dialog" aria-modal="true" aria-labelledby="tourtitle">
+    <div class="tourbox">
+      <div class="tourart">${tourArt(k)}</div>
+      <div class="tourtext">
+        <div class="row between"><span class="tourstep">${k + 1} / ${TOUR_N}</span>${k < TOUR_N - 1 ? `<button type="button" class="linkbtn tourskip" data-tour="skip">Skip</button>` : ""}</div>
+        <div class="tourcopy"><div class="toureye">${S[0]}</div><h2 id="tourtitle">${S[1]}</h2><p>${S[2]}</p></div>
+        <div class="tournav"><div class="tourdots" aria-hidden="true">${dots}</div>
+          <button type="button" class="btn block" data-tour="${k === TOUR_N - 1 ? "done" : "next"}">${k === 0 ? "Show me around" : k === TOUR_N - 1 ? "Let's go!" : "Next"}</button>
+          ${k ? `<button type="button" class="linkbtn" data-tour="back">‹ Back</button>` : `<span style="height:22px"></span>`}</div>
+      </div></div></div>`;
+}
+async function tourClose() {
+  const replay = state.tour?.replay; state.tour = null; state.tourClosed = true;
+  if (!state.me.tour_seen) {
+    state.me.tour_seen = new Date().toISOString();
+    await sb.from("profiles").update({ tour_seen: state.me.tour_seen }).eq("id", state.user.id);
+  }
+  if (!replay) location.hash = "#/home";
+  render();
+}
+document.addEventListener("click", async (e) => {
+  const el = e.target.closest("[data-tour]"); if (!el) return;
+  const a = el.dataset.tour, T = (state.tour ??= { i: 0 });
+  T.shown = true;
+  if (a === "next") { T.i = Math.min(TOUR_N - 1, T.i + 1); render(); }
+  else if (a === "back") { T.i = Math.max(0, T.i - 1); render(); }
+  else if (a === "skip" || a === "done") {
+    if (a === "done" || T.i === TOUR_N - 1) state.pushAsk = false; // they saw the notifications switch
+    await tourClose();
+  }
+  else if (a === "script" || a === "phonetic") {
+    const v = el.dataset.v; if (state.me[a] === v) return;
+    state.me[a] = v; render();
+    const { error } = await sb.from("profiles").update({ [a]: v }).eq("id", state.user.id);
+    if (error) toast("Couldn't save that. Try again in Me.");
+  }
+  else if (a === "push") { if (state.push.subscribed) await disablePush(); else await enablePush(); render(); }
+});
+document.addEventListener("click", (e) => { if (e.target.closest("[data-tour-start]")) { state.tour = { i: 0, replay: true }; render(); } });
