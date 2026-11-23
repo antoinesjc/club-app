@@ -15,8 +15,8 @@
  *   2. Project Settings (gear) → Script properties → Add property:
  *        SYNC_SECRET = (the value Claude gave you)
  *   3. Back in the editor, pick the function "setup" and click Run, then allow access.
- * After that it runs by itself: a few seconds after each edit, and every 10 minutes (new Stripe payers
- * who have logged in, or were found by the daily Stripe check, appear in the Members tab within 10 minutes).
+ * After that it runs by itself: a few seconds after each edit, and every 10 minutes with a live Stripe check
+ * (new Stripe payers appear in the Members tab within 10 minutes, even before they log in).
  * The menu "Club app" in the sheet has "Sync now", "Check Stripe now" and "Get new ideas".
  *
  * Idea box: ideas members send from the app land in the "Ideas" tab (created automatically),
@@ -44,7 +44,9 @@ function onOpen() {
 function setup() {
   ScriptApp.getProjectTriggers().forEach(t => ScriptApp.deleteTrigger(t));
   ScriptApp.newTrigger('onMembersEdit').forSpreadsheet(SpreadsheetApp.getActive()).onEdit().create();
-  ScriptApp.newTrigger('syncNow').timeBased().everyMinutes(10).create(); // was hourly; new payers now show up within 10 minutes
+  // Every 10 minutes, with a live Stripe check (was hourly without it): new payers show up within 10 minutes,
+  // even before they log in to the app.
+  ScriptApp.newTrigger('syncWithStripe').timeBased().everyMinutes(10).create();
   ScriptApp.newTrigger('syncIdeas').timeBased().everyMinutes(10).create();
   // Status column (D): active / blocked / via Stripe
   const members = SpreadsheetApp.getActive().getSheetByName(MEMBERS_TAB);
