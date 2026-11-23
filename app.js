@@ -1,12 +1,12 @@
-import { createClient } from "./vendor/supabase.js?v=128";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=128";
-import { COUNTRIES } from "./countries.js?v=128";
-import { toZhuyin } from "./zhuyin.js?v=128";
-import { ORACLE, ORACLE_T } from "./course-oracle.js?v=128";
+import { createClient } from "./vendor/supabase.js?v=129";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=129";
+import { COUNTRIES } from "./countries.js?v=129";
+import { toZhuyin } from "./zhuyin.js?v=129";
+import { ORACLE, ORACLE_T } from "./course-oracle.js?v=129";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=128";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=129";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -1389,7 +1389,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=128"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=129"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -2004,7 +2004,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=128");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=129");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2903,7 +2903,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=128").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=129").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -4427,7 +4427,7 @@ async function cgRemember(t) {
   if (data?.length) await sb.from("char_recent").delete().eq("user_id", state.user.id).in("text", data.map((r) => r.text));
 }
 let cgHW = null;
-const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=128")).default);
+const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=129")).default);
 const cgStrokes = async (c) => {
   const S = cgState(); if (S.data.has(c)) return S.data.get(c);
   const HW = await cgLib(); const d = await HW.loadCharacterData(c).catch(() => null);
@@ -4977,12 +4977,12 @@ document.addEventListener("click", async (e) => {
 });
 
 // ---------------------------------------------------------------------------
-// Calligraphy School course: Oracle Bone Mystery 甲骨之谜 (beta: admins only since 23 Nov 2026)
+// Calligraphy School course: Oracle Bone Mystery 甲骨之谜 (live for all members since 23 Nov 2026)
 // Chapter 0 = slides, chapters 1–7 = 6 bones + a final challenge each, chapter 8 = conclusion and the
 // characters learned (offered for the Character box). Progress per member in course_progress.done.
 // For each bone: 1) what does it show? (type an English word) 2) which modern character? (4 choices) 3) fun fact.
 // ---------------------------------------------------------------------------
-const coOpen = () => isAdmin();
+const coOpen = () => true; // live for all members since 23 Nov 2026 (beta for admins earlier that day)
 const CO = ORACLE, CO_LAST = CO.chapters.length + 1; // 0 intro, 1..7 chapters, 8 conclusion
 const coState = () => (state.co ??= { done: null, q: null });
 const coGlyph = (c) => `icons/oracle/${encodeURIComponent(c)}.svg`;
@@ -4991,7 +4991,7 @@ const coImgCh = (b) => b.tr || b.ch;                                  // glyph f
 // Traditional-script members get the course text in traditional (whole runs of characters, so 中国 → 中國).
 const coT = (html) => !trad() ? String(html ?? "") : String(html ?? "").replace(/(<span class="cgzh nt">[\s\S]*?<\/span>)|([\u3400-\u9fff]+)/g, (m, keep, run) => keep || ORACLE_T[run] || run);
 const coProse = (html) => coT(html).replace(/<i class="py">([^<]*)<\/i>/g, (_, x) => `<i class="py">${esc(py(x))}</i>`);
-const coTitle = () => `${CO.title} <span class='zhsub'>${trad() ? CO.title_zh_t : CO.title_zh}</span><span class="betachip">BETA</span>`;
+const coTitle = () => `${CO.title} <span class='zhsub'>${trad() ? CO.title_zh_t : CO.title_zh}</span>`;
 const coHref = (n) => `#/learn/callig/course/${CO.id}${n == null ? "" : `/${n}`}`;
 const coChapterName = (n) => n === 0 ? CO.intro.title : n === CO_LAST ? CO.conclusion.title : CO.chapters[n - 1].title;
 // Every character the course teaches, in order: the bones, then each chapter's answer (and 今 from the first one).
@@ -5021,7 +5021,7 @@ function coCard() {
   const S = coState(); if (!S.done) coLoad();
   const n = S.done?.filter((x) => x >= 1 && x < CO_LAST).length || 0, total = CO.chapters.length;
   return `<a class="card cgclass cgcourse" href="${coHref()}"><span class="cgcourseic" aria-hidden="true"><img src="${coGlyph("卜")}" alt=""></span>
-    <span class="grow"><b>${esc(CO.title)}</b> <span class="cgzh muted small">${trad() ? CO.title_zh_t : CO.title_zh}</span><span class="betachip">BETA</span><br>
+    <span class="grow"><b>${esc(CO.title)}</b> <span class="cgzh muted small">${trad() ? CO.title_zh_t : CO.title_zh}</span><br>
     <span class="small muted">Course · ${total} chapters · ${coLearned().length} characters</span>${S.done?.length ? `<br><span class="tiny cgok">${S.done.includes(CO_LAST) ? "Finished ✓" : `${n} of ${total} chapters done`}</span>` : ""}</span>
     <span class="btn small ghost">${S.done?.length ? "Continue" : "Start"}</span></a>`;
 }
