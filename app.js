@@ -1,10 +1,11 @@
-import { createClient } from "./vendor/supabase.js?v=118";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=118";
-import { COUNTRIES } from "./countries.js?v=118";
+import { createClient } from "./vendor/supabase.js?v=119";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=119";
+import { COUNTRIES } from "./countries.js?v=119";
+import { toZhuyin } from "./zhuyin.js?v=119";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=118";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=119";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -39,7 +40,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=118"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=119"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -79,6 +80,10 @@ const app = document.getElementById("app");
 // ---------------------------------------------------------------------------
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const trad = () => state.me?.script === "traditional";
+// Pronunciation as each member chose it in their profile: pinyin (default) or zhuyin (bopomofo).
+const zhuyin = () => state.me?.phonetic === "zhuyin";
+const py = (s) => zhuyin() ? toZhuyin(s) : (s ?? "");
+const pyName = () => zhuyin() ? "zhuyin" : "pinyin";
 const zh = (pair) => (trad() ? pair[1] : pair[0]);
 const tint = (hex, a) => {
   const n = parseInt(hex.slice(1), 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255;
@@ -635,7 +640,7 @@ function xpCard() {
     <div class="row">
       <div class="grow">
         <div style="font-size:13px;opacity:.85">Level ${p.level} · ${xp.toLocaleString()} XP</div>
-        <div style="font-size:18px;font-weight:800;margin-top:2px">${p.max ? "Every fruit unlocked!" : `${p.toNext} XP to unlock ${esc(zh(p.next.zh))} <span style="font-weight:600">${esc(p.next.py[idx])}</span>`}</div>
+        <div style="font-size:18px;font-weight:800;margin-top:2px">${p.max ? "Every fruit unlocked!" : `${p.toNext} XP to unlock ${esc(zh(p.next.zh))} <span style="font-weight:600">${esc(py(p.next.py[idx]))}</span>`}</div>
       </div>
       ${p.max ? avatar(state.me, 50, { flag: false }) : avatar(state.me, 50, { locked: true, flag: false, fruit: p.next.key })}
     </div>
@@ -930,7 +935,7 @@ function notesBlock(s) {
   return `
     ${vocab.length ? `<div class="vocab ${A?.mode === "pick" ? "picking" : ""}" role="table" aria-label="Vocabulary">${vocab.map((v, i) => {
       const box = A?.mode === "pick" && v.hanzi ? (inDeck(v) ? `<span class="vtick done" title="Already in your flashcards">✓</span>` : `<button type="button" class="vtick ${A.picked.has(i) ? "on" : ""}" data-zt="note-tick" data-i="${i}" aria-label="Choose ${esc(v.hanzi)}" aria-pressed="${A.picked.has(i)}"></button>`) : "";
-      return `<div class="vrow" role="row">${box}<span class="vz" role="cell">${esc(v.hanzi)}</span><span class="vp" role="cell">${esc(v.pinyin)}</span><span class="vm" role="cell">${esc(v.meaning)}${v.hsk?.level ? ` <span class="hskchip">HSK ${esc(v.hsk.level)}</span>` : ""}</span></div>`;
+      return `<div class="vrow" role="row">${box}<span class="vz" role="cell">${esc(v.hanzi)}</span><span class="vp" role="cell">${esc(py(v.pinyin))}</span><span class="vm" role="cell">${esc(v.meaning)}${v.hsk?.level ? ` <span class="hskchip">HSK ${esc(v.hsk.level)}</span>` : ""}</span></div>`;
     }).join("")}</div>` : ""}
     ${vocab.length && isBeta() ? noteAddBar(s, vocab, A, inDeck) : ""}
     ${n.body ? `<div class="notebody">${linkify(n.body)}</div>` : ""}
@@ -1383,7 +1388,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=118"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=119"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1532,7 +1537,7 @@ function memberView() {
   <header class="row" style="gap:16px">${avatar(p, 88)}
     <div class="grow"><div class="eyebrow">${host ? "Host" : "Member"}${me ? " · you" : ""}</div>
       <h1>${esc(p.display_name || "Member")}</h1>
-      <div style="font-size:14.5px;font-weight:700;color:var(--orange-ink);margin-top:4px">${esc(zh(info.zh))} <span style="font-weight:600">${esc(info.py[idx])}</span></div>
+      <div style="font-size:14.5px;font-weight:700;color:var(--orange-ink);margin-top:4px">${esc(zh(info.zh))} <span style="font-weight:600">${esc(py(info.py[idx]))}</span></div>
     </div>
   </header>
   ${full?.bio ? `<p class="bio">${esc(full.bio)}</p>` : me ? `<p class="small muted" style="margin:0">Add a short bio in <a href="#/me">Me</a> so others know a bit about you.</p>` : ""}
@@ -1838,7 +1843,7 @@ function ideaOverlay() {
 function profileView() {
   const d = draft(), info = fruitInfo(d.fruit), idx = trad() ? 1 : 0;
   const level = myLevel();
-  const changed = ["display_name", "fruit", "bg", "country", "chinese_level", "discord", "script", "bio", "sticker"]
+  const changed = ["display_name", "fruit", "bg", "country", "chinese_level", "discord", "script", "phonetic", "bio", "sticker"]
     .some((k) => (d[k] ?? null) !== (state.me[k] ?? null))
     || (isHost() && d.meet_name !== undefined && d.meet_name.trim() !== (state.meetName || ""));
   const stickerKeys = isHost() ? STICKERS.map((t) => t.key) : myStickers();
@@ -1848,7 +1853,7 @@ function profileView() {
     <div class="grow">
       <div class="eyebrow">${state.role === "admin" ? "Admin · all fruits" : state.role === "host" ? "Host · all fruits" : `Level ${level} · ${myXp().toLocaleString()} XP`}</div>
       <h1>${esc(d.display_name || "Me")}</h1>
-      <div style="font-size:15px;font-weight:700;color:var(--orange-ink);margin-top:4px">${zh(info.zh)} <span style="font-weight:600">${esc(info.py[idx])}</span></div>
+      <div style="font-size:15px;font-weight:700;color:var(--orange-ink);margin-top:4px">${zh(info.zh)} <span style="font-weight:600">${esc(py(info.py[idx]))}</span></div>
     </div>
     <button type="button" class="ideabtn" data-act="idea-open" aria-haspopup="dialog"><span>${BULB}</span>Idea box</button>
   </header>
@@ -1938,6 +1943,15 @@ function profileView() {
       </div>
     </div>
 
+    <div>
+      <h2 style="margin-bottom:8px">Pronunciation</h2>
+      <div class="seg" role="group" aria-label="Pronunciation">
+        <button type="button" data-act="phonetic" data-v="pinyin" aria-pressed="${(d.phonetic || "pinyin") === "pinyin"}">Pinyin</button>
+        <button type="button" data-act="phonetic" data-v="zhuyin" aria-pressed="${d.phonetic === "zhuyin"}">注音 Zhuyin</button>
+      </div>
+      <p class="tiny muted" style="margin:6px 0 0">Pinyin <span lang="zh-Latn">nǐ hǎo</span> or zhuyin (bopomofo) <span lang="zh">ㄋㄧˇ ㄏㄠˇ</span>, shown everywhere in the app: notes, flashcards, the HSK Temple, the Library, the Calligraphy School…</p>
+    </div>
+
     <button class="btn block" ${changed ? "" : "disabled"}>${changed ? "Save changes" : "Saved"}</button>
   </form>
 
@@ -1962,7 +1976,7 @@ function profileView() {
 async function saveProfile() {
   const d = draft();
   const patch = {};
-  for (const k of ["display_name", "fruit", "bg", "country", "chinese_level", "discord", "script", "bio", "sticker"]) patch[k] = d[k] ?? null;
+  for (const k of ["display_name", "fruit", "bg", "country", "chinese_level", "discord", "script", "phonetic", "bio", "sticker"]) patch[k] = d[k] ?? null;
   patch.display_name = String(patch.display_name || "").trim().slice(0, 40);
   patch.discord = String(patch.discord || "").trim().replace(/^@/, "").slice(0, 40);
   patch.bio = String(patch.bio || "").replace(/\s+/g, " ").trim().slice(0, BIO_MAX);
@@ -1989,7 +2003,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=118");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=119");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2003,7 +2017,7 @@ async function downloadNotesPdf(sid) {
         <div class="pdfmeta">${esc(date)} · ${fmtTime(a)}${s.host_name ? ` · host ${esc(s.host_name)}` : ""}${s.skill_level ? ` · ${esc(s.skill_level)}` : ""}</div></div></div>
       ${s.topic ? `<p class="pdfblock pdftopic">${esc(s.topic)}</p>` : ""}
       ${vocab.length ? `<h2 class="pdfblock">Vocabulary</h2>
-        <div class="vocab">${vocab.map((v) => `<div class="vrow pdfblock"><span class="vz">${esc(v.hanzi)}</span><span class="vp">${esc(v.pinyin)}</span><span class="vm">${esc(v.meaning)}</span></div>`).join("")}</div>` : ""}
+        <div class="vocab">${vocab.map((v) => `<div class="vrow pdfblock"><span class="vz">${esc(v.hanzi)}</span><span class="vp">${esc(py(v.pinyin))}</span><span class="vm">${esc(v.meaning)}</span></div>`).join("")}</div>` : ""}
       ${n.body.trim() ? `<h2 class="pdfblock">Sentences &amp; corrections</h2>
         <div class="pdfbody">${lines.map((l) => `<p class="pdfblock">${l.trim() ? esc(l) : "&nbsp;"}</p>`).join("")}</div>` : ""}
       <div class="pdffoot pdfblock">From the Mandarin Zest Club app · app.mandarinzest.com</div>`;
@@ -2555,11 +2569,12 @@ document.addEventListener("click", async (e) => {
     state.calDay = el.dataset.v; render();
   } else if (act === "toggle-in") {
     await toggleIn(el.dataset.id);
-  } else if (act === "fruit" || act === "bg" || act === "script") {
+  } else if (act === "fruit" || act === "bg" || act === "script" || act === "phonetic") {
     const d = draft();
     if (act === "fruit") d.fruit = el.dataset.key;
     if (act === "bg") d.bg = el.dataset.hex;
     if (act === "script") d.script = el.dataset.v;
+    if (act === "phonetic") d.phonetic = el.dataset.v;
     keepForm(() => render());
   } else if (act === "logout") {
     await sb.auth.signOut();
@@ -2887,7 +2902,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=118").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=119").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -2947,7 +2962,7 @@ function vsuggShow(input, items, more, q, keepScroll) {
   const el = document.createElement("div");
   el.className = "vsugg"; el.id = `vsugg-${i}`; el.setAttribute("role", "listbox"); el.setAttribute("aria-label", "Suggested words");
   el.innerHTML = `<div class="vslist">${items.map((w, j) => `<button type="button" class="vsopt" role="option" id="vsopt-${i}-${j}" data-j="${j}" tabindex="-1">
-    <b lang="zh">${esc(trad() ? w.hanzi_trad || w.hanzi : w.hanzi)}</b><span class="vsp">${esc(w.pinyin)}</span><span class="vsm">${esc(w.meaning)}</span><span class="vsl">HSK ${esc(w.level)}</span></button>`).join("")}</div>`
+    <b lang="zh">${esc(trad() ? w.hanzi_trad || w.hanzi : w.hanzi)}</b><span class="vsp">${esc(py(w.pinyin))}</span><span class="vsm">${esc(w.meaning)}</span><span class="vsl">HSK ${esc(w.level)}</span></button>`).join("")}</div>`
     + (more ? `<button type="button" class="vsmore" id="vsopt-${i}-more" tabindex="-1">Show more words</button>` : "")
     + `<div class="vsfoot">From the HSK lists · ↑↓ then Enter, or tap</div>`;
   el.addEventListener("mousedown", (e) => e.preventDefault()); // keep focus in the input
@@ -3441,7 +3456,7 @@ function reviewView() {
   <button type="button" class="ztcard ${R.flipped ? "flipped" : ""}" data-zt="flip" aria-label="${R.flipped ? "Answer shown" : "Show the answer"}">
     ${c.reps === 0 ? `<span class="ztnew">New</span>` : ""}
     <span class="ztzh">${esc(cardZh(c))}</span>
-    ${R.flipped ? `<span class="ztpy">${esc(c.pinyin)}</span><span class="ztmean">${esc(c.meaning)}</span>${src ? `<span class="small muted">${src}</span>` : ""}` : `<span class="small muted">Say it out loud, then tap to check</span>`}
+    ${R.flipped ? `<span class="ztpy">${esc(py(c.pinyin))}</span><span class="ztmean">${esc(c.meaning)}</span>${src ? `<span class="small muted">${src}</span>` : ""}` : `<span class="small muted">Say it out loud, then tap to check</span>`}
   </button>
   ${R.flipped ? `<div class="ztgrades">${g.map(([t, v, cls]) => `<button type="button" class="${cls}" data-zt="grade" data-v="${v}"><b>${t}</b><small>${scheduled ? ivText(ztPreview(c, v)) : "practice"}</small></button>`).join("")}</div>`
     : `<button type="button" class="btn block" data-zt="flip">Show answer</button>`}
@@ -3459,7 +3474,7 @@ function templeView() {
     const inDeck = new Set(L.cards.flatMap((c) => [c.hanzi, c.hanzi_trad].filter(Boolean)));
     const tiles = words.slice(0, L.show).map((w) => {
       const s = statusOf(w, ws), z = wordZh(w), picked = L.pick?.has(w.id), owned = inDeck.has(w.hanzi);
-      return `<button type="button" class="zttile ${s} ${z.length > 2 ? "long" : ""} ${L.word === w.id ? "sel" : ""}" data-zt="${L.pick ? "tick" : "word"}" data-id="${w.id}" ${L.pick && s === "learned" ? "disabled" : ""} aria-label="${esc(z)} ${esc(w.pinyin)}">${esc(z)}${L.pick ? `<i class="tk ${picked ? "on" : ""}"></i>` : ""}</button>`;
+      return `<button type="button" class="zttile ${s} ${z.length > 2 ? "long" : ""} ${L.word === w.id ? "sel" : ""}" data-zt="${L.pick ? "tick" : "word"}" data-id="${w.id}" ${L.pick && s === "learned" ? "disabled" : ""} aria-label="${esc(z)} ${esc(py(w.pinyin))}">${esc(z)}${L.pick ? `<i class="tk ${picked ? "on" : ""}"></i>` : ""}</button>`;
     }).join("");
     const wsel = L.word && words.find((w) => w.id === L.word);
     if (wsel) {
@@ -3807,7 +3822,7 @@ function wodCard() {
     : `<div class="wodbtns"><button type="button" class="btn green small" data-wod="add">＋ Add to flashcards</button><button type="button" class="btn ghost small wodknow" data-wod="know">✓ I know this word</button></div>`;
   return `<section class="card wod" aria-label="Word of the day">
     <div class="row" style="align-items:center;gap:8px"><span class="eyebrow grow" style="margin:0">Word of the day · ${trad() ? "每日一詞" : "每日一词"}</span><span class="hskchip">HSK ${esc(w.level)}</span></div>
-    <div class="wodword"><span class="wodzh">${esc(wordZh(w))}</span><span class="wodpy">${esc(w.pinyin)}</span><button type="button" class="wodspeak" data-wod="say" aria-label="Listen">${SPEAK}</button></div>
+    <div class="wodword"><span class="wodzh">${esc(wordZh(w))}</span><span class="wodpy">${esc(py(w.pinyin))}</span><button type="button" class="wodspeak" data-wod="say" aria-label="Listen">${SPEAK}</button></div>
     <div class="small">${esc(w.meaning)}${w.types ? ` <span class="muted">· ${esc(w.types)}</span>` : ""}</div>
     ${actions}
   </section>`;
@@ -3934,7 +3949,7 @@ function libReadCount(id) { const r = libGet(id, "read") || {}; return Object.va
 function libTok(t, d, opts = {}) {
   const e = d[t];
   if (!e) return esc(t);
-  const inner = opts.py === "on" && e.p ? `<ruby>${esc(t)}<rt>${esc(e.p)}</rt></ruby>` : esc(t);
+  const inner = opts.py === "on" && e.p ? `<ruby>${esc(t)}<rt>${esc(py(e.p))}</rt></ruby>` : esc(t);
   return `<span class="lw" data-lw="${esc(t)}" role="button" tabindex="0">${inner}</span>`;
 }
 const libLine = (toks, d, opts) => toks.map((t) => libTok(t, d, opts)).join("");
@@ -3951,7 +3966,7 @@ function libPopHtml(id, w) {
   return `<div class="ztover lpopover" data-lib="popclose"><div class="ztsheet lpop" role="dialog" aria-label="${esc(w)}" data-stop>
     <button type="button" class="ztx" data-lib="popclose" aria-label="Close">×</button>
     <div class="lpophz">${esc(w)}</div>
-    <div class="lpoppy">${esc(e.p)}</div>
+    <div class="lpoppy">${esc(py(e.p))}</div>
     ${e.m ? `<div class="lpopm">${esc(e.m)}</div>` : ""}
     ${parts ? `<div class="lparts">${parts}</div>` : ""}
     <div class="row" style="gap:6px;flex-wrap:wrap">${e.l ? `<span class="ltag hsk">${hskTag(e.l)}</span>` : `<span class="ltag">Not in the HSK lists</span>`}${tag}</div>
@@ -4059,7 +4074,7 @@ function libBookView(meta) {
       <div class="lprog"><i style="width:${(nRead / c.chapters.length) * 100}%"></i></div><span class="small">${nRead} of ${c.chapters.length} chapters read</span>
       ${nRead < c.chapters.length ? `<a class="btn" href="${base}/ch/${c.chapters.findIndex((_, i) => !read[i])}">${nRead ? "Continue reading" : "Start reading"}</a>` : (c.exercises?.length ? `<a class="btn ghost" href="${base}/ex/0">Practise with the exercises</a>` : `<a class="btn ghost" href="${base}/ch/0">Read it again</a>`)}
     </div></div>
-    <details class="card lhow"${how} data-lib-how="${esc(id)}"><summary><b>How this book works</b></summary>${(c.how?.length ? c.how : LIB_HOW).map((p) => `<p class="small">${esc(p)}</p>`).join("")}</details>
+    <details class="card lhow"${how} data-lib-how="${esc(id)}"><summary><b>How this book works</b></summary>${(c.how?.length ? c.how : LIB_HOW).map((p) => `<p class="small">${esc(zhuyin() ? p.replace(/\bpinyin\b/g, "zhuyin").replace(/\bPinyin\b/g, "Zhuyin") : p)}</p>`).join("")}</details>
     ${c.chars?.length ? "" : "<!--"}<section class="lsec"><h2>Meet the characters <span class="zhsub">人物</span></h2><div class="lchars">${(c.chars || []).map((ch) => `<div class="lchar"><img src="icons/books/${esc(id)}-${esc(ch.key)}.png" alt=""><b>${esc(ch.zh)}${ch.py ? ` <span class="small muted">${esc(ch.py)}</span>` : ""}</b><span class="small muted">${esc(ch.desc)}</span></div>`).join("")}</div></section>${c.chars?.length ? "" : "-->"}
     <section class="lsec"><h2>Part ${part()} · The story</h2><div class="card llist">${c.chapters.map((ch, i) => row(`${base}/ch/${i}`, `<span class="lzh">${esc(libChLabel(c, i))} ${esc(ch.zh)}</span>`, `${esc(ch.en)} · about ${ch.mins} min · ${ch.words.length} new words`, read[i])).join("")}</div></section>
     ${c.culture?.length ? `<section class="lsec"><h2>Part ${part()} · Cultural background</h2><div class="card llist">${row(`${base}/culture`, libCtitle(c, id), c.culture.map((s) => esc(s.h)).join(" · "), libGet(id, "cultureSeen"))}</div></section>` : ""}
@@ -4074,7 +4089,7 @@ function libPager(base, sec, i, n, labels) {
 }
 function libPyToggle() {
   const v = libState().py;
-  return `<div class="lpyseg" role="group" aria-label="Pinyin above words"><span class="small muted">Pinyin</span>${[["on", "On"], ["off", "Off"]].map(([k, l]) => `<button type="button" data-lib="py" data-v="${k}" aria-pressed="${v === k}">${l}</button>`).join("")}</div>`;
+  return `<div class="lpyseg" role="group" aria-label="${zhuyin() ? "Zhuyin" : "Pinyin"} above words"><span class="small muted">${zhuyin() ? "Zhuyin" : "Pinyin"}</span>${[["on", "On"], ["off", "Off"]].map(([k, l]) => `<button type="button" data-lib="py" data-v="${k}" aria-pressed="${v === k}">${l}</button>`).join("")}</div>`;
 }
 function libChapterView(meta, i) {
   const id = meta.id, c = libBook(id), ch = c.chapters[i]; if (!ch) { location.hash = `#/learn/library/${id}`; return ""; }
@@ -4105,7 +4120,7 @@ function libChapterView(meta, i) {
 }
 function libWordRow(c, w) {
   const e = c.dict[w] || {}, inDeck = libInDeck(c, w);
-  return `<div class="lwrow"><button type="button" class="lwmain" data-lw="${esc(w)}"><b class="lzh">${esc(w)}</b><span class="lwpy">${esc(e.p || "")}</span><span class="lwm">${esc(e.m || "")}</span></button>
+  return `<div class="lwrow"><button type="button" class="lwmain" data-lw="${esc(w)}"><b class="lzh">${esc(w)}</b><span class="lwpy">${esc(py(e.p || ""))}</span><span class="lwm">${esc(e.m || "")}</span></button>
     ${e.l ? `<span class="ltag hsk">HSK ${esc(e.l)}</span>` : ""}
     ${inDeck ? `<span class="lwin" title="In your flashcards">✓</span>` : `<button type="button" class="lwadd" data-lib="addword" data-w="${esc(w)}" aria-label="Add ${esc(w)} to flashcards">+</button>`}</div>`;
 }
@@ -4126,7 +4141,7 @@ function libGrammarView(meta, i) {
   return `${libHead(meta, base, meta.title_zh)}
     <article class="lread"><div class="lchlabel">${trad() ? "語法" : "语法"} ${i + 1} · Grammar</div><h1 class="lcht" style="font-size:26px">${esc(g.title)}</h1>
       <div class="lpattern lzh">${esc(g.pattern)}</div><p>${esc(g.explain)}</p>
-      <div class="lexs">${g.ex.map((x) => `<div class="lex"><div class="lzh lexzh">${libLine(x.zh, c.dict, {})}</div><div class="lexpy">${esc(x.py)}</div><div class="small">${esc(x.en)}</div>${x.ch ? `<a class="ltag" href="${base}/ch/${x.ch - 1}">Ch. ${x.ch}</a>` : ""}</div>`).join("")}</div>
+      <div class="lexs">${g.ex.map((x) => `<div class="lex"><div class="lzh lexzh">${libLine(x.zh, c.dict, {})}</div><div class="lexpy">${esc(py(x.py))}</div><div class="small">${esc(x.en)}</div>${x.ch ? `<a class="ltag" href="${base}/ch/${x.ch - 1}">Ch. ${x.ch}</a>` : ""}</div>`).join("")}</div>
     </article>
     ${libPager(base, "grammar", i, c.grammar.length, (k) => `Grammar ${k + 1}`)}`;
 }
@@ -4242,9 +4257,9 @@ function owlTalk() {
   const S = libState(), wrap = document.querySelector(".lowlwrap"); if (!wrap) return;
   if (wrap.querySelector(".lbubble")) { clearTimeout(owlT); wrap.querySelector(".lbubble").remove(); wrap.querySelector(".lowl").classList.remove("talk"); return; } // tap again: close
   S.q = ((S.q ?? Math.floor(Math.random() * OWL_QUOTES.length)) + 1) % OWL_QUOTES.length;
-  const [zs, zt, py, en, ref] = OWL_QUOTES[S.q];
+  const [zs, zt, qpy, en, ref] = OWL_QUOTES[S.q];
   wrap.querySelector(".lbubble")?.remove();
-  wrap.insertAdjacentHTML("beforeend", `<div class="lbubble" role="status"><div class="lbz">${trad() ? zt : zs}</div><div class="lbp">${esc(py)}</div><div class="lbe">${esc(en)}</div><div class="lbr">— ${trad() ? "孔子《論語》" : "孔子《论语》"} ${ref}</div></div>`);
+  wrap.insertAdjacentHTML("beforeend", `<div class="lbubble" role="status"><div class="lbz">${trad() ? zt : zs}</div><div class="lbp">${esc(py(qpy))}</div><div class="lbe">${esc(en)}</div><div class="lbr">— ${trad() ? "孔子《論語》" : "孔子《论语》"} ${ref}</div></div>`);
   wrap.querySelector(".lowl").classList.add("talk");
   clearTimeout(owlT); owlT = setTimeout(() => { wrap.querySelector(".lbubble")?.remove(); wrap.querySelector(".lowl")?.classList.remove("talk"); }, 9000);
 }
@@ -4411,7 +4426,7 @@ async function cgRemember(t) {
   if (data?.length) await sb.from("char_recent").delete().eq("user_id", state.user.id).in("text", data.map((r) => r.text));
 }
 let cgHW = null;
-const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=118")).default);
+const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=119")).default);
 const cgStrokes = async (c) => {
   const S = cgState(); if (S.data.has(c)) return S.data.get(c);
   const HW = await cgLib(); const d = await HW.loadCharacterData(c).catch(() => null);
@@ -4420,7 +4435,7 @@ const cgStrokes = async (c) => {
 
 async function cgLoad(text) {
   const S = cgState();
-  S.text = text; S.info = new Map(); S.word = null; S.err = null; S.idx = 0; S.k = 0; S.playing = false; S.run++; S.finished = null;
+  S.text = text; S.loading = true; S.info = new Map(); S.word = null; S.err = null; S.idx = 0; S.k = 0; S.playing = false; S.run++; S.finished = null;
   const chars = [...new Set(text)];
   try {
     const [{ data, error }, ...strokes] = await Promise.all([sb.rpc("char_lookup", { p_text: text }), ...chars.map(cgStrokes)]);
@@ -4432,7 +4447,7 @@ async function cgLoad(text) {
     if (missing.length === chars.length) S.err = "nodata";
     else { if (missing.length) toast(`No stroke data for ${missing.join(" ")}.`); cgRemember(text); }
   } catch (e) { console.error(e); if (S.text === text) S.err = "load"; }
-  if (S.text === text) render();
+  if (S.text === text) { S.loading = false; render(); }
 }
 
 // ---- Character box: data and spaced repetition ----
@@ -4636,7 +4651,8 @@ function calligView(parts) {
   if (t === "pack") return cgPackView(mode);
   const text = cgCJK(t);
   if (!text) return cgHomeView();
-  if (S.text !== text) { cgLoad(text); return `${cgHead("#/learn/callig", "Calligraphy School")}<p class="muted small">Opening ${esc(text)}…</p>`; }
+  if (S.text !== text) cgLoad(text);
+  if (S.loading) return `${cgHead("#/learn/callig", "Calligraphy School")}<p class="muted small">Opening ${esc(text)}…</p>`;
   if (S.err) return `${cgHead("#/learn/callig", "Calligraphy School")}${cgSearch(text)}<div class="card"><b>${S.err === "nodata" ? "No stroke order for that yet" : "Couldn't load that character"}</b><p class="small muted" style="margin:4px 0 0">${S.err === "nodata" ? "We have about 9,500 common characters, simplified and traditional. Try another one." : "Check your connection and try again."}</p></div>`;
   if (S.idx >= text.length) S.idx = 0;
   if (!S.data.get(text[S.idx])) S.idx = [...text].findIndex((c) => S.data.get(c));
@@ -4678,7 +4694,7 @@ function cgPackView(id) {
   const missing = list.filter((x) => !byCh.has(x.ch));
   const tiles = list.map((x) => { const r = byCh.get(x.ch), cls = !r ? "out" : cgMastered(r) ? "m" : `s${r.stage}`;
     return sel ? `<button type="button" class="cgbtile ${cls} ${sel.has(x.ch) ? "sel" : ""}" data-cg="psel" data-c="${esc(x.ch)}" aria-pressed="${sel.has(x.ch)}">${esc(x.ch)}</button>`
-      : `<a class="cgbtile ${cls}" href="${cgHref(x.ch)}" title="${esc(x.pinyin)} · ${esc(x.meaning)}">${esc(x.ch)}</a>`; }).join("");
+      : `<a class="cgbtile ${cls}" href="${cgHref(x.ch)}" title="${esc(py(x.pinyin))} · ${esc(x.meaning)}">${esc(x.ch)}</a>`; }).join("");
   const bar = sel ? `<div class="cgselbar"><span class="small"><b>${sel.size}</b> selected</span>
       <button type="button" class="linkbtn" data-cg="pselall">${sel.size === list.length ? "Select none" : "Select all"}</button>
       <button type="button" class="btn small" data-cg="padd" ${sel.size ? "" : "disabled"}>Add to my box</button>
@@ -4717,7 +4733,7 @@ function cgInfoCard(ch, d) {
     other ? `<a class="ltag cgalt" href="${cgHref([...S.text].map((c) => { const x = S.info.get(c); return x?.trad || x?.simp || c; }).join(""))}">${i.trad ? "Traditional" : "Simplified"} <span class="cgzh">${esc(other)}</span> ›</a>` : ""].join("");
   const inBox = cgBoxHas(ch);
   return `<div class="card cginfo">
-    <div class="cginfotop"><span class="cgzh cgbig">${esc(ch)}</span><b class="cgpy">${esc(i.pinyin || "")}</b><span class="muted">${esc(i.meaning || "")}</span></div>
+    <div class="cginfotop"><span class="cgzh cgbig">${esc(ch)}</span><b class="cgpy">${esc(py(i.pinyin || ""))}</b><span class="muted">${esc(i.meaning || "")}</span></div>
     <div class="row" style="gap:6px;flex-wrap:wrap">${tags}</div>
     ${S.rad && i.radical && i.radical !== ch && d.radStrokes?.length ? `<p class="tiny muted" style="margin:0">The radical's strokes turn green.</p>` : ""}
     <div class="row" style="gap:8px;flex-wrap:wrap"><a class="btn" href="${cgHref(S.text, true)}">${ICON_CG.brush} Write it myself</a>
@@ -4730,7 +4746,7 @@ function cgWatchView() {
   cgState().finished = null;
   const S = cgState(), ch = S.text[S.idx], d = S.data.get(ch), n = d.strokes.length;
   const tabs = S.text.length > 1 ? `<div class="cgtabs" role="group" aria-label="Characters">${[...S.text].map((c, j) => `<button type="button" class="cgtab" data-cg="tab" data-i="${j}" aria-pressed="${j === S.idx}" ${S.data.get(c) ? "" : "disabled"}>${esc(c)}</button>`).join("")}
-    ${S.word ? `<span class="small muted">${esc(S.word.pinyin)} · ${esc(S.word.meaning)}</span>` : ""}</div>` : "";
+    ${S.word ? `<span class="small muted">${esc(py(S.word.pinyin))} · ${esc(S.word.meaning)}</span>` : ""}</div>` : "";
   const strip = [...Array(n)].map((_, i) => `<button type="button" class="cgstep ${i === S.k - 1 ? "on" : ""}" data-cg="jump" data-i="${i + 1}" aria-label="Up to stroke ${i + 1}">${cgMini(d, i, i, S.rad)}<span>${i + 1}</span></button>`).join("");
   const player = `<section class="card cgplayer">
     <div class="cggridwrap">${cgPlayer(d, ch)}</div>
@@ -4804,7 +4820,7 @@ function cgBoxView() {
     : `<div class="row between" style="align-items:center"><span class="tiny muted">Tap a character for its stroke order. A dot means it's in today's round.</span><button type="button" class="btn small ghost" data-cg="bsel">Select</button></div>`;
   return `${head}
     <div class="cgboxhead">${CG_CHEST}<p class="small muted" style="margin:0">Your own writing deck, separate from the Flashcard Center. Each character starts with its outline, then only its radical, then you write it from memory. Good writing sends it further into the future.</p></div>
-    <section class="card cgboxdue">${due.length ? `<div><b style="font-size:18px">${due.length} to write today</b><br><span class="small muted">You see the pinyin and the meaning, and write the character.${waiting > due.filter(cgIsNew).length ? ` ${waiting - due.filter(cgIsNew).length} new ones are waiting: they come ${CG_NEW_PER_DAY} a day.` : ""}</span></div><a class="btn" href="#/learn/callig/box/review">Start writing</a>`
+    <section class="card cgboxdue">${due.length ? `<div><b style="font-size:18px">${due.length} to write today</b><br><span class="small muted">You see the ${pyName()} and the meaning, and write the character.${waiting > due.filter(cgIsNew).length ? ` ${waiting - due.filter(cgIsNew).length} new ones are waiting: they come ${CG_NEW_PER_DAY} a day.` : ""}</span></div><a class="btn" href="#/learn/callig/box/review">Start writing</a>`
       : `<div><b>All written for today</b><br><span class="small muted">${box.length ? "Come back tomorrow, or look up a new character to add." : "Look up a character in the School and tap “Add to my character box”."}</span></div><a class="btn ghost" href="#/learn/callig">Look up a character</a>`}</section>
     ${box.length ? `<section><div class="cglegend"><span><i class="s0"></i>Outline ${cnt[0]}</span><span><i class="s1"></i>Radical ${cnt[1]}</span><span><i class="s2"></i>From memory ${cnt[2]}</span><span><i class="m"></i>Mastered ${mast}</span></div>
       ${bar}<div class="cgbtiles" style="margin-top:10px">${tiles}</div>
@@ -4822,13 +4838,13 @@ function cgReviewView() {
   if (!r) { R.queue.shift(); return cgReviewView(); }
   if (!d) { cgStrokes(ch).then((x) => { if (!x) { R.queue.shift(); toast(`No stroke data for ${ch}.`); } render(); }); return `${head}<p class="muted small">Opening ${esc(ch)}…</p>`; }
   const n = d.strokes.length, left = R.queue.length;
-  const prompt = `<div class="cgprompt"><b class="cgpy">${esc(r.pinyin || "?")}</b><span>${esc(r.meaning || "")}</span><span class="tiny muted">${n} strokes</span></div>`;
+  const prompt = `<div class="cgprompt"><b class="cgpy">${esc(py(r.pinyin) || "?")}</b><span>${esc(r.meaning || "")}</span><span class="tiny muted">${n} strokes</span></div>`;
   if (R.result) {
     const g = R.result.grade, msg = ["Write it again soon", "Not bad", "Perfect"][g];
     return `${head}<section class="card cgdone">
       <div class="cgdonegrid">${cgMini(d, n, -1, false)}<span class="cgseal ${g === 2 ? "" : "two"}" aria-hidden="true">${g === 2 ? "好" : g === 1 ? "不错" : "加油"}</span></div>
       <h2>${msg}</h2>
-      <p class="muted" style="margin:0"><span class="cgzh">${esc(ch)}</span> · ${esc(r.pinyin)} · ${R.result.forgot ? "you peeked" : `${R.result.mistakes} mistake${R.result.mistakes === 1 ? "" : "s"}`}</p>
+      <p class="muted" style="margin:0"><span class="cgzh">${esc(ch)}</span> · ${esc(py(r.pinyin))} · ${R.result.forgot ? "you peeked" : `${R.result.mistakes} mistake${R.result.mistakes === 1 ? "" : "s"}`}</p>
       <p class="small" style="margin:0">${R.result.stageUp ? `Next time: <b>${esc(CG_STAGE[R.result.u.stage].toLowerCase())}</b>. ` : R.result.stageDown ? `Back to <b>${esc(CG_STAGE[R.result.u.stage].toLowerCase())}</b>. ` : ""}Comes back <b>${cgWhen(R.result.u.interval_days)}</b>.</p>
       <button type="button" class="btn block" data-cg="rvnext">${left > 1 || R.result.u.interval_days <= 0 ? "Next character" : "Finish"}</button>
     </section>`;
