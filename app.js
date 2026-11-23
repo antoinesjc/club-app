@@ -1,12 +1,12 @@
-import { createClient } from "./vendor/supabase.js?v=125";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=125";
-import { COUNTRIES } from "./countries.js?v=125";
-import { toZhuyin } from "./zhuyin.js?v=125";
-import { ORACLE } from "./course-oracle.js?v=125";
+import { createClient } from "./vendor/supabase.js?v=126";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=126";
+import { COUNTRIES } from "./countries.js?v=126";
+import { toZhuyin } from "./zhuyin.js?v=126";
+import { ORACLE } from "./course-oracle.js?v=126";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=125";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=126";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -1389,7 +1389,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=125"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=126"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -2004,7 +2004,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=125");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=126");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2903,7 +2903,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=125").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=126").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -3379,7 +3379,7 @@ function townView() {
   const toggle = `<div class="seg ztseg" role="group" aria-label="Show Zest Town as"><button type="button" data-zt="view" data-v="town" aria-pressed="${!list}">Town</button><button type="button" data-zt="view" data-v="list" aria-pressed="${list}">List</button></div>`;
   let body;
   if (list) body = `${treeCard(st, wide())}${todayCard(st)}<h2 style="margin:4px 0 0">Places</h2><div class="ztplaces">${placeCards(wide())}</div>${soonCards(wide()) ? `<h2 style="margin:4px 0 0">Opening soon</h2><div class="ztplaces">${soonCards(wide())}</div>` : ""}`;
-  else if (wide()) body = `<div class="ztwide">${townMap(st)}<div class="ztside">${treeCard(st)}${todayCard(st)}${placeCards()}</div></div>`;
+  else if (wide()) body = `<div class="ztwide town">${townMap(st)}<div class="ztside"><div class="ztsidein">${treeCard(st)}${todayCard(st)}${placeCards()}</div></div></div>`;
   else body = `${townMap(st)}${todayCard(st)}`;
   setTimeout(ztHop, 50);
   return `${ztHeader(st)}${toggle}${body}${L.sheet === "tree" ? treeSheet(st) : ""}${st.wilted && L.sheet !== "tree" ? wiltedModal(st) : ""}`;
@@ -4427,7 +4427,7 @@ async function cgRemember(t) {
   if (data?.length) await sb.from("char_recent").delete().eq("user_id", state.user.id).in("text", data.map((r) => r.text));
 }
 let cgHW = null;
-const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=125")).default);
+const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=126")).default);
 const cgStrokes = async (c) => {
   const S = cgState(); if (S.data.has(c)) return S.data.get(c);
   const HW = await cgLib(); const d = await HW.loadCharacterData(c).catch(() => null);

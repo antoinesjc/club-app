@@ -1293,3 +1293,8 @@ button.cgbtile.out { border: 1.5px dashed #d8c9bc; }
 .cgchips { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
 .cgchips a { text-decoration: none; color: var(--ink); background: #f4ece4; border-radius: 10px; padding: 6px 10px; font-size: 22px; }
 i.py { font-style: normal; color: #8a6a55; font-weight: 600; }
+/* Desktop town: the side panel is as tall as the map and scrolls on its own, so the map stays in view */
+.ztwide.town { align-items: stretch; }
+.ztwide.town .ztside { position: relative; }
+.ztwide.town .ztsidein { position: absolute; inset: 0; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 12px; padding: 0 6px 12px 0; scrollbar-width: thin; scrollbar-color: #d8c9bc transparent; }
+.ztwide.town .ztsidein > * { flex: none; }
