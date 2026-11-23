@@ -1,12 +1,12 @@
-import { createClient } from "./vendor/supabase.js?v=133";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=133";
-import { COUNTRIES } from "./countries.js?v=133";
-import { toZhuyin } from "./zhuyin.js?v=133";
-import { ORACLE, ORACLE_T } from "./course-oracle.js?v=133";
+import { createClient } from "./vendor/supabase.js?v=134";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=134";
+import { COUNTRIES } from "./countries.js?v=134";
+import { toZhuyin } from "./zhuyin.js?v=134";
+import { ORACLE, ORACLE_T } from "./course-oracle.js?v=134";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=133";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=134";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -1390,7 +1390,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=133"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=134"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -2006,7 +2006,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=133");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=134");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2905,7 +2905,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=133").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=134").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -3033,13 +3033,13 @@ const ZT_MAP = { // town4-*.png (20 Nov): sandy plots, stone paths, flowers, fen
     trees: [[-4, -6, 1], [178, -6, 0], [196, -6, 1], [28, -4, 0], [214, 2, 1], [12, 4, 1], [2, 18, 0], [222, 30, 0], [216, 80, 1], [2, 82, 1], [222, 100, 0], [-2, 104, 0], [0, 188, 1], [18, 196, 1], [150, 196, 1], [222, 196, 0], [34, 196, 0], [170, 200, 0]],
     hops: [[71, 115], [76, 141], [146, 141], [151, 115], [127, 151], [93, 151]] },
 };
-// With the Post Office (town6 backgrounds): on phones it sits next to the Sticker Gallery (which moves left);
+// With the Post Office (town7 backgrounds): on phones it sits next to the Sticker Gallery (which moves left);
 // on computers the town is 30px taller and the post office sits just under the river. Trees over its lot are hidden.
 function ztMap(k) {
   const M = ZT_MAP[k];
   if (!postOpen()) return { ...M, bg: `town4-${k}` };
   const [px, py] = M.post, clear = ([x, y, big]) => x + (big ? 24 : 17) < px - 30 || x > px + 30 || y + (big ? 30 : 22) < py - 20 || y > py + 30;
-  return { ...M, bg: `town6-${k}`, h: M.h + (k === "phone" ? 0 : 30), trees: M.trees.filter(clear), ...(k === "phone" ? { gallery: [30, 236] } : {}) };
+  return { ...M, bg: `town7-${k}`, h: M.h + (k === "phone" ? 0 : 30), trees: M.trees.filter(clear), ...(k === "phone" ? { gallery: [30, 236] } : {}) };
 }
 const ZT_STAGES = [ // [en, simplified, traditional, first day]
   ["Seed", "种子", "種子", 0], ["Sprout", "嫩芽", "嫩芽", 1], ["Seedling", "幼苗", "幼苗", 7], ["Sapling", "小树", "小樹", 30],
@@ -4652,7 +4652,7 @@ async function cgRemember(t) {
   if (data?.length) await sb.from("char_recent").delete().eq("user_id", state.user.id).in("text", data.map((r) => r.text));
 }
 let cgHW = null;
-const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=133")).default);
+const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=134")).default);
 const cgStrokes = async (c) => {
   const S = cgState(); if (S.data.has(c)) return S.data.get(c);
   const HW = await cgLib(); const d = await HW.loadCharacterData(c).catch(() => null);
