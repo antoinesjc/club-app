@@ -1,12 +1,12 @@
-import { createClient } from "./vendor/supabase.js?v=139";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=139";
-import { COUNTRIES } from "./countries.js?v=139";
-import { toZhuyin } from "./zhuyin.js?v=139";
-import { ORACLE, ORACLE_T } from "./course-oracle.js?v=139";
+import { createClient } from "./vendor/supabase.js?v=140";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=140";
+import { COUNTRIES } from "./countries.js?v=140";
+import { toZhuyin } from "./zhuyin.js?v=140";
+import { ORACLE, ORACLE_T } from "./course-oracle.js?v=140";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=139";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=140";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -1390,7 +1390,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=139"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=140"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -2007,7 +2007,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=139");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=140");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2915,7 +2915,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=139").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=140").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -3824,6 +3824,8 @@ function forestRows(list) {
     <span class="grow"><b>${esc(m.name || "Member")}</b>${m.user_id === state.user.id ? " (you)" : ""}<br><span class="small muted">here ${esc(ago(m.last_seen).toLowerCase())}</span></span>
     <span class="ztleafn">${ZT_LEAF}${m.streak}</span></button>`).join("");
 }
+// Magical Forest → Club Discord (same link as "Chat on Discord").
+const forestDiscord = () => `<a class="chatcard thin" style="display:flex" href="${DISCORD_CHAT}" target="_blank" rel="noopener">${ICON.chat}<b class="grow">Talk to the community on Discord</b><span aria-hidden="true">↗</span></a>`;
 function forestView() {
   const F = state.lu.forest, st = ztStreak();
   forestLoad();
@@ -3834,10 +3836,10 @@ function forestView() {
   const sel = F.sel && forestMember(F.sel);
   const toggle = `<div class="seg ztseg" role="group" aria-label="Show the forest as"><button type="button" data-zt="fview" data-v="forest" aria-pressed="${F.view !== "list"}">Forest</button><button type="button" data-zt="fview" data-v="list" aria-pressed="${F.view === "list"}">List</button></div>`;
   setTimeout(forestHop, 60);
-  if (F.view === "list") return `${head}${toggle}${forestMsgBox()}<div class="card" style="gap:0;padding:4px 14px">${forestRows(list) || `<p class="small muted">Nobody yet today.</p>`}</div>${sel ? (wide() ? `<div style="max-width:420px">${forestCard(sel)}</div>` : `<div class="ztover" data-zt="mem" data-id=""><div class="ztsheet" data-stop>${forestCard(sel)}</div></div>`) : ""}`;
-  if (wide()) return `${head}${toggle}<div class="ztwide">${forestMap(list)}<div class="ztside">${sel ? forestCard(sel) : `<div class="card"><p class="small muted" style="margin:0">Click a fruit to see their streak tree and send them a hongbao.</p></div>`}${forestMsgBox()}
+  if (F.view === "list") return `${head}${toggle}${forestMsgBox()}${forestDiscord()}<div class="card" style="gap:0;padding:4px 14px">${forestRows(list) || `<p class="small muted">Nobody yet today.</p>`}</div>${sel ? (wide() ? `<div style="max-width:420px">${forestCard(sel)}</div>` : `<div class="ztover" data-zt="mem" data-id=""><div class="ztsheet" data-stop>${forestCard(sel)}</div></div>`) : ""}`;
+  if (wide()) return `${head}${toggle}<div class="ztwide">${forestMap(list)}<div class="ztside">${forestDiscord()}${sel ? forestCard(sel) : `<div class="card"><p class="small muted" style="margin:0">Click a fruit to see their streak tree and send them a hongbao.</p></div>`}${forestMsgBox()}
     ${list.length ? `<div class="card" style="gap:0;padding:6px 14px"><b style="padding:6px 0">Here today · ${list.length}</b>${forestRows(list)}</div>` : ""}</div></div>`;
-  return `${head}${toggle}${forestMap(list)}${forestMsgBox()}${sel ? `<div class="ztover" data-zt="mem" data-id=""><div class="ztsheet" data-stop>${forestCard(sel)}</div></div>` : ""}`;
+  return `${head}${toggle}${forestMap(list)}${forestMsgBox()}${forestDiscord()}${sel ? `<div class="ztover" data-zt="mem" data-id=""><div class="ztsheet" data-stop>${forestCard(sel)}</div></div>` : ""}`;
 }
 // Your message in the forest: Chinese only (traditional or simplified), up to 30 characters. Shown over your fruit when people arrive.
 const FOREST_MSG_OK = /^[\u3400-\u4dbf\u4e00-\u9fff\u3000-\u303f\uff01\uff08\uff09\uff0c\uff1a\uff1b\uff1f\uff5e\u2026\u2014\u00b7\u201c\u201d\u2018\u2019 ]+$/;
@@ -4921,7 +4923,7 @@ async function cgRemember(t) {
   if (data?.length) await sb.from("char_recent").delete().eq("user_id", state.user.id).in("text", data.map((r) => r.text));
 }
 let cgHW = null;
-const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=139")).default);
+const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=140")).default);
 const cgStrokes = async (c) => {
   const S = cgState(); if (S.data.has(c)) return S.data.get(c);
   const HW = await cgLib(); const d = await HW.loadCharacterData(c).catch(() => null);
