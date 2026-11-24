@@ -1,12 +1,12 @@
-import { createClient } from "./vendor/supabase.js?v=137";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=137";
-import { COUNTRIES } from "./countries.js?v=137";
-import { toZhuyin } from "./zhuyin.js?v=137";
-import { ORACLE, ORACLE_T } from "./course-oracle.js?v=137";
+import { createClient } from "./vendor/supabase.js?v=138";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=138";
+import { COUNTRIES } from "./countries.js?v=138";
+import { toZhuyin } from "./zhuyin.js?v=138";
+import { ORACLE, ORACLE_T } from "./course-oracle.js?v=138";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=137";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=138";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -1390,7 +1390,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=137"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=138"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -2007,7 +2007,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=137");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=138");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2906,7 +2906,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=137").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=138").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -3372,7 +3372,7 @@ function soonCards(big) {
 function townMap(st) {
   const k = wide() ? "wide" : "phone", M = ztMap(k), pct = (x, w) => `${(x / w) * 100}%`;
   const at = (x, y) => `left:${pct(x, M.w)};top:${pct(y, M.h)}`;
-  const dueN = ztQueueAll().length, fruit = myFruitKey(), h0 = M.hops[0];
+  const dueN = ztQueueAll().length, fruit = myFruitKey(), h0 = ztPosFor("fruit", k);
   return `<div class="ztmap ${k}" style="aspect-ratio:${M.w}/${M.h}">
     ${ztImg(M.bg, "ztbg")}
     ${[["house", 21, 18, 43, 33, "a", "#/learn/cards", "Flashcard Center"], ["temple", 23, 19, 46, 36, "a", "#/learn/temple", "HSK Temple"], ["gallery", 21, 18, 42, 34, "a", "#/learn/gallery", "Sticker Gallery"],
@@ -3385,7 +3385,7 @@ function townMap(st) {
     ${(() => { const [x, y, sz] = M.fsign, k = sz / 24; return `<a class="ztsignwrap" href="#/learn/forest" style="${at(x, y)};width:${pct(sz, M.w)}" aria-label="To the Magical Forest">${ztImg("sign-forest")}<span class="ztsigntext" style="width:${(16 / 24) * 100}%;height:${(11 / 18) * 100}%;font-size:${(k * 1.75 / M.w) * 100}cqw">MAGICAL<br>FOREST</span></a>`; })()}
     ${M.trees.map(([x, y, big], i) => `<img class="px ztbush" src="icons/zt/tree4-${big ? "big" : "small"}.png" alt="" draggable="false" style="${at(x, y)};width:${pct(big ? 24 : 17, M.w)};animation-delay:-${(i * 0.7) % 3}s">`).join("")}
     <button type="button" class="zttreebtn" data-zt="sheet" style="${at(...M.tree)};width:${pct(42, M.w)}" aria-label="Your streak tree">${treeImg(st)}</button>
-    ${qlOpen() ? (() => { qlLoad(); const [qx, qy] = M.hops[qlAt % M.hops.length]; return `<button type="button" class="ztqilin" data-ql="open" style="${at(qx, qy)};width:${pct(26, M.w)}" aria-label="The qilin: daily, weekly and monthly challenges">${qlBang() ? `<span class="qlbang" aria-hidden="true">!</span>` : ""}${ztImg("qilin-0", "q0")}${ztImg("qilin-1", "q1")}</button>`; })() : ""}
+    ${qlOpen() ? (() => { qlLoad(); const [qx, qy] = ztPosFor("qilin", k); return `<button type="button" class="ztqilin" data-ql="open" style="${at(qx, qy)};width:${pct(26, M.w)}" aria-label="The qilin: daily, weekly and monthly challenges">${qlBang() ? `<span class="qlbang" aria-hidden="true">!</span>` : ""}${ztImg("qilin-0", "q0")}${ztImg("qilin-1", "q1")}</button>`; })() : ""}
     ${st.wilted ? "" : `<button type="button" class="ztfruit" data-zt="cheer" style="${at(...h0)};width:${pct(18, M.w)}" aria-label="Your fruit"><span class="ztbubble" hidden></span>${ztImg("fruit-" + fruit)}</button>`}
     <a class="ztlabel" href="#/learn/cards" style="${at(M.house[0], M.house[1] + 15)}" aria-label="Flashcard Center, ${dueN} due">FLASHCARDS${dueN ? `<em>${dueN}</em>` : ""}</a>
     <a class="ztlabel" href="#/learn/temple" style="${at(M.temple[0], M.temple[1] + 17)}" aria-label="HSK Temple">HSK TEMPLE</a>
@@ -3573,24 +3573,92 @@ async function ztMarkKnown(words, known) {
   return n;
 }
 
-// Fruit hopping around the plaza
-let ztHopTimer = null, ztHopAt = 0;
-function ztHop() {
-  if (ztHopTimer || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-  ztHopTimer = setInterval(() => {
-    const f = document.querySelector(".ztfruit"), map = f?.closest(".ztmap");
-    if (!f) { clearInterval(ztHopTimer); ztHopTimer = null; return; }
-    if (f.classList.contains("talk")) return;
-    const M = ztMap(map.classList.contains("wide") ? "wide" : "phone");
-    const prev = M.hops[ztHopAt % M.hops.length];
-    ztHopAt = (ztHopAt + 1 + Math.floor(Math.random() * 2)) % M.hops.length;
-    const [x, y] = M.hops[ztHopAt];
-    f.classList.toggle("flip", x < prev[0]);
-    f.classList.add("hopping");
-    f.style.left = `${(x / M.w) * 100}%`; f.style.top = `${(y / M.h) * 100}%`;
-    setTimeout(() => f.classList.remove("hopping"), 1500);
-  }, 2600);
+// Walking around town: your fruit and the qilin each wander on their own over the town's grass and paths.
+// ZT_WALK = spots where a character can stand (left/top in map units on a g-unit grid, flat [x, y, x, y…]), worked
+// out from the town7 backgrounds: grass, paths and plots, no buildings, river (the bridge is the only way across),
+// streak tree, trees or forest sign. Redo it when the town art changes (script walk2.py, kept outside the repo).
+const ZT_WALK = { phone: { g: 3, p: [68,36,71,36,74,36,77,36,80,36,83,36,86,36,14,39,17,39,20,39,23,39,26,39,29,39,32,39,65,39,68,39,71,39,74,39,77,39,80,39,83,39,86,39,89,39,11,42,14,42,17,42,20,42,23,42,26,42,29,42,32,42,65,42,68,42,71,42,74,42,77,42,80,42,83,42,86,42,89,42,92,42,95,42,98,42,101,42,-4,45,-1,45,2,45,5,45,8,45,11,45,14,45,17,45,20,45,23,45,26,45,29,45,32,45,65,45,68,45,71,45,74,45,77,45,80,45,83,45,86,45,89,45,92,45,95,45,98,45,101,45,-4,48,-1,48,2,48,5,48,8,48,11,48,14,48,17,48,20,48,23,48,26,48,29,48,32,48,65,48,68,48,71,48,74,48,77,48,80,48,83,48,86,48,89,48,92,48,95,48,98,48,101,48,-4,51,-1,51,2,51,5,51,8,51,11,51,14,51,17,51,20,51,23,51,26,51,74,51,77,51,80,51,83,51,86,51,89,51,92,51,95,51,98,51,101,51,-4,54,-1,54,2,54,5,54,8,54,11,54,14,54,17,54,74,54,77,54,80,54,83,54,86,54,89,54,92,54,95,54,98,54,101,54,-4,57,-1,57,2,57,5,57,8,57,11,57,14,57,17,57,74,57,77,57,80,57,83,57,86,57,89,57,92,57,95,57,98,57,101,57,-4,60,-1,60,2,60,5,60,8,60,11,60,14,60,17,60,74,60,77,60,80,60,83,60,86,60,89,60,92,60,95,60,98,60,101,60,5,63,8,63,11,63,14,63,17,63,20,63,23,63,26,63,74,63,77,63,80,63,83,63,86,63,89,63,92,63,95,63,98,63,101,63,5,66,8,66,11,66,14,66,17,66,20,66,23,66,26,66,74,66,77,66,80,66,83,66,86,66,89,66,92,66,95,66,98,66,101,66,-4,69,-1,69,2,69,5,69,8,69,11,69,14,69,17,69,20,69,23,69,26,69,74,69,77,69,80,69,83,69,86,69,98,69,101,69,-4,72,-1,72,2,72,5,72,8,72,11,72,14,72,17,72,20,72,23,72,26,72,74,72,77,72,80,72,83,72,86,72,98,72,101,72,-4,75,-1,75,2,75,5,75,8,75,11,75,14,75,17,75,20,75,23,75,26,75,74,75,77,75,80,75,83,75,86,75,98,75,101,75,-4,78,-1,78,2,78,5,78,8,78,11,78,14,78,17,78,20,78,23,78,26,78,74,78,77,78,80,78,83,78,86,78,89,78,92,78,95,78,98,78,101,78,-4,81,5,81,8,81,11,81,14,81,17,81,20,81,23,81,26,81,29,81,32,81,35,81,38,81,41,81,44,81,47,81,50,81,53,81,56,81,59,81,62,81,71,81,74,81,77,81,-4,84,5,84,8,84,11,84,14,84,17,84,20,84,23,84,26,84,29,84,41,84,44,84,47,84,50,84,53,84,56,84,59,84,62,84,74,84,77,84,-4,87,8,87,11,87,14,87,17,87,20,87,23,87,26,87,29,87,41,87,44,87,47,87,50,87,53,87,56,87,59,87,62,87,74,87,77,87,-4,90,8,90,11,90,14,90,17,90,20,90,23,90,26,90,29,90,41,90,44,90,47,90,50,90,53,90,56,90,59,90,62,90,65,90,68,90,71,90,74,90,77,90,47,93,50,93,47,96,50,96,47,99,50,99,47,102,50,102,47,105,50,105,47,108,50,108,47,111,50,111,47,114,50,114,47,117,50,117,47,120,50,120,47,123,50,123,47,126,50,126,5,129,8,129,11,129,14,129,17,129,20,129,23,129,26,129,29,129,32,129,35,129,38,129,41,129,44,129,47,129,50,129,53,129,56,129,59,129,62,129,65,129,68,129,71,129,74,129,77,129,80,129,83,129,86,129,8,132,11,132,14,132,17,132,20,132,23,132,26,132,29,132,32,132,35,132,38,132,41,132,44,132,47,132,50,132,53,132,56,132,59,132,62,132,65,132,68,132,71,132,74,132,77,132,80,132,8,135,11,135,14,135,17,135,20,135,23,135,26,135,29,135,32,135,35,135,38,135,41,135,44,135,47,135,50,135,53,135,56,135,59,135,62,135,65,135,68,135,71,135,74,135,77,135,80,135,-4,138,-1,138,2,138,5,138,8,138,11,138,26,138,29,138,32,138,35,138,38,138,41,138,44,138,47,138,50,138,53,138,56,138,59,138,-4,141,-1,141,2,141,5,141,32,141,35,141,38,141,41,141,44,141,47,141,50,141,53,141,56,141,-4,144,-1,144,38,144,41,144,44,144,47,144,50,144,53,144,44,147,47,147,50,147,53,147,44,150,47,150,50,150,53,150,44,153,47,153,50,153,53,153,41,156,44,156,47,156,50,156,53,156,41,159,44,159,47,159,50,159,53,159,56,159,41,162,44,162,47,162,50,162,53,162,56,162,47,165,50,165,50,168,50,171,50,174,11,177,14,177,17,177,20,177,23,177,26,177,29,177,32,177,50,177,68,177,71,177,74,177,77,177,80,177,83,177,86,177,-4,180,-1,180,2,180,5,180,8,180,11,180,14,180,17,180,20,180,23,180,26,180,29,180,32,180,35,180,38,180,41,180,44,180,47,180,50,180,53,180,56,180,59,180,62,180,65,180,68,180,71,180,74,180,77,180,80,180,83,180,86,180,89,180,-4,183,-1,183,2,183,5,183,8,183,11,183,14,183,17,183,20,183,23,183,26,183,29,183,32,183,35,183,38,183,41,183,44,183,47,183,50,183,53,183,56,183,59,183,62,183,65,183,68,183,71,183,74,183,77,183,80,183,83,183,86,183,89,183,92,183,95,183,98,183,101,183,-4,186,-1,186,2,186,5,186,8,186,11,186,14,186,17,186,20,186,23,186,26,186,29,186,32,186,35,186,38,186,41,186,44,186,47,186,50,186,53,186,56,186,59,186,62,186,65,186,68,186,71,186,74,186,77,186,80,186,83,186,86,186,89,186,92,186,95,186,98,186,101,186,-4,189,-1,189,2,189,5,189,8,189,11,189,14,189,17,189,20,189,23,189,26,189,29,189,32,189,35,189,38,189,41,189,44,189,47,189,50,189,53,189,56,189,59,189,62,189,65,189,68,189,71,189,74,189,77,189,80,189,83,189,86,189,89,189,92,189,95,189,98,189,101,189,-4,192,-1,192,2,192,5,192,8,192,11,192,14,192,17,192,20,192,23,192,26,192,29,192,32,192,35,192,38,192,41,192,44,192,47,192,50,192,53,192,56,192,59,192,62,192,65,192,68,192,71,192,74,192,77,192,80,192,83,192,86,192,89,192,92,192,95,192,98,192,101,192,-4,195,-1,195,2,195,5,195,8,195,11,195,14,195,17,195,20,195,23,195,26,195,29,195,32,195,35,195,38,195,41,195,44,195,47,195,50,195,53,195,56,195,59,195,62,195,65,195,68,195,71,195,74,195,77,195,80,195,83,195,86,195,89,195,92,195,95,195,98,195,101,195,-4,198,-1,198,2,198,5,198,8,198,11,198,14,198,17,198,20,198,23,198,26,198,29,198,32,198,35,198,38,198,41,198,44,198,47,198,50,198,53,198,56,198,59,198,62,198,65,198,68,198,71,198,74,198,77,198,80,198,83,198,86,198,89,198,92,198,8,201,32,201,35,201,38,201,41,201,44,201,47,201,50,201,53,201,56,201,59,201,62,201,65,201,68,201,71,201,74,201,77,201,80,201,83,201,86,201,89,201,92,201,41,204,44,204,47,204,50,204,53,204,56,204,59,204,62,204,65,204,68,204,86,204,89,204,92,204,44,207,47,207,50,207,53,207,56,207,59,207,44,210,47,210,50,210,53,210,44,213,47,213,50,213,53,213,44,216,47,216,50,216,53,216,41,219,44,219,47,219,50,219,53,219,41,222,44,222,47,222,50,222,53,222,56,222,41,225,44,225,47,225,50,225,53,225,56,225,41,228,44,228,47,228,50,228,53,228,56,228] },
+  wide: { g: 4, p: [196,12,200,12,204,12,196,16,200,16,204,16,196,20,200,20,204,20,208,20,212,20,216,20,188,24,192,24,196,24,200,24,204,24,208,24,212,24,216,24,8,28,188,28,192,28,196,28,200,28,204,28,208,28,212,28,-4,32,0,32,4,32,8,32,184,32,188,32,192,32,196,32,200,32,204,32,208,32,212,32,-4,36,0,36,4,36,8,36,12,36,16,36,20,36,24,36,28,36,200,36,204,36,208,36,212,36,-4,40,0,40,4,40,8,40,12,40,16,40,96,40,100,40,104,40,108,40,112,40,116,40,120,40,124,40,204,40,208,40,212,40,216,40,-4,44,0,44,4,44,8,44,12,44,16,44,92,44,96,44,100,44,104,44,108,44,112,44,116,44,120,44,124,44,128,44,132,44,204,44,208,44,212,44,216,44,-4,48,0,48,4,48,8,48,12,48,16,48,92,48,96,48,100,48,104,48,108,48,112,48,116,48,120,48,124,48,128,48,132,48,152,48,156,48,160,48,164,48,168,48,172,48,176,48,180,48,200,48,204,48,208,48,212,48,216,48,-4,52,0,52,4,52,8,52,12,52,16,52,20,52,24,52,28,52,32,52,36,52,40,52,44,52,48,52,52,52,56,52,60,52,64,52,68,52,88,52,92,52,96,52,100,52,104,52,108,52,112,52,116,52,120,52,124,52,128,52,132,52,136,52,140,52,144,52,148,52,152,52,156,52,160,52,164,52,168,52,172,52,176,52,180,52,184,52,188,52,192,52,196,52,200,52,204,52,208,52,212,52,216,52,-4,56,0,56,4,56,8,56,12,56,16,56,20,56,24,56,28,56,32,56,36,56,40,56,44,56,48,56,52,56,56,56,60,56,64,56,68,56,72,56,76,56,80,56,84,56,88,56,92,56,96,56,100,56,104,56,108,56,112,56,116,56,120,56,124,56,128,56,132,56,136,56,140,56,144,56,148,56,152,56,156,56,160,56,164,56,168,56,172,56,176,56,180,56,184,56,188,56,192,56,196,56,200,56,204,56,208,56,212,56,216,56,-4,60,0,60,4,60,8,60,12,60,16,60,20,60,24,60,28,60,32,60,36,60,40,60,44,60,48,60,52,60,56,60,60,60,64,60,68,60,72,60,76,60,80,60,84,60,88,60,92,60,96,60,100,60,104,60,108,60,112,60,116,60,120,60,124,60,128,60,132,60,136,60,140,60,144,60,148,60,152,60,156,60,160,60,164,60,168,60,172,60,176,60,180,60,184,60,188,60,192,60,196,60,208,60,212,60,216,60,-4,64,0,64,4,64,8,64,12,64,16,64,20,64,24,64,28,64,32,64,36,64,40,64,44,64,48,64,52,64,56,64,60,64,64,64,68,64,72,64,76,64,80,64,84,64,88,64,92,64,96,64,100,64,104,64,108,64,112,64,116,64,120,64,124,64,128,64,132,64,136,64,140,64,144,64,148,64,152,64,156,64,160,64,164,64,168,64,172,64,176,64,180,64,184,64,188,64,192,64,196,64,208,64,212,64,216,64,-4,68,0,68,4,68,8,68,12,68,16,68,20,68,24,68,28,68,32,68,36,68,40,68,44,68,48,68,52,68,56,68,60,68,64,68,68,68,72,68,76,68,80,68,84,68,88,68,92,68,96,68,100,68,104,68,108,68,112,68,116,68,120,68,124,68,128,68,132,68,136,68,140,68,144,68,148,68,152,68,156,68,160,68,164,68,168,68,172,68,176,68,180,68,184,68,188,68,192,68,196,68,200,68,204,68,208,68,212,68,216,68,-4,72,0,72,4,72,8,72,12,72,16,72,20,72,24,72,28,72,32,72,36,72,40,72,44,72,48,72,52,72,56,72,60,72,64,72,68,72,72,72,76,72,80,72,84,72,88,72,92,72,124,72,128,72,132,72,136,72,140,72,144,72,148,72,152,72,156,72,160,72,164,72,168,72,172,72,176,72,180,72,184,72,188,72,192,72,196,72,200,72,204,72,208,72,212,72,216,72,-4,76,0,76,4,76,8,76,12,76,16,76,20,76,24,76,28,76,32,76,36,76,40,76,44,76,48,76,52,76,56,76,60,76,64,76,68,76,72,76,76,76,80,76,84,76,88,76,132,76,136,76,140,76,144,76,148,76,152,76,156,76,160,76,164,76,168,76,172,76,176,76,180,76,184,76,188,76,192,76,196,76,200,76,204,76,208,76,212,76,216,76,-4,80,0,80,4,80,8,80,12,80,16,80,20,80,24,80,28,80,32,80,36,80,40,80,44,80,48,80,52,80,56,80,68,80,72,80,76,80,80,80,84,80,88,80,132,80,136,80,148,80,152,80,156,80,160,80,164,80,168,80,172,80,176,80,180,80,184,80,188,80,192,80,196,80,200,80,204,80,208,80,212,80,216,80,-4,84,0,84,4,84,8,84,12,84,16,84,20,84,24,84,28,84,32,84,36,84,40,84,44,84,48,84,52,84,68,84,72,84,76,84,80,84,84,84,88,84,92,84,124,84,128,84,132,84,136,84,140,84,144,84,148,84,152,84,156,84,160,84,164,84,168,84,172,84,176,84,180,84,184,84,188,84,192,84,196,84,200,84,204,84,16,88,20,88,24,88,28,88,32,88,36,88,40,88,44,88,48,88,52,88,56,88,68,88,72,88,76,88,80,88,84,88,136,88,140,88,144,88,148,88,152,88,156,88,160,88,164,88,168,88,172,88,176,88,180,88,184,88,188,88,192,88,196,88,200,88,204,88,16,92,20,92,24,92,36,92,40,92,44,92,48,92,52,92,56,92,60,92,64,92,68,92,72,92,76,92,80,92,84,92,136,92,140,92,144,92,148,92,152,92,156,92,160,92,164,92,168,92,172,92,176,92,180,92,188,92,192,92,196,92,200,92,204,92,16,96,40,96,44,96,48,96,52,96,56,96,60,96,64,96,68,96,72,96,76,96,80,96,84,96,132,96,136,96,140,96,144,96,148,96,152,96,156,96,160,96,164,96,204,96,48,100,52,100,56,100,60,100,64,100,68,100,72,100,76,100,80,100,84,100,132,100,136,100,140,100,144,100,148,100,152,100,156,100,160,100,208,100,56,104,60,104,64,104,68,104,72,104,76,104,80,104,84,104,132,104,136,104,140,104,144,104,148,104,152,104,156,104,160,104,56,108,60,108,64,108,68,108,72,108,76,108,80,108,84,108,132,108,136,108,140,108,144,108,148,108,152,108,156,108,160,108,52,112,56,112,60,112,64,112,68,112,72,112,76,112,80,112,84,112,132,112,136,112,140,112,144,112,148,112,152,112,156,112,160,112,60,116,64,116,68,116,72,116,76,116,80,116,84,116,88,116,92,116,96,116,100,116,104,116,108,116,112,116,116,116,120,116,124,116,128,116,132,116,136,116,140,116,144,116,148,116,152,116,156,116,160,116,64,120,68,120,72,120,76,120,80,120,84,120,88,120,92,120,96,120,100,120,104,120,108,120,112,120,116,120,120,120,124,120,128,120,132,120,136,120,140,120,144,120,148,120,152,120,156,120,160,120,68,124,72,124,76,124,80,124,84,124,88,124,92,124,96,124,100,124,104,124,108,124,112,124,116,124,120,124,124,124,128,124,132,124,136,124,140,124,144,124,148,124,152,124,156,124,160,124,68,128,72,128,76,128,80,128,84,128,88,128,92,128,96,128,100,128,104,128,108,128,112,128,116,128,120,128,124,128,128,128,132,128,136,128,140,128,144,128,148,128,152,128,156,128,160,128,68,132,72,132,76,132,80,132,84,132,88,132,92,132,104,132,108,132,112,132,116,132,120,132,132,132,136,132,140,132,144,132,156,132,160,132,164,132,168,132,172,132,176,132,180,132,184,132,188,132,192,132,196,132,200,132,72,136,76,136,80,136,84,136,104,136,108,136,112,136,116,136,120,136,136,136,140,136,144,136,160,136,164,136,168,136,172,136,176,136,180,136,184,136,188,136,72,140,76,140,80,140,84,140,104,140,108,140,112,140,116,140,120,140,124,140,128,140,132,140,136,140,140,140,144,140,156,140,160,140,164,140,168,140,172,140,176,140,180,140,184,140,188,140,108,144,108,148,108,152,108,156,108,160,108,164,108,168,108,172,108,176,56,180,60,180,64,180,68,180,84,180,88,180,92,180,96,180,100,180,104,180,108,180,112,180,116,180,120,180,124,180,128,180,140,180,144,180,148,180,152,180,156,180,160,180,164,180,168,180,172,180,176,180,180,180,68,184,84,184,88,184,92,184,96,184,100,184,104,184,108,184,112,184,116,184,120,184,124,184,128,184,140,184,144,184,148,184,152,184,156,184,160,184,164,184,168,184,172,184,176,184,180,184,72,188,76,188,80,188,84,188,88,188,92,188,96,188,100,188,104,188,108,188,112,188,116,188,120,188,124,188,128,188,132,188,136,188,140,188,144,188,148,188,152,188,156,188,172,188,176,188,180,188,72,192,76,192,80,192,84,192,88,192,92,192,96,192,100,192,104,192,108,192,112,192,116,192,120,192,124,192,128,192,132,192,136,192,140,192,144,192,148,192,152,192,156,192,168,192,172,192,176,192,180,192,76,196,80,196,84,196,88,196,92,196,96,196,100,196,104,196,108,196,112,196,116,196,120,196,124,196,128,196,132,196,136,196,140,196,144,196,148,196,152,196,156,196,160,196,180,196,76,200,80,200,84,200,88,200,92,200,96,200,100,200,104,200,108,200,112,200,116,200,120,200,124,200,128,200,132,200,136,200,140,200,180,200,184,200,188,200,192,200,196,200,200,200,204,200,208,200,212,200,76,204,80,204,84,204,88,204,92,204,96,204,100,204,104,204,108,204,112,204,116,204,120,204,124,204,128,204,132,204,136,204,140,204,180,204,184,204,188,204,192,204,196,204,200,204,204,204,208,204,212,204,84,208,88,208,92,208,96,208,100,208,104,208,108,208,112,208,116,208,120,208,124,208,128,208,132,208,136,208,140,208,180,208,184,208,188,208,192,208,196,208,200,208,204,208,208,208,212,208,84,212,88,212,92,212,96,212,100,212,104,212,108,212,112,212,116,212,120,212,124,212,128,212,132,212,136,212,140,212,172,212,176,212,180,212,184,212,188,212,192,212,196,212,200,212,204,212,208,212,212,212,40,216,44,216,48,216,52,216,56,216,60,216,84,216,88,216,92,216,96,216,100,216,104,216,108,216,112,216,116,216,120,216,124,216,128,216,140,216,144,216,148,216,152,216,156,216,160,216,172,216,176,216,180,216,184,216,188,216,192,216,196,216,200,216,204,216,208,216,212,216,216,216,36,220,40,220,44,220,48,220,52,220,56,220,60,220,64,220,68,220,84,220,88,220,92,220,96,220,100,220,104,220,108,220,112,220,116,220,120,220,124,220,128,220,140,220,144,220,148,220,152,220,156,220,160,220,164,220,168,220,172,220,176,220,180,220,184,220,188,220,192,220,196,220,200,220,204,220,208,220,212,220,216,220,36,224,40,224,44,224,48,224,52,224,56,224,60,224,64,224,68,224,72,224,76,224,80,224,84,224,88,224,92,224,96,224,100,224,104,224,108,224,112,224,116,224,120,224,124,224,128,224,132,224,136,224,140,224,144,224,148,224,152,224,156,224,160,224,164,224,168,224,172,224,176,224,180,224,184,224,188,224,192,224,196,224,200,224,204,224,208,224,212,224,216,224] } };
+const ztSpotCache = {};
+function ztSpots(k) { // only spots where the qilin (26 wide) stays inside the map
+  if (!ztSpotCache[k]) { const a = ZT_WALK[k].p, w = ZT_MAP[k].w, list = []; for (let i = 0; i < a.length; i += 2) if (a[i] >= -2 && a[i] <= w - 26) list.push([a[i], a[i + 1]]); ztSpotCache[k] = { list, set: new Set(list.map((q) => q.join())) }; }
+  return ztSpotCache[k].list;
 }
+// A straight walk from a to b stays on walkable ground (every grid point along the way is a spot).
+function ztClear(k, a, b) {
+  ztSpots(k); const g = ZT_WALK[k].g, set = ztSpotCache[k].set, n = Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / (g / 2));
+  for (let i = 1; i < n; i++) { const x = a[0] + ((b[0] - a[0]) * i) / n, y = a[1] + ((b[1] - a[1]) * i) / n; if (!set.has(`${Math.round((x + 4) / g) * g - 4},${Math.round(y / g) * g}`)) return false; }
+  return true;
+}
+const ztPos = {}; // who -> { k, x, y, dx, dy }
+function ztPosFor(who, k) {
+  const p = ztPos[who];
+  if (p && p.k === k) return [p.x, p.y];
+  const s = ztSpots(k), others = Object.entries(ztPos).filter(([w, q]) => w !== who && q.k === k);
+  let pick;
+  for (let t = 0; t < 30; t++) { pick = s[Math.floor(Math.random() * s.length)]; if (!others.some(([, q]) => Math.hypot(q.x - pick[0], q.y - pick[1]) < 30)) break; }
+  ztPos[who] = { k, x: pick[0], y: pick[1] };
+  return pick;
+}
+// Shortest way between two spots over the walkable grid (breadth-first search, 8 directions).
+function ztRoute(k, a, b) {
+  ztSpots(k); const g = ZT_WALK[k].g, set = ztSpotCache[k].set, key = (q) => q.join(), prev = new Map([[key(a), null]]), q = [a];
+  while (q.length) {
+    const c = q.shift();
+    if (c[0] === b[0] && c[1] === b[1]) { const path = []; for (let n = c; n; n = prev.get(key(n))) path.unshift(n); return path.slice(1); }
+    for (const [dx, dy] of [[g, 0], [-g, 0], [0, g], [0, -g], [g, g], [g, -g], [-g, g], [-g, -g]]) {
+      const n = [c[0] + dx, c[1] + dy], nk = key(n);
+      if (set.has(nk) && !prev.has(nk)) { prev.set(nk, c); q.push(n); }
+    }
+  }
+  return null;
+}
+// One step: each character picks a place somewhere in town and walks there along the paths, in hops of up to ~22
+// units, then picks another. They never aim for the same spot and keep out of each other's way.
+function ztStep(who, el) {
+  const map = el.closest(".ztmap"); if (!map) return;
+  const k = map.classList.contains("wide") ? "wide" : "phone", M = ztMap(k), [x0, y0] = ztPosFor(who, k), me = ztPos[who];
+  const others = Object.entries(ztPos).filter(([w, q]) => w !== who && q.k === k).map(([, q]) => q);
+  if (!me.route?.length) {
+    const spots = ztSpots(k);
+    for (let t = 0; t < 12 && !me.route?.length; t++) {
+      const d = spots[Math.floor(Math.random() * spots.length)];
+      if (Math.hypot(d[0] - x0, d[1] - y0) < 30 || others.some((q) => q.goal && Math.hypot(q.goal[0] - d[0], q.goal[1] - d[1]) < 30)) continue;
+      me.route = ztRoute(k, [x0, y0], d); me.goal = d;
+    }
+    if (!me.route?.length) return;
+  }
+  // furthest point along the route that's a straight, short walk away
+  let n = 0;
+  for (let i = 0; i < me.route.length; i++) { const r = me.route[i]; if (Math.hypot(r[0] - x0, r[1] - y0) > 22) break; if (ztClear(k, [x0, y0], r)) n = i; }
+  const c = me.route[n];
+  if (others.some((q) => Math.hypot(q.x - c[0], q.y - c[1]) < 14)) { me.route = null; return; } // someone's in the way: pick somewhere else
+  me.route = me.route.slice(n + 1);
+  const d = Math.hypot(c[0] - x0, c[1] - y0);
+  Object.assign(me, { x: c[0], y: c[1] });
+  const secs = Math.max(0.6, d / 11);
+  el.style.transitionDuration = `${secs}s`;
+  if (c[0] !== x0) el.classList.toggle("flip", c[0] < x0);
+  el.classList.add("hopping");
+  el.style.left = `${(c[0] / M.w) * 100}%`; el.style.top = `${(c[1] / M.h) * 100}%`;
+  clearTimeout(el._hopEnd); el._hopEnd = setTimeout(() => el.classList.remove("hopping"), secs * 1000);
+}
+const ztWalkers = {};
+function ztWalk(who, sel) {
+  if (ztWalkers[who] || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const tick = () => {
+    const el = document.querySelector(sel);
+    if (!el) { ztWalkers[who] = null; return; }
+    if (!el.classList.contains("talk") && !(who === "qilin" && state.ql?.open)) {
+      // now and then it stops to look around for a while
+      if (Math.random() < (ztPos[who]?.route?.length ? 0.08 : 0.35)) el.classList.toggle("flip");
+      else ztStep(who, el);
+    }
+    ztWalkers[who] = setTimeout(tick, (ztPos[who]?.route?.length ? 1500 : 2500) + Math.random() * 1800);
+  };
+  ztWalkers[who] = setTimeout(tick, 400 + Math.random() * 1500);
+}
+function ztHop() { ztWalk("fruit", ".ztfruit"); }
 
 document.addEventListener("click", async (e) => {
   const el = e.target.closest("[data-zt]");
@@ -4421,7 +4489,7 @@ document.addEventListener("input", (e) => {
 
 // ---------------------------------------------------------------------------
 // Qilin 麒麟 challenges (Zest Town; beta for admins from 24 Nov 2026)
-// A qilin hops around town like your fruit. Tap it: today's challenge (+1 XP), this week's (+2 XP) and this
+// A qilin wanders around town on its own, like your fruit. Tap it: today's challenge (+1 XP), this week's (+2 XP) and this
 // month's (+5 XP), the same for everyone. Each list is played in a shuffled order and a challenge only comes back
 // once the whole list has been used. Progress comes from town_log (qLog() below, per local day) and the streak
 // tree days. Members tap Claim (qilin_claim); XP not claimed before the period ends is lost.
@@ -4586,24 +4654,7 @@ document.addEventListener("click", async (e) => {
     Q.claims.add(`${s.p}:${s.key}`); Q.claimed = { p: s.p, xp: QL_XP[s.p] }; render(); refreshBoard();
   }
 });
-// The qilin hops around town like your fruit, a few steps behind.
-let qlWalkTimer = null, qlAt = 3;
-function qlWalk() {
-  if (qlWalkTimer || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-  qlWalkTimer = setInterval(() => {
-    const q = document.querySelector(".ztqilin"), map = q?.closest(".ztmap");
-    if (!q) { clearInterval(qlWalkTimer); qlWalkTimer = null; return; }
-    if (Math.random() < 0.3) return; // stops to look around now and then
-    const M = ztMap(map.classList.contains("wide") ? "wide" : "phone");
-    const prev = M.hops[qlAt % M.hops.length];
-    qlAt = (qlAt + 1 + Math.floor(Math.random() * 2)) % M.hops.length;
-    const [x, y] = M.hops[qlAt];
-    q.classList.toggle("flip", x < prev[0]);
-    q.classList.add("hopping");
-    q.style.left = `${(x / M.w) * 100}%`; q.style.top = `${(y / M.h) * 100}%`;
-    setTimeout(() => q.classList.remove("hopping"), 1500);
-  }, 3100);
-}
+function qlWalk() { ztWalk("qilin", ".ztqilin"); }
 
 // ---------------------------------------------------------------------------
 // Post Office 郵局 (Zest Town; live for everyone since 24 Nov 2026, after a short admin beta)
@@ -4858,7 +4909,7 @@ async function cgRemember(t) {
   if (data?.length) await sb.from("char_recent").delete().eq("user_id", state.user.id).in("text", data.map((r) => r.text));
 }
 let cgHW = null;
-const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=137")).default);
+const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=138")).default);
 const cgStrokes = async (c) => {
   const S = cgState(); if (S.data.has(c)) return S.data.get(c);
   const HW = await cgLib(); const d = await HW.loadCharacterData(c).catch(() => null);
