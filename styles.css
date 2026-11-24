@@ -1408,3 +1408,38 @@ i.py { font-style: normal; color: #8a6a55; font-weight: 600; }
 [data-post-count] { white-space: nowrap; flex: none; }
 [data-post-count].over { color: #b42318; }
 .linkbtn.report { color: #a8431a; }
+
+/* ---- Qilin 麒麟 challenges ---- */
+.ztqilin { position: absolute; padding: 0; border: 0; background: none; cursor: pointer; z-index: 2; transition: left 1.4s linear, top 1.4s linear; }
+.ztqilin img { display: block; width: 100%; transform-origin: 50% 100%; }
+.ztqilin .q1 { position: absolute; left: 0; top: 0; opacity: 0; }
+.ztqilin.flip img { transform: scaleX(-1); }
+.ztqilin.hopping .q0 { animation: zthop .35s ease-in-out infinite alternate, qlstepa .7s steps(1) infinite; }
+.ztqilin.hopping .q1 { animation: zthop .35s ease-in-out infinite alternate, qlstepb .7s steps(1) infinite; }
+@keyframes qlstepa { 0% { opacity: 1; } 50% { opacity: 0; } }
+@keyframes qlstepb { 0% { opacity: 0; } 50% { opacity: 1; } }
+.qlbang { position: absolute; left: 55%; bottom: 100%; transform: translateX(-50%); margin-bottom: 2px; background: #fff; border: 2.5px solid #2b2a3a; border-radius: 8px; padding: 0 6px;
+  font: 400 11px/17px "Press Start 2P", ui-monospace, monospace; color: #c2410c; animation: qlbob 1.2s ease-in-out infinite; }
+@keyframes qlbob { 50% { translate: 0 -3px; } }
+@media (prefers-reduced-motion: reduce) { .ztqilin, .ztqilin img, .qlbang { transition: none; animation: none !important; } .ztqilin .q1 { display: none; } }
+.qlsheet { gap: 10px; padding-top: 0; overflow-x: hidden; }
+.qlhead { display: flex; align-items: flex-end; gap: 10px; margin: 0 -18px; padding: 46px 14px 8px; border-bottom: 3px solid #2a2420;
+  background: radial-gradient(circle at 70% 60%, #fff6dc 0, #f6e3b4 45%, #e9c98a 100%); position: relative; }
+.qlx { left: 12px; right: auto; background: #fff; border: 2px solid #2a2420; }
+.qlsay { position: relative; flex: 1; background: #fff; border: 2.5px solid #2a2420; border-radius: 14px; padding: 8px 10px; line-height: 1.4; margin-bottom: 22px; color: var(--ink); }
+.qlsay::after { content: ""; position: absolute; right: -12px; bottom: 14px; border: 7px solid transparent; border-left-color: #2a2420; }
+.qlart { image-rendering: auto; width: 140px; flex: none; margin: -6px -4px -8px 0; }
+.qlcard { display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; }
+.qlcard.ready { border-color: #f3a27a; box-shadow: 0 0 0 2px #fde3d6; }
+.qlper { font: 400 9px/1 "Press Start 2P", ui-monospace, monospace; }
+.qltask { font-size: 16px; line-height: 1.35; }
+.qlbar { flex: 1; height: 10px; border-radius: 999px; background: #f1e7de; overflow: hidden; }
+.qlbar i { display: block; height: 100%; border-radius: 999px; }
+.qlclaim, .qlok { background: var(--orange); color: var(--ink); min-height: 40px; }
+.qlclaimed { background: #e9e0d8; color: #6f625a; font-weight: 800; border-radius: 999px; padding: 7px 14px; font-size: 13.5px; }
+.qlgo { font-weight: 800; margin-right: auto; }
+.qldone { align-items: center; text-align: center; padding-top: 20px; }
+.qlartbox { position: relative; width: 240px; max-width: 80%; border-radius: 20px; border: 3px solid #2a2420; padding: 12px; background: radial-gradient(circle at 50% 55%, #fff6dc 0, #f6e3b4 50%, #e9c98a 100%); }
+.qlartbox .qlart { width: 100%; margin: 0; }
+.qlplus { position: absolute; top: 12px; right: 14px; font: 400 13px/1 "Press Start 2P", ui-monospace, monospace; color: #f37a48; text-shadow: 2px 2px 0 #2a2420; animation: qlfloat 1.4s ease-out both; }
+@keyframes qlfloat { from { opacity: 0; translate: 0 10px; } to { opacity: 1; translate: 0 0; } }

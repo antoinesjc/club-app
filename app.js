@@ -1,12 +1,12 @@
-import { createClient } from "./vendor/supabase.js?v=136";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=136";
-import { COUNTRIES } from "./countries.js?v=136";
-import { toZhuyin } from "./zhuyin.js?v=136";
-import { ORACLE, ORACLE_T } from "./course-oracle.js?v=136";
+import { createClient } from "./vendor/supabase.js?v=137";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=137";
+import { COUNTRIES } from "./countries.js?v=137";
+import { toZhuyin } from "./zhuyin.js?v=137";
+import { ORACLE, ORACLE_T } from "./course-oracle.js?v=137";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=136";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=137";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -1390,7 +1390,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=136"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=137"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1602,13 +1602,14 @@ function activityBlock(id) {
   const dfmt = (d) => d.toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" });
   const icon = (r) => r.kind === "sticker" && stickerInfo(r.title) ? `<span class="stkbig" style="--z:34px">${stickerSvg(r.title)}</span>`
     : r.kind === "avatar" ? `<span class="acticon" style="background:#e0f4e0">${fruitSvg(r.title)}</span>`
-    : `<span class="acticon k-${r.kind}" aria-hidden="true">${{ session: "课", streak: "4", bootcamp: "营", bonus: "+", hongbao: "红", game: "玩", tree: "树" }[r.kind] || "+"}</span>`;
+    : `<span class="acticon k-${r.kind}" aria-hidden="true">${{ session: "课", streak: "4", bootcamp: "营", bonus: "+", hongbao: "红", game: "玩", tree: "树", qilin: "麟" }[r.kind] || "+"}</span>`;
   const label = (r) => r.kind === "session" ? esc(r.title)
     : r.kind === "sticker" ? `Sticker · ${esc(stickerInfo(r.title)?.en || r.title)}`
     : r.kind === "avatar" ? `Special avatar · ${esc(fruitInfo(r.title).en || r.title)}`
     : r.kind === "streak" ? "Streak bonus · 4 weeks in a row"
     : r.kind === "game" ? "Zest Town (flashcards or reading)"
     : r.kind === "tree" ? "Streak tree bonus · 10 days in a row"
+    : r.kind === "qilin" ? "Qilin challenge 麒麟"
     : r.kind === "hongbao" ? "Hongbao 红包" : esc(r.title);
   const sub = (r) => [dfmt(new Date(r.at)),
     r.kind === "session" && r.detail ? `host ${esc(r.detail)}` : r.kind === "hongbao" && r.detail ? `from ${esc(r.detail)}` : r.detail ? esc(r.detail) : "",
@@ -2006,7 +2007,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=136");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=137");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2905,7 +2906,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=136").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=137").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -3254,7 +3255,8 @@ async function ztGrade(g) {
     // Several good answers on the same day only count once towards "learned".
     if (g >= 2 && c.last_review && dkey(new Date(c.last_review)) === todayKey()) upd.good_streak = c.good_streak;
     Object.assign(c, upd);
-    if (wasNew) { lsSet("mz-zt-newdone-" + todayKey(), String(ztNewToday() + 1)); upd.first_review = c.first_review = new Date().toISOString(); }
+    if (wasNew) { lsSet("mz-zt-newdone-" + todayKey(), String(ztNewToday() + 1)); upd.first_review = c.first_review = new Date().toISOString(); qLog("fc_new"); }
+    qLog("fc_review");
     sb.from("learn_cards").update(upd).eq("id", c.id).then(({ error }) => { if (error) toast("Couldn't save that card. Check your connection."); });
   }
   R.done++;
@@ -3277,6 +3279,8 @@ async function ztCountDay() {
 }
 async function ztFinish() {
   const R = state.lu.review; R.finished = true;
+  // Nothing due left today: counts for "Clear every flashcard due today" (once a day).
+  if (R.done > 0 && !R.cram && !state.lu.cards.some((c) => c.reps > 0 && c.due <= todayKey()) && lsGet("mz-ql-clear") !== todayKey()) { lsSet("mz-ql-clear", todayKey()); qLog("fc_clear"); }
   if (R.done > 0 && await ztCountDay()) R.counted = true;
 }
 function ztStart(title, queue, cram) {
@@ -3307,7 +3311,8 @@ function learnView() {
   if (!isBeta()) { location.hash = "#/home"; return homeView(); }
   const L = state.lu;
   if (!L.loaded) { ztLoad(); return `${ztHeader(null)}<p class="muted small">${L.error ? "Couldn't load Zest Town. Pull to refresh or try again later." : "Opening Zest Town…"}</p>`; }
-  const sub = routeArg();
+  const sub = routeArg(), bld = sub.split(/[/?]/)[0];
+  if (["cards", "temple", "forest", "gallery", "post", "callig", "library"].includes(bld)) qlVisit(bld);
   if (sub === "cards") return L.review ? reviewView() : cardsView();
   if (sub === "temple") return templeView();
   if (sub === "forest") return forestView();
@@ -3380,6 +3385,7 @@ function townMap(st) {
     ${(() => { const [x, y, sz] = M.fsign, k = sz / 24; return `<a class="ztsignwrap" href="#/learn/forest" style="${at(x, y)};width:${pct(sz, M.w)}" aria-label="To the Magical Forest">${ztImg("sign-forest")}<span class="ztsigntext" style="width:${(16 / 24) * 100}%;height:${(11 / 18) * 100}%;font-size:${(k * 1.75 / M.w) * 100}cqw">MAGICAL<br>FOREST</span></a>`; })()}
     ${M.trees.map(([x, y, big], i) => `<img class="px ztbush" src="icons/zt/tree4-${big ? "big" : "small"}.png" alt="" draggable="false" style="${at(x, y)};width:${pct(big ? 24 : 17, M.w)};animation-delay:-${(i * 0.7) % 3}s">`).join("")}
     <button type="button" class="zttreebtn" data-zt="sheet" style="${at(...M.tree)};width:${pct(42, M.w)}" aria-label="Your streak tree">${treeImg(st)}</button>
+    ${qlOpen() ? (() => { qlLoad(); const [qx, qy] = M.hops[qlAt % M.hops.length]; return `<button type="button" class="ztqilin" data-ql="open" style="${at(qx, qy)};width:${pct(26, M.w)}" aria-label="The qilin: daily, weekly and monthly challenges">${qlBang() ? `<span class="qlbang" aria-hidden="true">!</span>` : ""}${ztImg("qilin-0", "q0")}${ztImg("qilin-1", "q1")}</button>`; })() : ""}
     ${st.wilted ? "" : `<button type="button" class="ztfruit" data-zt="cheer" style="${at(...h0)};width:${pct(18, M.w)}" aria-label="Your fruit"><span class="ztbubble" hidden></span>${ztImg("fruit-" + fruit)}</button>`}
     <a class="ztlabel" href="#/learn/cards" style="${at(M.house[0], M.house[1] + 15)}" aria-label="Flashcard Center, ${dueN} due">FLASHCARDS${dueN ? `<em>${dueN}</em>` : ""}</a>
     <a class="ztlabel" href="#/learn/temple" style="${at(M.temple[0], M.temple[1] + 17)}" aria-label="HSK Temple">HSK TEMPLE</a>
@@ -3399,8 +3405,8 @@ function townView() {
   if (list) body = `${treeCard(st, wide())}${todayCard(st)}<h2 style="margin:4px 0 0">Places</h2><div class="ztplaces">${placeCards(wide())}</div>${soonCards(wide()) ? `<h2 style="margin:4px 0 0">Opening soon</h2><div class="ztplaces">${soonCards(wide())}</div>` : ""}`;
   else if (wide()) body = `<div class="ztwide town">${townMap(st)}<div class="ztside"><div class="ztsidein">${treeCard(st)}<div class="ztsidescroll">${todayCard(st)}${placeCards()}</div></div></div></div>`;
   else body = `${townMap(st)}${todayCard(st)}`;
-  setTimeout(ztHop, 50);
-  return `${ztHeader(st)}${toggle}${body}${L.sheet === "tree" ? treeSheet(st) : ""}${st.wilted && L.sheet !== "tree" ? wiltedModal(st) : ""}`;
+  setTimeout(ztHop, 50); if (qlOpen()) setTimeout(qlWalk, 50);
+  return `${ztHeader(st)}${toggle}${body}${qlOpen() && state.ql?.open ? qlSheet() : ""}${L.sheet === "tree" ? treeSheet(st) : ""}${st.wilted && L.sheet !== "tree" ? wiltedModal(st) : ""}`;
 }
 function treeSheet(st) {
   const nx = ztNext(st), now = new Date(), dow = (now.getDay() + 6) % 7;
@@ -3535,6 +3541,7 @@ async function ztAddWords(ws, source = "hsk") {
     if (error) { toast("Couldn't add all of those words. Check your connection."); return n; }
     state.lu.cards.push(...data); n += data.length;
   }
+  if (source === "hsk") qLog("hsk_add", n);
   return n;
 }
 
@@ -3562,6 +3569,7 @@ async function ztMarkKnown(words, known) {
     if (error) { toast("Couldn't save that. Check your connection."); return n; }
     L.cards.push(...data); n += data.length;
   }
+  if (known) qLog("hsk_known", n);
   return n;
 }
 
@@ -4369,8 +4377,9 @@ document.addEventListener("click", async (e) => {
     const pop = document.querySelector(".lpopover"); render();
     if (pop && a === "addword") libShowPop(d.w);
   }
-  else if (a === "qc") { libSet(id, `qc.${d.ch}.${d.k}`, d.v === "true"); render(); }
+  else if (a === "qc") { if (libGet(id, `qc.${d.ch}.${d.k}`) === undefined) qLog("lib_qc"); libSet(id, `qc.${d.ch}.${d.k}`, d.v === "true"); render(); }
   else if (a === "read") {
+    if (!libGet(id, `read.${d.ch}`)) qLog("lib_chapter");
     libSet(id, `read.${d.ch}`, true); toast("Chapter ticked off. 加油！"); render();
     ztCountDay().then((grew) => { if (grew) toast("Chapter ticked off. Your streak tree grew today 🌱"); });
   }
@@ -4409,6 +4418,192 @@ document.addEventListener("input", (e) => {
     const sh = libGet(id, `ex.${ex}.show`); if (sh?.[k] && libBook(id).exercises[+ex].kind === "write") { delete sh[k]; }
   }
 });
+
+// ---------------------------------------------------------------------------
+// Qilin 麒麟 challenges (Zest Town; beta for admins from 24 Nov 2026)
+// A qilin hops around town like your fruit. Tap it: today's challenge (+1 XP), this week's (+2 XP) and this
+// month's (+5 XP), the same for everyone. Each list is played in a shuffled order and a challenge only comes back
+// once the whole list has been used. Progress comes from town_log (qLog() below, per local day) and the streak
+// tree days. Members tap Claim (qilin_claim); XP not claimed before the period ends is lost.
+// NEW BUILDING? Add 2–3 challenges for it to these lists (and qLog() calls where its actions happen).
+// ---------------------------------------------------------------------------
+const qlOpen = () => isAdmin(); // beta: admins only
+// k = a town_log kind summed over the period; f = "days" (streak-tree days), "distinct" (different kinds starting with k),
+// "daysWith" (days with kind k), "trio" (days with flashcards + writing + reading)
+const QL = {
+  day: [
+    { id: "fc15", t: "Review 15 flashcards", b: "Flashcard Center", go: "#/learn/cards", k: "fc_review", n: 15 },
+    { id: "new3", t: "Learn 3 new words", b: "Flashcard Center", go: "#/learn/cards", k: "fc_new", n: 3 },
+    { id: "clear", t: "Clear every flashcard due today", b: "Flashcard Center", go: "#/learn/cards", k: "fc_clear", n: 1 },
+    { id: "hsk5", t: "Add 5 HSK Temple words to your flashcards", b: "HSK Temple", go: "#/learn/temple", k: "hsk_add", n: 5 },
+    { id: "known3", t: "Tell the HSK Temple 3 words you already know", b: "HSK Temple", go: "#/learn/temple", k: "hsk_known", n: 3 },
+    { id: "write3", t: "Write 3 characters", b: "Calligraphy School", go: "#/learn/callig", k: "cg_write", n: 3 },
+    { id: "nooutline", t: "Write a character without the outline", b: "Calligraphy School", go: "#/learn/callig", k: "cg_nooutline", n: 1 },
+    { id: "boxround", t: "Finish today's character box round", b: "Calligraphy School", go: "#/learn/callig/box", k: "cg_boxdone", n: 1 },
+    { id: "boxadd2", t: "Add 2 new characters to your character box", b: "Calligraphy School", go: "#/learn/callig", k: "cg_boxadd", n: 2 },
+    { id: "lookup3", t: "Look up the stroke order of 3 characters", b: "Calligraphy School", go: "#/learn/callig", k: "cg_lookup", n: 3 },
+    { id: "bones3", t: "Solve 3 bones in the Oracle Bone course", b: "Calligraphy School", go: "#/learn/callig/course/oracle", k: "co_bone", n: 3 },
+    { id: "chapter", t: "Read a Library chapter", b: "Library", go: "#/learn/library", k: "lib_chapter", n: 1 },
+    { id: "qc3", t: "Answer 3 quick checks in a Library book", b: "Library", go: "#/learn/library", k: "lib_qc", n: 3 },
+    { id: "forest", t: "Visit the Magical Forest", b: "Magical Forest", go: "#/learn/forest", k: "visit:forest", n: 1 },
+    { id: "visit4", t: "Visit 4 different buildings today", b: "Zest Town", go: "#/learn", k: "visit:", f: "distinct", n: 4 },
+    { id: "letter", t: "Send a letter, even a short one", b: "Post Office", go: "#/learn/post", k: "letter", n: 1 },
+  ],
+  week: [
+    { id: "tree5", t: "Grow your streak tree 5 days this week", b: "Streak tree", go: "#/learn", f: "days", n: 5 },
+    { id: "fc100", t: "Review 100 flashcards", b: "Flashcard Center", go: "#/learn/cards", k: "fc_review", n: 100 },
+    { id: "new15", t: "Learn 15 new words", b: "Flashcard Center", go: "#/learn/cards", k: "fc_new", n: 15 },
+    { id: "hsk10", t: "Add 10 HSK Temple words to your flashcards", b: "HSK Temple", go: "#/learn/temple", k: "hsk_add", n: 10 },
+    { id: "write20", t: "Write 20 characters", b: "Calligraphy School", go: "#/learn/callig", k: "cg_write", n: 20 },
+    { id: "memory5", t: "Get 5 characters to “from memory” in your box", b: "Calligraphy School", go: "#/learn/callig/box", k: "cg_memory", n: 5 },
+    { id: "boxadd10", t: "Add 10 characters to your character box", b: "Calligraphy School", go: "#/learn/callig", k: "cg_boxadd", n: 10 },
+    { id: "cochapter", t: "Finish a chapter of the Oracle Bone course", b: "Calligraphy School", go: "#/learn/callig/course/oracle", k: "co_chapter", n: 1 },
+    { id: "chapters3", t: "Read 3 Library chapters", b: "Library", go: "#/learn/library", k: "lib_chapter", n: 3 },
+    { id: "people2", t: "Send letters to 2 different people", b: "Post Office", go: "#/learn/post", k: "letterto:", f: "distinct", n: 2 },
+    { id: "letter30", t: "Write a letter of 30+ characters", b: "Post Office", go: "#/learn/post", k: "letter30", n: 1 },
+    { id: "trio", t: "Flashcards, writing and a Library chapter on the same day", b: "Zest Town", go: "#/learn", f: "trio", n: 1 },
+    { id: "forest3", t: "Visit the Magical Forest on 3 days", b: "Magical Forest", go: "#/learn/forest", k: "visit:forest", f: "daysWith", n: 3 },
+    { id: "clear4", t: "Clear your due flashcards on 4 days", b: "Flashcard Center", go: "#/learn/cards", k: "fc_clear", f: "daysWith", n: 4 },
+  ],
+  month: [
+    { id: "tree20", t: "Grow your streak tree on 20 days", b: "Streak tree", go: "#/learn", f: "days", n: 20 },
+    { id: "fc400", t: "Review 400 flashcards", b: "Flashcard Center", go: "#/learn/cards", k: "fc_review", n: 400 },
+    { id: "new60", t: "Learn 60 new words", b: "Flashcard Center", go: "#/learn/cards", k: "fc_new", n: 60 },
+    { id: "write100", t: "Write 100 characters", b: "Calligraphy School", go: "#/learn/callig", k: "cg_write", n: 100 },
+    { id: "memory15", t: "Get 15 characters to “from memory”", b: "Calligraphy School", go: "#/learn/callig/box", k: "cg_memory", n: 15 },
+    { id: "pack30", t: "Add 30 characters from a character package", b: "Calligraphy School", go: "#/learn/callig", k: "cg_pack", n: 30 },
+    { id: "cochapters2", t: "Finish 2 chapters of the Oracle Bone course", b: "Calligraphy School", go: "#/learn/callig/course/oracle", k: "co_chapter", n: 2 },
+    { id: "chapters8", t: "Read 8 Library chapters", b: "Library", go: "#/learn/library", k: "lib_chapter", n: 8 },
+    { id: "letters5", t: "Send 5 letters", b: "Post Office", go: "#/learn/post", k: "letter", n: 5 },
+    { id: "people3", t: "Write to 3 different people", b: "Post Office", go: "#/learn/post", k: "letterto:", f: "distinct", n: 3 },
+  ],
+};
+const QL_XP = { day: 1, week: 2, month: 5 };
+const qlState = () => (state.ql ??= { log: null, claims: new Set(), loading: false, at: 0, open: false, claimed: null, visits: new Set() });
+// The current day / week / month in the member's local time, and which challenge each one has.
+function qlPeriods() {
+  const today = todayKey(), now = new Date(); now.setHours(12, 0, 0, 0);
+  const mon = new Date(now); mon.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+  const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+  const last = new Date(now.getFullYear(), now.getMonth() + 1, 0, 12);
+  const span = (a, b) => Math.round((Date.parse(a + "T12:00:00Z") - Date.parse(b + "T12:00:00Z")) / 864e5);
+  const idx = { day: span(today, "2026-01-01"), week: Math.round(span(dkey(mon), "2025-12-29") / 7), month: now.getFullYear() * 12 + now.getMonth() };
+  const from = { day: today, week: dkey(mon), month: today.slice(0, 8) + "01" }, to = { day: today, week: dkey(sun), month: dkey(last) };
+  const key = { day: today, week: dkey(mon), month: today.slice(0, 7) };
+  return ["day", "week", "month"].map((p) => ({ p, key: key[p], from: from[p], to: to[p], c: qlPick(QL[p], idx[p], p) }));
+}
+// Shuffled order per cycle (seeded, so everyone gets the same), so nothing repeats before the list is used up.
+function qlPick(list, i, salt) {
+  const n = list.length, cycle = Math.floor(i / n);
+  let s = (cycle * 7919 + salt.length * 104729 + 17) >>> 0;
+  const rnd = () => { s = (s + 0x6d2b79f5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  const order = [...Array(n).keys()];
+  for (let j = n - 1; j > 0; j--) { const k = Math.floor(rnd() * (j + 1)); [order[j], order[k]] = [order[k], order[j]]; }
+  return list[order[((i % n) + n) % n]];
+}
+function qlProgress(per) {
+  const c = per.c, rows = (qlState().log || []).filter((r) => r.day >= per.from && r.day <= per.to && r.n > 0);
+  if (c.f === "days") return [...ztActiveDays()].filter(([d, kind]) => kind !== "water" && d >= per.from && d <= per.to).length;
+  if (c.f === "distinct") return new Set(rows.filter((r) => r.kind.startsWith(c.k)).map((r) => r.kind)).size;
+  if (c.f === "daysWith") return new Set(rows.filter((r) => r.kind === c.k).map((r) => r.day)).size;
+  if (c.f === "trio") { const by = (k) => new Set(rows.filter((r) => r.kind === k).map((r) => r.day)); const a = by("fc_review"), b = by("cg_write"), l = by("lib_chapter"); return [...a].filter((d) => b.has(d) && l.has(d)).length; }
+  return rows.filter((r) => r.kind === c.k).reduce((t, r) => t + r.n, 0);
+}
+async function qlLoad(force) {
+  const Q = qlState();
+  if (Q.loading || (!force && Q.log && Date.now() - Q.at < 60e3)) return;
+  Q.loading = true;
+  const ps = qlPeriods(), from = ps.map((x) => x.from).sort()[0];
+  const [l, c] = await Promise.all([
+    sb.from("town_log").select("day, kind, n").gte("day", from),
+    sb.from("qilin_claims").select("period, period_key").in("period_key", ps.map((x) => x.key)),
+  ]);
+  Q.loading = false; Q.at = Date.now();
+  if (!l.error) Q.log = l.data;
+  if (!c.error) Q.claims = new Set(c.data.map((r) => `${r.period}:${r.period_key}`));
+  if (route() === "learn" && l.data) render();
+}
+// Record something done in town (today, local time). Cheap and fire-and-forget.
+function qLog(kind, n = 1) {
+  if (!state.user || !(n > 0)) return;
+  const Q = qlState(), day = todayKey();
+  if (Q.log) { const r = Q.log.find((x) => x.day === day && x.kind === kind); r ? (r.n += n) : Q.log.push({ day, kind, n }); }
+  sb.rpc("town_log_add", { p_day: day, p_kind: kind, p_n: n }).then(({ error }) => { if (error) console.error(error); });
+}
+function qlVisit(b) {
+  const Q = qlState(), k = `${todayKey()}:${b}`;
+  if (Q.visits.has(k) || lsGet("mz-ql-v-" + k)) return;
+  Q.visits.add(k); lsSet("mz-ql-v-" + k, "1"); qLog("visit:" + b);
+}
+const qlStatus = () => qlPeriods().map((per) => { const have = qlProgress(per); return { ...per, have, done: have >= per.c.n, claimed: qlState().claims.has(`${per.p}:${per.key}`) }; });
+const qlBang = () => { if (!qlState().log) return false; const s = qlStatus(); return s.some((x) => x.done && !x.claimed) || lsGet("mz-ql-seen") !== todayKey(); };
+
+function qlSheet() {
+  const Q = qlState(), host = state.role === "host";
+  if (Q.claimed) {
+    const r = Q.claimed;
+    return `<div class="ztover center" data-ql="close"><div class="ztsheet qlsheet qldone" data-stop>
+      <div class="qlartbox">${ztImg("qilin-art", "qlart")}<span class="qlplus">+${r.xp} XP</span></div>
+      <h2 style="margin:0">${trad() ? "太好了！" : "太好了！"} Well done</h2>
+      <p class="muted" style="margin:0">You finished ${r.p === "day" ? "today's" : r.p === "week" ? "this week's" : "this month's"} challenge. The qilin gives you <b>+${r.xp} XP</b>.<br>${r.p === "day" ? "Come back tomorrow for a new one." : r.p === "week" ? "A new one comes on Monday." : "A new one comes next month."}</p>
+      <button type="button" class="btn qlok" data-ql="back">好的！ Back</button></div></div>`;
+  }
+  const left = (per) => {
+    if (per.p === "day") { const m = new Date(); m.setHours(24, 0, 0, 0); const h = Math.max(1, Math.round((m - Date.now()) / 36e5)); return `new one in ${h} h`; }
+    const d = new Date(per.to + "T12:00:00"); return per.p === "week" ? "ends Sunday" : `ends ${d.toLocaleDateString([], { day: "numeric", month: "short" })}`;
+  };
+  const card = (s) => {
+    const xp = QL_XP[s.p], pct = Math.min(100, Math.round((s.have / s.c.n) * 100)), col = { day: "#c2410c", week: "#2e7d48", month: "#9b2c2c" }[s.p];
+    const btn = s.claimed ? `<span class="qlclaimed">✓ +${xp} XP claimed</span>`
+      : s.done ? (host ? `<span class="small muted">Done! (hosts don't earn XP)</span>` : `<button type="button" class="btn qlclaim" data-ql="claim" data-p="${s.p}">Claim +${xp} XP</button>`)
+      : `${s.c.go !== "#/learn" ? `<a class="small qlgo" href="${s.c.go}" data-ql="go">Go to the ${esc(s.c.b)} ›</a>` : ""}<b class="small">+${xp} XP</b>`;
+    return `<div class="card qlcard ${s.done && !s.claimed ? "ready" : ""}">
+      <div class="row between small"><span class="qlper" style="color:${col}">${{ day: "TODAY", week: "THIS WEEK", month: "THIS MONTH" }[s.p]}</span><span class="muted">${{ day: trad() ? "每日" : "每日", week: trad() ? "每週" : "每周", month: trad() ? "每月" : "每月" }[s.p]} · ${left(s)}</span></div>
+      <b class="qltask">${esc(s.c.t)}</b>
+      <div class="row" style="gap:10px;align-items:center"><span class="qlbar"><i style="width:${pct}%;background:${s.done ? "#1b6f1b" : col}"></i></span><b class="small">${Math.min(s.have, s.c.n)} / ${s.c.n}</b></div>
+      <div class="row between" style="align-items:center;justify-content:flex-end;gap:12px">${btn}</div></div>`;
+  };
+  return `<div class="ztover center" data-ql="close"><div class="ztsheet qlsheet" data-stop>
+    <div class="qlhead"><button type="button" class="ztx qlx" data-ql="close" aria-label="Close">×</button>
+      <div class="qlsay"><span class="cgzh" style="font-weight:700;font-size:17px">你好！我是麒麟。</span><br><span class="small">${Q.log ? "Ready for a challenge? Finish one and I'll give you extra XP." : "One moment…"}</span></div>
+      ${ztImg("qilin-art", "qlart")}</div>
+    ${Q.log ? qlStatus().map(card).join("") : `<p class="muted small">Loading your challenges…</p>`}
+    <p class="tiny muted" style="margin:0">Everyone gets the same challenges. Claim the XP before the day, week or month ends, or it's lost. ${host ? "" : "It comes on top of your daily streak XP."}</p>
+  </div></div>`;
+}
+document.addEventListener("click", async (e) => {
+  const el = e.target.closest("[data-ql]"); if (!el) return;
+  if (el.dataset.ql === "close" && e.target.closest("[data-stop]") && !e.target.closest(".qlx")) return; // clicks inside the sheet
+  const Q = qlState(), a = el.dataset.ql;
+  if (a === "open") { Q.open = true; Q.claimed = null; lsSet("mz-ql-seen", todayKey()); qlLoad(true); render(); }
+  else if (a === "close" || a === "back") { Q.open = false; Q.claimed = null; render(); }
+  else if (a === "go") { Q.open = false; }
+  else if (a === "claim") {
+    const s = qlStatus().find((x) => x.p === el.dataset.p); if (!s || !s.done || s.claimed) return;
+    el.disabled = true;
+    const { error } = await sb.rpc("qilin_claim", { p_period: s.p, p_key: s.key, p_challenge: s.c.id });
+    if (error && !/already_claimed/.test(error.message)) { el.disabled = false; return toast(/period_over/.test(error.message) ? "This challenge has ended." : "Couldn't claim it. Check your connection and try again."); }
+    Q.claims.add(`${s.p}:${s.key}`); Q.claimed = { p: s.p, xp: QL_XP[s.p] }; render(); refreshBoard();
+  }
+});
+// The qilin hops around town like your fruit, a few steps behind.
+let qlWalkTimer = null, qlAt = 3;
+function qlWalk() {
+  if (qlWalkTimer || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  qlWalkTimer = setInterval(() => {
+    const q = document.querySelector(".ztqilin"), map = q?.closest(".ztmap");
+    if (!q) { clearInterval(qlWalkTimer); qlWalkTimer = null; return; }
+    if (Math.random() < 0.3) return; // stops to look around now and then
+    const M = ztMap(map.classList.contains("wide") ? "wide" : "phone");
+    const prev = M.hops[qlAt % M.hops.length];
+    qlAt = (qlAt + 1 + Math.floor(Math.random() * 2)) % M.hops.length;
+    const [x, y] = M.hops[qlAt];
+    q.classList.toggle("flip", x < prev[0]);
+    q.classList.add("hopping");
+    q.style.left = `${(x / M.w) * 100}%`; q.style.top = `${(y / M.h) * 100}%`;
+    setTimeout(() => q.classList.remove("hopping"), 1500);
+  }, 3100);
+}
 
 // ---------------------------------------------------------------------------
 // Post Office 郵局 (Zest Town; live for everyone since 24 Nov 2026, after a short admin beta)
@@ -4605,6 +4800,7 @@ document.addEventListener("click", async (e) => {
       el.disabled = false; el.textContent = "Send the letter";
       return toast(/daily_limit/.test(error.message) ? `You've sent ${POST_PER_DAY} letters today. You can write again tomorrow.` : /letter_chinese/.test(error.message) ? "Chinese characters and punctuation only, please." : "Couldn't send your letter. Check your connection and try again.");
     }
+    qLog("letter"); qLog("letterto:" + el.dataset.to); if ([...body].length >= 30) qLog("letter30");
     P.draft = ""; P.tab = "sent";
     toast(await ztCountDay() ? "✉️ Letter sent! Your streak tree grew today 🌱" : "✉️ Letter sent!");
     await postLoad(true); location.hash = "#/learn/post";
@@ -4654,6 +4850,7 @@ async function cgRecentLoad() {
   if (route() === "learn") render();
 }
 async function cgRemember(t) {
+  qLog("cg_lookup", [...t].length);
   const S = cgState(); S.recent = [t, ...cgRecent().filter((x) => x !== t)].slice(0, 8);
   await sb.from("char_recent").upsert({ text: t, looked_at: new Date().toISOString() }, { onConflict: "user_id,text" });
   // keep the table short: drop anything older than the 8 newest
@@ -4661,7 +4858,7 @@ async function cgRemember(t) {
   if (data?.length) await sb.from("char_recent").delete().eq("user_id", state.user.id).in("text", data.map((r) => r.text));
 }
 let cgHW = null;
-const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=136")).default);
+const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=137")).default);
 const cgStrokes = async (c) => {
   const S = cgState(); if (S.data.has(c)) return S.data.get(c);
   const HW = await cgLib(); const d = await HW.loadCharacterData(c).catch(() => null);
@@ -4719,6 +4916,7 @@ async function cgBoxAddMany(list, known = false) {
   const { data, error } = await sb.from("char_box").upsert(rows, { onConflict: "user_id,ch", ignoreDuplicates: true }).select("*");
   if (error) { console.error(error); toast("Couldn't add them. Check your connection."); return 0; }
   S.box = [...(S.box || []), ...(data || [])];
+  if (!known && data?.length) qLog("cg_boxadd", data.length);
   return data?.length || 0;
 }
 const cgKnownFields = () => ({ stage: 2, interval_days: CG_KNOWN_DAYS, due: addDays(CG_KNOWN_DAYS), last_review: new Date().toISOString() });
@@ -5009,7 +5207,7 @@ function cgQuizArea(ch, d, guide, hide, mode = "practice") {
   const set = new Set(cgGuideSet(d, guide));
   const g = d.strokes.map((p, i) => set.has(i) ? `<path d="${p}"/>` : "").join("");
   return `<div class="cgquizwrap"><svg class="cggrid" viewBox="0 0 1024 1024" aria-hidden="true">${cgGridLines}<g class="cgguide ${hide ? "off" : ""}" fill="#e6dccb" transform="translate(0,900) scale(1,-1)">${g}</g></svg>
-    <div id="cgquiz" class="cgquiz" data-ch="${esc(ch)}" data-mode="${mode}" data-hints="${mode === "review" && guide !== "all" ? 0 : 2}" aria-label="Writing area"></div></div>`;
+    <div id="cgquiz" class="cgquiz" data-ch="${esc(ch)}" data-mode="${mode}" data-guide="${hide ? "none" : guide}" data-hints="${mode === "review" && guide !== "all" ? 0 : 2}" aria-label="Writing area"></div></div>`;
 }
 const cgBar = (n, done) => `<div class="cgbar" id="cgbar">${[...Array(n)].map((_, i) => `<span class="${i < done ? "ok" : i === done ? "cur" : ""}"></span>`).join("")}</div>`;
 
@@ -5070,7 +5268,7 @@ function cgReviewView() {
   if (!S.box) return `${head}<p class="muted small">Opening your box…</p>`;
   if (!S.rv) S.rv = { queue: cgDue().map((r) => r.ch), done: 0, result: null, forgot: false };
   const R = S.rv;
-  if (!R.queue.length) { S.rv = null; return `${head}<section class="card cgdone">${CG_CHEST}<h2>Box done for today!</h2><p class="muted" style="margin:0">${R.done ? `You wrote ${R.done} character${R.done === 1 ? "" : "s"}.` : "Nothing left to write today."} Come back tomorrow.</p><a class="btn" href="#/learn/callig">Back to the School</a></section>`; }
+  if (!R.queue.length) { if (R.done && lsGet("mz-ql-box") !== todayKey()) { lsSet("mz-ql-box", todayKey()); qLog("cg_boxdone"); } S.rv = null; return `${head}<section class="card cgdone">${CG_CHEST}<h2>Box done for today!</h2><p class="muted" style="margin:0">${R.done ? `You wrote ${R.done} character${R.done === 1 ? "" : "s"}.` : "Nothing left to write today."} Come back tomorrow.</p><a class="btn" href="#/learn/callig">Back to the School</a></section>`; }
   const ch = R.queue[0], r = S.box.find((x) => x.ch === ch), d = S.data.get(ch);
   if (!r) { R.queue.shift(); return cgReviewView(); }
   if (!d) { cgStrokes(ch).then((x) => { if (!x) { R.queue.shift(); toast(`No stroke data for ${ch}.`); } render(); }); return `${head}<p class="muted small">Opening ${esc(ch)}…</p>`; }
@@ -5123,6 +5321,7 @@ async function cgMount() {
     onMistake: (x) => { S.mistakes = x.totalMistakes; upd(); },
     onCorrectStroke: (x) => { S.mistakes = x.totalMistakes; S.done = x.strokeNum + 1; upd(); },
     onComplete: (x) => {
+      qLog("cg_write"); if (el.dataset.guide !== "all") qLog("cg_nooutline");
       ztCountDay().then((grew) => { if (grew) toast("Character written. Your streak tree grew today 🌱"); });
       if (review) cgReviewDone(ch, x.totalMistakes);
       else { S.finished = { mistakes: x.totalMistakes }; setTimeout(() => { if (route() === "learn") render(); }, 700); }
@@ -5135,6 +5334,7 @@ async function cgReviewDone(ch, mistakes) {
   const u = cgSchedule(r, grade);
   if (!r.first_review) u.first_review = todayKey();
   R.result = { grade, mistakes, forgot: R.forgot, u, stageUp: u.stage > r.stage, stageDown: u.stage < r.stage };
+  if (u.stage === 2 && r.stage < 2) qLog("cg_memory");
   Object.assign(r, u);
   const { error } = await sb.from("char_box").update(u).eq("user_id", state.user.id).eq("ch", ch);
   if (error) toast("Couldn't save that one. Check your connection.");
@@ -5190,7 +5390,7 @@ document.addEventListener("click", async (e) => {
       if (inBox.length) await cgBoxKnown(inBox);
       n = inBox.length + await cgBoxAddMany(chosen.filter((x) => !inBox.includes(x.ch)), true);
       toast(`${n} marked as learned.`);
-    } else { n = await cgBoxAddMany(chosen); toast(n ? `${n} added to your box. They start ${CG_NEW_PER_DAY} a day.` : "They're already in your box."); }
+    } else { n = await cgBoxAddMany(chosen); if (n) qLog("cg_pack", n); toast(n ? `${n} added to your box. They start ${CG_NEW_PER_DAY} a day.` : "They're already in your box."); }
     S.packSel = null; S.rv = null; render();
   }
   else if (a === "rvknown") {
@@ -5417,7 +5617,7 @@ document.addEventListener("click", async (e) => {
   else if (a === "clue") { q.clue = true; render(); }
   else if (a === "giveup") { q.stage = "char"; q.gaveUp = true; render(); }
   else if (a === "pick") {
-    if (el.dataset.v === coCh(c.bones[q.i])) q.stage = "reveal"; else (q.wrong ??= []).push(el.dataset.v);
+    if (el.dataset.v === coCh(c.bones[q.i])) { q.stage = "reveal"; qLog("co_bone"); } else (q.wrong ??= []).push(el.dataset.v);
     render();
   }
   else if (a === "nextbone") {
@@ -5430,7 +5630,7 @@ document.addEventListener("click", async (e) => {
     if (el.dataset.v === right) q.fdone = true; else (q.wrong ??= []).push(el.dataset.v);
     render();
   }
-  else if (a === "finish") { await coMarkDone(q.n); q.phase = "done"; render(); scrollTo(0, 0); }
+  else if (a === "finish") { qLog("co_chapter"); await coMarkDone(q.n); q.phase = "done"; render(); scrollTo(0, 0); }
   else if (a === "csel") { const ch = el.dataset.c; q.sel.has(ch) ? q.sel.delete(ch) : q.sel.add(ch); render(); }
   else if (a === "callsel") { const have = new Set((cgState().box || []).map((r) => r.ch)), miss = coLearned().filter((x) => !have.has(x.ch)); q.sel = q.sel.size === miss.length ? new Set() : new Set(miss.map((x) => x.ch)); render(); }
   else if (a === "cadd") {
