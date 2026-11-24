@@ -1,12 +1,12 @@
-import { createClient } from "./vendor/supabase.js?v=138";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=138";
-import { COUNTRIES } from "./countries.js?v=138";
-import { toZhuyin } from "./zhuyin.js?v=138";
-import { ORACLE, ORACLE_T } from "./course-oracle.js?v=138";
+import { createClient } from "./vendor/supabase.js?v=139";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=139";
+import { COUNTRIES } from "./countries.js?v=139";
+import { toZhuyin } from "./zhuyin.js?v=139";
+import { ORACLE, ORACLE_T } from "./course-oracle.js?v=139";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=138";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=139";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -1390,7 +1390,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=138"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=139"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -2007,7 +2007,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=138");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=139");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2296,6 +2296,15 @@ function feedText(e) {
     case "book_stripe": return `bought <b class="lzh">${L}</b> in the Bookshop`;
     case "book_claim": return `claimed <b class="lzh">${L}</b> as their free book`;
     case "book_gift": return `was given <b class="lzh">${L}</b> by an admin`;
+    case "town_fc_session": return `finished a flashcard review · ${L}`;
+    case "town_hsk_add": return `added ${L} from the HSK Temple to their flashcards`;
+    case "town_hsk_known": return `marked ${L} as known in the HSK Temple`;
+    case "town_lib_chapter": return `read <b class="lzh">${L}</b> in the Library`;
+    case "town_cg_box": return `finished their character box round · ${L}`;
+    case "town_cg_pack": return `added ${L} from a character package`;
+    case "town_co_chapter": return `finished Oracle Bone chapter <b>${L}</b>`;
+    case "town_letter": return `sent a letter to <b>${L}</b> at the Post Office`;
+    case "town_qilin": return `claimed a qilin challenge 麒麟 · ${L}`;
     case "xp": { const [p, ...r] = String(e.label).split(" · "); return `got <b>${+p > 0 ? "+" : ""}${esc(p)} XP</b>${r.length ? " · " + esc(r.join(" · ")) : ""}`; }
     default: return L;
   }
@@ -2906,7 +2915,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=138").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=139").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -3281,6 +3290,7 @@ async function ztFinish() {
   const R = state.lu.review; R.finished = true;
   // Nothing due left today: counts for "Clear every flashcard due today" (once a day).
   if (R.done > 0 && !R.cram && !state.lu.cards.some((c) => c.reps > 0 && c.due <= todayKey()) && lsGet("mz-ql-clear") !== todayKey()) { lsSet("mz-ql-clear", todayKey()); qLog("fc_clear"); }
+  if (R.done > 0) tEvent("fc_session", `${R.done} card${R.done === 1 ? "" : "s"}${R.title ? " · " + R.title : ""}`);
   if (R.done > 0 && await ztCountDay()) R.counted = true;
 }
 function ztStart(title, queue, cram) {
@@ -3541,7 +3551,7 @@ async function ztAddWords(ws, source = "hsk") {
     if (error) { toast("Couldn't add all of those words. Check your connection."); return n; }
     state.lu.cards.push(...data); n += data.length;
   }
-  if (source === "hsk") qLog("hsk_add", n);
+  if (source === "hsk" && n) { qLog("hsk_add", n); tEvent("hsk_add", `${n} word${n === 1 ? "" : "s"}`); }
   return n;
 }
 
@@ -3569,7 +3579,7 @@ async function ztMarkKnown(words, known) {
     if (error) { toast("Couldn't save that. Check your connection."); return n; }
     L.cards.push(...data); n += data.length;
   }
-  if (known) qLog("hsk_known", n);
+  if (known && n) { qLog("hsk_known", n); tEvent("hsk_known", `${n} word${n === 1 ? "" : "s"}`); }
   return n;
 }
 
@@ -4447,7 +4457,7 @@ document.addEventListener("click", async (e) => {
   }
   else if (a === "qc") { if (libGet(id, `qc.${d.ch}.${d.k}`) === undefined) qLog("lib_qc"); libSet(id, `qc.${d.ch}.${d.k}`, d.v === "true"); render(); }
   else if (a === "read") {
-    if (!libGet(id, `read.${d.ch}`)) qLog("lib_chapter");
+    if (!libGet(id, `read.${d.ch}`)) { qLog("lib_chapter"); const m = libState().books?.find((b) => b.id === id); tEvent("lib_chapter", `${m?.title_zh || m?.title || id} · chapter ${+d.ch + 1}`); }
     libSet(id, `read.${d.ch}`, true); toast("Chapter ticked off. 加油！"); render();
     ztCountDay().then((grew) => { if (grew) toast("Chapter ticked off. Your streak tree grew today 🌱"); });
   }
@@ -4587,9 +4597,10 @@ async function qlLoad(force) {
     sb.from("qilin_claims").select("period, period_key").in("period_key", ps.map((x) => x.key)),
   ]);
   Q.loading = false; Q.at = Date.now();
+  const before = JSON.stringify([Q.log, [...Q.claims]]);
   if (!l.error) Q.log = l.data;
   if (!c.error) Q.claims = new Set(c.data.map((r) => `${r.period}:${r.period_key}`));
-  if (route() === "learn" && l.data) render();
+  if (route() === "learn" && JSON.stringify([Q.log, [...Q.claims]]) !== before) render(); // no change, no re-render (it made the sheet flicker)
 }
 // Record something done in town (today, local time). Cheap and fire-and-forget.
 function qLog(kind, n = 1) {
@@ -4598,6 +4609,8 @@ function qLog(kind, n = 1) {
   if (Q.log) { const r = Q.log.find((x) => x.day === day && x.kind === kind); r ? (r.n += n) : Q.log.push({ day, kind, n }); }
   sb.rpc("town_log_add", { p_day: day, p_kind: kind, p_n: n }).then(({ error }) => { if (error) console.error(error); });
 }
+// Something a member did in town, for the admin activity board (Learning). Fire-and-forget.
+function tEvent(kind, label) { if (state.user) sb.rpc("town_event", { p_kind: kind, p_label: label || null }).then(({ error }) => { if (error) console.error(error); }); }
 function qlVisit(b) {
   const Q = qlState(), k = `${todayKey()}:${b}`;
   if (Q.visits.has(k) || lsGet("mz-ql-v-" + k)) return;
@@ -4610,8 +4623,8 @@ function qlSheet() {
   const Q = qlState(), host = state.role === "host";
   if (Q.claimed) {
     const r = Q.claimed;
-    return `<div class="ztover center" data-ql="close"><div class="ztsheet qlsheet qldone" data-stop>
-      <div class="qlartbox">${ztImg("qilin-art", "qlart")}<span class="qlplus">+${r.xp} XP</span></div>
+    return `<div class="ztover center still" data-ql="close"><div class="ztsheet qlsheet qldone" data-stop>
+      <div class="qlartbox"><img class="qlart" src="icons/zt/qilin-art.png" alt="" decoding="sync" draggable="false"><span class="qlplus">+${r.xp} XP</span></div>
       <h2 style="margin:0">${trad() ? "太好了！" : "太好了！"} Well done</h2>
       <p class="muted" style="margin:0">You finished ${r.p === "day" ? "today's" : r.p === "week" ? "this week's" : "this month's"} challenge. The qilin gives you <b>+${r.xp} XP</b>.<br>${r.p === "day" ? "Come back tomorrow for a new one." : r.p === "week" ? "A new one comes on Monday." : "A new one comes next month."}</p>
       <button type="button" class="btn qlok" data-ql="back">好的！ Back</button></div></div>`;
@@ -4631,10 +4644,10 @@ function qlSheet() {
       <div class="row" style="gap:10px;align-items:center"><span class="qlbar"><i style="width:${pct}%;background:${s.done ? "#1b6f1b" : col}"></i></span><b class="small">${Math.min(s.have, s.c.n)} / ${s.c.n}</b></div>
       <div class="row between" style="align-items:center;justify-content:flex-end;gap:12px">${btn}</div></div>`;
   };
-  return `<div class="ztover center" data-ql="close"><div class="ztsheet qlsheet" data-stop>
+  return `<div class="ztover center ${Date.now() - (Q.openedAt || 0) > 300 ? "still" : ""}" data-ql="close"><div class="ztsheet qlsheet" data-stop>
     <div class="qlhead"><button type="button" class="ztx qlx" data-ql="close" aria-label="Close">×</button>
       <div class="qlsay"><span class="cgzh" style="font-weight:700;font-size:17px">你好！我是麒麟。</span><br><span class="small">${Q.log ? "Ready for a challenge? Finish one and I'll give you extra XP." : "One moment…"}</span></div>
-      ${ztImg("qilin-art", "qlart")}</div>
+      <img class="qlart" src="icons/zt/qilin-art.png" alt="" decoding="sync" draggable="false"></div>
     ${Q.log ? qlStatus().map(card).join("") : `<p class="muted small">Loading your challenges…</p>`}
     <p class="tiny muted" style="margin:0">Everyone gets the same challenges. Claim the XP before the day, week or month ends, or it's lost. ${host ? "" : "It comes on top of your daily streak XP."}</p>
   </div></div>`;
@@ -4643,7 +4656,7 @@ document.addEventListener("click", async (e) => {
   const el = e.target.closest("[data-ql]"); if (!el) return;
   if (el.dataset.ql === "close" && e.target.closest("[data-stop]") && !e.target.closest(".qlx")) return; // clicks inside the sheet
   const Q = qlState(), a = el.dataset.ql;
-  if (a === "open") { Q.open = true; Q.claimed = null; lsSet("mz-ql-seen", todayKey()); qlLoad(true); render(); }
+  if (a === "open") { Q.open = true; Q.openedAt = Date.now(); Q.claimed = null; lsSet("mz-ql-seen", todayKey()); render(); qlLoad(); }
   else if (a === "close" || a === "back") { Q.open = false; Q.claimed = null; render(); }
   else if (a === "go") { Q.open = false; }
   else if (a === "claim") {
@@ -4651,21 +4664,23 @@ document.addEventListener("click", async (e) => {
     el.disabled = true;
     const { error } = await sb.rpc("qilin_claim", { p_period: s.p, p_key: s.key, p_challenge: s.c.id });
     if (error && !/already_claimed/.test(error.message)) { el.disabled = false; return toast(/period_over/.test(error.message) ? "This challenge has ended." : "Couldn't claim it. Check your connection and try again."); }
-    Q.claims.add(`${s.p}:${s.key}`); Q.claimed = { p: s.p, xp: QL_XP[s.p] }; render(); refreshBoard();
+    Q.claims.add(`${s.p}:${s.key}`); Q.claimed = { p: s.p, xp: QL_XP[s.p] };
+    tEvent("qilin", `+${QL_XP[s.p]} XP · ${s.c.t}`);
+    await refreshBoard(); // one render, after the XP is in (two renders made the sheet flicker)
   }
 });
 function qlWalk() { ztWalk("qilin", ".ztqilin"); }
 
 // ---------------------------------------------------------------------------
 // Post Office 郵局 (Zest Town; live for everyone since 24 Nov 2026, after a short admin beta)
-// Short letters in Chinese (1–140 characters, Chinese characters + Chinese punctuation) to a member or a host.
+// Short letters (1–140 characters, any text; Chinese encouraged) to a member or a host.
 // Table letters, private between the two people. send_letter() allows 10 a day. A new letter calls the
 // letter-notify edge function: a push (or an email when the app can't notify them), and a count on the town sign.
 // Read a letter: tap a word for its pinyin/zhuyin and meaning, add its words to flashcards, reply, or report it.
 // ---------------------------------------------------------------------------
 const postOpen = () => true; // live for everyone with Zest Town since 24 Nov 2026 (beta for admins earlier that day)
 const POST_MAX = 140, POST_PER_DAY = 10;
-const POST_OK = /^[㐀-䶿一-鿿　-〿！（），：；？～…—·“”‘’ \n]+$/u, POST_HAN = /[㐀-䶿一-鿿]/u;
+const POST_HAN = /[㐀-䶿一-鿿]/u; // for tap-a-word: only Chinese characters are tappable
 const POST_ENV = `<svg viewBox="0 0 14 10" aria-hidden="true" shape-rendering="crispEdges"><rect width="14" height="10" fill="#2a2420"/><rect x="1" y="1" width="12" height="8" fill="#fff"/><path d="M1 1h1v1h1v1h1v1h1v1h1v1h2v-1h1v-1h1v-1h1v-1h1v-1h1v-1" fill="none" stroke="#a39b8b" stroke-width="1"/><rect x="6" y="5" width="2" height="2" fill="#a62f22"/></svg>`;
 const postState = () => (state.post ??= { loaded: false, loading: false, at: 0, letters: [], people: null, tab: "in", draft: "", q: "", words: new Map(), sel: null, reported: null, err: false });
 async function postLoad(force) {
@@ -4723,7 +4738,7 @@ function postInboxView() {
   };
   const sentToday = sent.filter((l) => Date.now() - new Date(l.created_at) < 864e5).length;
   return `${ztHeader(ztStreak(), postTitle())}
-    <div class="ztthead"><span class="ztplaceart">${ztImg("post")}</span><span class="small muted">Write short letters in Chinese to other members and to our hosts. Up to ${POST_MAX} characters, like a postcard.</span></div>
+    <div class="ztthead"><span class="ztplaceart">${ztImg("post")}</span><span class="small muted">Write short letters to other members and to our hosts, in Chinese if you can. Up to ${POST_MAX} characters, like a postcard.</span></div>
     ${sentToday >= POST_PER_DAY ? `<p class="small muted" style="margin:0">You've sent ${POST_PER_DAY} letters today. You can write again tomorrow.</p>` : `<a class="btn postwrite" href="#/learn/post/write">✉️ Write a letter</a>`}
     <div class="seg postseg" role="group" aria-label="Mailbox"><button type="button" data-post="tab" data-v="in" aria-pressed="${P.tab !== "sent"}">Inbox${unread ? ` · ${unread} new` : ""}</button><button type="button" data-post="tab" data-v="sent" aria-pressed="${P.tab === "sent"}">Sent</button></div>
     <div class="postlist">${list.length ? list.map(row).join("") : `<div class="card postempty">${POST_ENV}<p class="muted small" style="margin:0">${P.tab === "sent" ? "You haven't sent a letter yet." : "No letters yet. Write one, and you might get one back!"}</p></div>`}</div>
@@ -4745,18 +4760,15 @@ function postWriteView(qs) {
     <div class="card postto">${postAv(to, 32)}<span class="grow"><span class="small muted">To</span> <b>${postName(to)}</b></span>${reply ? "" : `<a class="small" href="#/learn/post/write" style="font-weight:800">Change</a>`}</div>
     ${reply ? `<p class="small muted postquote cgzh" style="margin:0">↩ ${esc(reply.body.replace(/\n+/g, " "))}</p>` : ""}
     <div class="postpaper write"><span class="poststamp">${ztImg("post")}</span>
-      <textarea class="cgzh" data-post-draft maxlength="${POST_MAX + 20}" rows="6" placeholder="${trad() ? "你好！" : "你好！"}" aria-label="Your letter, in Chinese">${esc(P.draft)}</textarea>
+      <textarea class="cgzh" data-post-draft maxlength="${POST_MAX * 2 + 20}" rows="6" placeholder="${trad() ? "你好！" : "你好！"}" aria-label="Your letter">${esc(P.draft)}</textarea>
       <div class="postsign">${esc(state.me?.display_name || "")}</div></div>
     <div class="row between small"><span class="muted" data-post-hint>${postHint(P.draft)}</span><b data-post-count class="${n > POST_MAX ? "over" : ""}">${n} / ${POST_MAX}</b></div>
     <button type="button" class="btn postsend" data-post="send" data-to="${to.id}" ${reply ? `data-reply="${reply.id}"` : ""} ${postValid(P.draft) ? "" : "disabled"}>Send the letter</button>`;
 }
-const postValid = (t) => { const s = t.trim(), n = [...s].length; return n >= 1 && n <= POST_MAX && POST_OK.test(s) && POST_HAN.test(s); };
+const postValid = (t) => { const n = [...t.trim()].length; return n >= 1 && n <= POST_MAX; };
 function postHint(t) {
-  const s = t.trim(); if (!s) return "Chinese characters and punctuation only";
+  const s = t.trim(); if (!s) return "Chinese is best, but anything goes";
   if ([...s].length > POST_MAX) return `Too long: ${POST_MAX} characters at most`;
-  const bad = [...new Set([...s].filter((c) => !POST_OK.test(c)))];
-  if (bad.length) return `Chinese only, please: remove ${bad.slice(0, 5).map((c) => `“${esc(c)}”`).join(" ")}${bad.some((c) => /[,.!?:;()]/.test(c)) ? " (use ，。！？ from a Chinese keyboard)" : ""}`;
-  if (!POST_HAN.test(s)) return "Write at least one character";
   return "Looks good!";
 }
 
@@ -4849,9 +4861,9 @@ document.addEventListener("click", async (e) => {
     const { error } = await sb.rpc("send_letter", { p_to: el.dataset.to, p_body: body, p_reply: el.dataset.reply || null });
     if (error) {
       el.disabled = false; el.textContent = "Send the letter";
-      return toast(/daily_limit/.test(error.message) ? `You've sent ${POST_PER_DAY} letters today. You can write again tomorrow.` : /letter_chinese/.test(error.message) ? "Chinese characters and punctuation only, please." : "Couldn't send your letter. Check your connection and try again.");
+      return toast(/daily_limit/.test(error.message) ? `You've sent ${POST_PER_DAY} letters today. You can write again tomorrow.` : "Couldn't send your letter. Check your connection and try again.");
     }
-    qLog("letter"); qLog("letterto:" + el.dataset.to); if ([...body].length >= 30) qLog("letter30");
+    qLog("letter"); qLog("letterto:" + el.dataset.to); tEvent("letter", postPerson(el.dataset.to).name); if ([...body].length >= 30) qLog("letter30");
     P.draft = ""; P.tab = "sent";
     toast(await ztCountDay() ? "✉️ Letter sent! Your streak tree grew today 🌱" : "✉️ Letter sent!");
     await postLoad(true); location.hash = "#/learn/post";
@@ -4909,7 +4921,7 @@ async function cgRemember(t) {
   if (data?.length) await sb.from("char_recent").delete().eq("user_id", state.user.id).in("text", data.map((r) => r.text));
 }
 let cgHW = null;
-const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=138")).default);
+const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=139")).default);
 const cgStrokes = async (c) => {
   const S = cgState(); if (S.data.has(c)) return S.data.get(c);
   const HW = await cgLib(); const d = await HW.loadCharacterData(c).catch(() => null);
@@ -5319,7 +5331,7 @@ function cgReviewView() {
   if (!S.box) return `${head}<p class="muted small">Opening your box…</p>`;
   if (!S.rv) S.rv = { queue: cgDue().map((r) => r.ch), done: 0, result: null, forgot: false };
   const R = S.rv;
-  if (!R.queue.length) { if (R.done && lsGet("mz-ql-box") !== todayKey()) { lsSet("mz-ql-box", todayKey()); qLog("cg_boxdone"); } S.rv = null; return `${head}<section class="card cgdone">${CG_CHEST}<h2>Box done for today!</h2><p class="muted" style="margin:0">${R.done ? `You wrote ${R.done} character${R.done === 1 ? "" : "s"}.` : "Nothing left to write today."} Come back tomorrow.</p><a class="btn" href="#/learn/callig">Back to the School</a></section>`; }
+  if (!R.queue.length) { if (R.done && lsGet("mz-ql-box") !== todayKey()) { lsSet("mz-ql-box", todayKey()); qLog("cg_boxdone"); tEvent("cg_box", `${R.done} character${R.done === 1 ? "" : "s"}`); } S.rv = null; return `${head}<section class="card cgdone">${CG_CHEST}<h2>Box done for today!</h2><p class="muted" style="margin:0">${R.done ? `You wrote ${R.done} character${R.done === 1 ? "" : "s"}.` : "Nothing left to write today."} Come back tomorrow.</p><a class="btn" href="#/learn/callig">Back to the School</a></section>`; }
   const ch = R.queue[0], r = S.box.find((x) => x.ch === ch), d = S.data.get(ch);
   if (!r) { R.queue.shift(); return cgReviewView(); }
   if (!d) { cgStrokes(ch).then((x) => { if (!x) { R.queue.shift(); toast(`No stroke data for ${ch}.`); } render(); }); return `${head}<p class="muted small">Opening ${esc(ch)}…</p>`; }
@@ -5441,7 +5453,7 @@ document.addEventListener("click", async (e) => {
       if (inBox.length) await cgBoxKnown(inBox);
       n = inBox.length + await cgBoxAddMany(chosen.filter((x) => !inBox.includes(x.ch)), true);
       toast(`${n} marked as learned.`);
-    } else { n = await cgBoxAddMany(chosen); if (n) qLog("cg_pack", n); toast(n ? `${n} added to your box. They start ${CG_NEW_PER_DAY} a day.` : "They're already in your box."); }
+    } else { n = await cgBoxAddMany(chosen); if (n) { qLog("cg_pack", n); tEvent("cg_pack", `${n} characters`); } toast(n ? `${n} added to your box. They start ${CG_NEW_PER_DAY} a day.` : "They're already in your box."); }
     S.packSel = null; S.rv = null; render();
   }
   else if (a === "rvknown") {
@@ -5681,7 +5693,7 @@ document.addEventListener("click", async (e) => {
     if (el.dataset.v === right) q.fdone = true; else (q.wrong ??= []).push(el.dataset.v);
     render();
   }
-  else if (a === "finish") { qLog("co_chapter"); await coMarkDone(q.n); q.phase = "done"; render(); scrollTo(0, 0); }
+  else if (a === "finish") { qLog("co_chapter"); tEvent("co_chapter", c ? `${q.n}. ${c.title}` : `chapter ${q.n}`); await coMarkDone(q.n); q.phase = "done"; render(); scrollTo(0, 0); }
   else if (a === "csel") { const ch = el.dataset.c; q.sel.has(ch) ? q.sel.delete(ch) : q.sel.add(ch); render(); }
   else if (a === "callsel") { const have = new Set((cgState().box || []).map((r) => r.ch)), miss = coLearned().filter((x) => !have.has(x.ch)); q.sel = q.sel.size === miss.length ? new Set() : new Set(miss.map((x) => x.ch)); render(); }
   else if (a === "cadd") {
