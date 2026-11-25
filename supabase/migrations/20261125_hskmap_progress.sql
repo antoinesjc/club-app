@@ -1,0 +1,6 @@
+-- HSK Map on mandarinzest.com (widget repo: Mandarin-Zest-Class-Calendar/hskmap.html):
+-- visitors save the words they know with their email + a 4-digit PIN. Applied 25 Nov 2026.
+-- Table: public.hskmap_progress (email pk, pin_hash bcrypt, known = words joined by "|", fails, timestamps), RLS on, no policies.
+-- RPCs (anon): hskmap_save(p_email, p_pin, p_known) → created | ok | wrong_pin | locked | bad_email | bad_pin | too_big
+--              hskmap_load(p_email, p_pin) → {status: none | ok | wrong_pin | locked, known}
+-- 10 wrong PINs lock the email for 15 minutes. See the migration applied in Supabase for the full SQL.
