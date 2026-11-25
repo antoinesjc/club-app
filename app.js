@@ -1,12 +1,12 @@
-import { createClient } from "./vendor/supabase.js?v=141";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=141";
-import { COUNTRIES } from "./countries.js?v=141";
-import { toZhuyin } from "./zhuyin.js?v=141";
-import { ORACLE, ORACLE_T } from "./course-oracle.js?v=141";
+import { createClient } from "./vendor/supabase.js?v=142";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=142";
+import { COUNTRIES } from "./countries.js?v=142";
+import { toZhuyin } from "./zhuyin.js?v=142";
+import { ORACLE, ORACLE_T } from "./course-oracle.js?v=142";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=141";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=142";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -1390,7 +1390,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=141"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=142"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -2007,7 +2007,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=141");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=142");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2297,8 +2297,7 @@ function feedText(e) {
     case "book_claim": return `claimed <b class="lzh">${L}</b> as their free book`;
     case "book_gift": return `was given <b class="lzh">${L}</b> by an admin`;
     case "town_fc_session": return `finished a flashcard review · ${L}`;
-    case "town_hsk_add": return `added ${L} from the HSK Temple to their flashcards`;
-    case "town_hsk_known": return `marked ${L} as known in the HSK Temple`;
+    case "town_hsk_temple": return `used the HSK Temple`;
     case "town_lib_chapter": return `read <b class="lzh">${L}</b> in the Library`;
     case "town_cg_box": return `finished their character box round · ${L}`;
     case "town_cg_pack": return `added ${L} from a character package`;
@@ -2915,7 +2914,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=141").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=142").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -3550,7 +3549,7 @@ async function ztAddWords(ws, source = "hsk") {
     if (error) { toast("Couldn't add all of those words. Check your connection."); return n; }
     state.lu.cards.push(...data); n += data.length;
   }
-  if (source === "hsk" && n) { qLog("hsk_add", n); tEvent("hsk_add", `${n} word${n === 1 ? "" : "s"}`); }
+  if (source === "hsk" && n) { qLog("hsk_add", n); tEventDaily("hsk_temple"); }
   return n;
 }
 
@@ -3578,7 +3577,7 @@ async function ztMarkKnown(words, known) {
     if (error) { toast("Couldn't save that. Check your connection."); return n; }
     L.cards.push(...data); n += data.length;
   }
-  if (known && n) { qLog("hsk_known", n); tEvent("hsk_known", `${n} word${n === 1 ? "" : "s"}`); }
+  if (known && n) { qLog("hsk_known", n); tEventDaily("hsk_temple"); }
   return n;
 }
 
@@ -4612,6 +4611,8 @@ function qLog(kind, n = 1) {
 }
 // Something a member did in town, for the admin activity board (Learning). Fire-and-forget.
 function tEvent(kind, label) { if (state.user) sb.rpc("town_event", { p_kind: kind, p_label: label || null }).then(({ error }) => { if (error) console.error(error); }); }
+// Once a day per member at most (e.g. "used the HSK Temple", instead of one line per word).
+function tEventDaily(kind, label) { const k = `mz-tev-${kind}`; if (lsGet(k) === todayKey()) return; lsSet(k, todayKey()); tEvent(kind, label); }
 function qlVisit(b) {
   const Q = qlState(), k = `${todayKey()}:${b}`;
   if (Q.visits.has(k) || lsGet("mz-ql-v-" + k)) return;
@@ -4922,7 +4923,7 @@ async function cgRemember(t) {
   if (data?.length) await sb.from("char_recent").delete().eq("user_id", state.user.id).in("text", data.map((r) => r.text));
 }
 let cgHW = null;
-const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=141")).default);
+const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=142")).default);
 const cgStrokes = async (c) => {
   const S = cgState(); if (S.data.has(c)) return S.data.get(c);
   const HW = await cgLib(); const d = await HW.loadCharacterData(c).catch(() => null);
