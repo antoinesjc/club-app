@@ -1,12 +1,12 @@
-import { createClient } from "./vendor/supabase.js?v=142";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=142";
-import { COUNTRIES } from "./countries.js?v=142";
-import { toZhuyin } from "./zhuyin.js?v=142";
-import { ORACLE, ORACLE_T } from "./course-oracle.js?v=142";
+import { createClient } from "./vendor/supabase.js?v=143";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=143";
+import { COUNTRIES } from "./countries.js?v=143";
+import { toZhuyin } from "./zhuyin.js?v=143";
+import { ORACLE, ORACLE_T } from "./course-oracle.js?v=143";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=142";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=143";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -502,6 +502,7 @@ function render() {
   else if (!tour && state.rewardQueue?.length && !app.querySelector(".hbover")) app.insertAdjacentHTML("beforeend", rewardOverlay());
   wireMap();
   cgAfterRender();
+  tmapAfterRender();
 }
 
 // ---------------------------------------------------------------------------
@@ -1390,7 +1391,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=142"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=143"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -2007,7 +2008,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=142");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=143");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2914,7 +2915,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=142").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=143").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -3496,9 +3497,12 @@ function reviewView() {
     : `<button type="button" class="btn block" data-zt="flip">Show answer</button>`}`;
 }
 function templeView() {
-  const L = state.lu, lv = L.lv, words = L.hsk.get(lv), ws = ztWordStatus();
+  const L = state.lu, lv = L.lv;
+  const pills = HSK_LEVELS.map((l) => `<button type="button" class="ztlvpill" data-zt="lv" data-v="${l}" aria-pressed="${l === lv}">HSK ${l}</button>`).join("")
+    + `<button type="button" class="ztlvpill ztmappill" data-zt="lv" data-v="map" aria-pressed="${lv === "map"}">▦ Map view</button>`;
+  if (lv === "map") return templeMapView(pills);
+  const words = L.hsk.get(lv), ws = ztWordStatus();
   if (!words) ztLoadLevel(lv);
-  const pills = HSK_LEVELS.map((l) => `<button type="button" class="ztlvpill" data-zt="lv" data-v="${l}" aria-pressed="${l === lv}">HSK ${l}</button>`).join("");
   let main = `<p class="muted small">Loading HSK ${lv}…</p>`, side = "";
   if (words) {
     const cnt = { learned: 0, seen: 0, none: 0 };
@@ -3510,16 +3514,7 @@ function templeView() {
       return `<button type="button" class="zttile ${s} ${z.length > 2 ? "long" : ""} ${L.word === w.id ? "sel" : ""}" data-zt="${L.pick ? "tick" : "word"}" data-id="${w.id}" ${L.pick && s === "learned" ? "disabled" : ""} aria-label="${esc(z)} ${esc(py(w.pinyin))}">${esc(z)}${L.pick ? `<i class="tk ${picked ? "on" : ""}"></i>` : ""}</button>`;
     }).join("");
     const wsel = L.word && words.find((w) => w.id === L.word);
-    if (wsel) {
-      const s = statusOf(wsel, ws), owned = inDeck.has(wsel.hanzi);
-      side = `<div class="card ztword" ${wide() ? "" : 'role="dialog"'}><div class="row between" style="align-items:flex-start"><span><span class="ztwz">${esc(wordZh(wsel))}</span> <span class="ztwp">${esc(py(wsel.pinyin))}</span></span>
-        <button type="button" class="ztx" data-zt="word" data-id="" aria-label="Close">×</button></div>
-        <div>${esc(wsel.meaning)}</div><div class="small muted">HSK ${esc(wsel.level)}${wsel.types ? " · " + esc(wsel.types) : ""}${wsel.hanzi_trad && wsel.hanzi_trad !== wsel.hanzi ? ` · ${trad() ? "简" : "繁"} ${esc(trad() ? wsel.hanzi : wsel.hanzi_trad)}` : ""}</div>
-        <span class="ztst ${s}">${s === "learned" ? "Learned" : s === "seen" ? "Seen" : "Not yet"}</span>
-        ${owned ? `<span class="small muted">In your flashcards</span>` : `<button type="button" class="btn" data-zt="add-word" data-id="${wsel.id}">+ Add to my flashcards</button>`}
-        ${s === "learned" ? `<button type="button" class="link small" data-zt="unknow" data-id="${wsel.id}" style="align-self:flex-start">Not learned after all? Undo</button>`
-          : `<button type="button" class="btn ghost ztknow" data-zt="know" data-id="${wsel.id}">✓ I already know this word</button>`}</div>`;
-    }
+    if (wsel) side = ztWordCard(wsel, ws, inDeck);
     main = `<div class="card" style="gap:8px"><div class="row between"><b>HSK ${lv} · ${T.toLocaleString()} words</b><b style="color:var(--green)">${Math.round(pc(cnt.learned))}% learned</b></div>
       <div class="ztlvbar"><i class="l" style="width:${pc(cnt.learned)}%"></i><i class="s" style="width:${pc(cnt.seen)}%"></i></div>
       <div class="ztlegend"><span><i class="l"></i>Learned ${cnt.learned}</span><span><i class="s"></i>Seen ${cnt.seen}</span><span><i class="n"></i>Not yet ${cnt.none}</span></div>
@@ -3536,6 +3531,137 @@ function templeView() {
   const head = `<div class="ztthead"><span class="ztplaceart">${ztImg("temple")}</span><span class="small muted">Every HSK word, and how well you know it.<br>Grey: not met yet · light green: seen · dark green: known (next review 3+ months away).</span></div>`;
   return `${ztHeader(ztStreak(), `HSK Temple <span class='zhsub'>${trad() ? "漢語廟" : "汉语庙"}</span>`)}${head}<div class="ztlvpills">${pills}</div>
     ${wide() && side ? `<div class="ztcols"><div class="grow" style="min-width:0;display:flex;flex-direction:column;gap:12px">${main}</div><div class="ztsidecol">${side}</div></div>` : `${main}${side ? `<div class="ztwordsheet">${side}</div>` : ""}`}`;
+}
+
+// The word card shown next to the tiles (also used by the Map view).
+function ztWordCard(wsel, ws, inDeck) {
+  const s = statusOf(wsel, ws), owned = inDeck.has(wsel.hanzi);
+  return `<div class="card ztword" ${wide() ? "" : 'role="dialog"'}><div class="row between" style="align-items:flex-start"><span><span class="ztwz">${esc(wordZh(wsel))}</span> <span class="ztwp">${esc(py(wsel.pinyin))}</span></span>
+    <button type="button" class="ztx" data-zt="word" data-id="" aria-label="Close">×</button></div>
+    <div>${esc(wsel.meaning)}</div><div class="small muted">HSK ${esc(wsel.level)}${wsel.types ? " · " + esc(wsel.types) : ""}${wsel.hanzi_trad && wsel.hanzi_trad !== wsel.hanzi ? ` · ${trad() ? "简" : "繁"} ${esc(trad() ? wsel.hanzi : wsel.hanzi_trad)}` : ""}</div>
+    <span class="ztst ${s}">${s === "learned" ? "Learned" : s === "seen" ? "Seen" : "Not yet"}</span>
+    ${owned ? `<span class="small muted">In your flashcards</span>` : `<button type="button" class="btn" data-zt="add-word" data-id="${wsel.id}">+ Add to my flashcards</button>`}
+    ${s === "learned" ? `<button type="button" class="link small" data-zt="unknow" data-id="${wsel.id}" style="align-self:flex-start">Not learned after all? Undo</button>`
+      : `<button type="button" class="btn ghost ztknow" data-zt="know" data-id="${wsel.id}">✓ I already know this word</button>`}</div>`;
+}
+
+// ---- HSK Temple · Map view: every HSK 3.0 word as a square, one box per level (sized by its number of words) ----
+// Same idea as the website's HSK Map (Mandarin-Zest-Class-Calendar/hskmap.html), coloured by the member's own status.
+const TMAP_COL = { "1": "#4f9a4f", "2": "#2a8f86", "3": "#3f73b8", "4": "#7a5ab8", "5": "#c4457a", "6": "#e2632f", "7-9": "#b8901f" };
+function tmapSquarify(items, x, y, w, h, out) {
+  if (!items.length) return;
+  if (items.length === 1) { out.push([items[0], x, y, w, h]); return; }
+  const total = items.reduce((a, b) => a + b.v, 0), side = Math.min(w, h), rest = items.slice(); let row = [], best = Infinity;
+  const worst = (r) => { const sum = r.reduce((a, b) => a + b.v, 0), len = (sum / total) * (w * h) / side; let m = 0; for (const it of r) { const q = (it.v / total) * (w * h) / len; m = Math.max(m, len / q, q / len); } return m; };
+  while (rest.length) { const t = row.concat([rest[0]]), wv = worst(t); if (row.length && wv > best) break; row = t; best = wv; rest.shift(); }
+  const rsum = row.reduce((a, b) => a + b.v, 0), frac = rsum / total;
+  if (w >= h) { const rw = w * frac; let yy = y; for (const it of row) { const hh = (h * it.v) / rsum; out.push([it, x, yy, rw, hh]); yy += hh; } tmapSquarify(rest, x + rw, y, w - rw, h, out); }
+  else { const rh = h * frac; let xx = x; for (const it of row) { const ww = (w * it.v) / rsum; out.push([it, xx, y, ww, rh]); xx += ww; } tmapSquarify(rest, x, y + rh, w, h - rh, out); }
+}
+function tmapLayout() {
+  const L = state.lu;
+  if (L.tmap && L.tmap.n === HSK_LEVELS.reduce((a, l) => a + (L.hsk.get(l)?.length || 0), 0)) return L.tmap;
+  const byL = {}; let sum = 0;
+  for (const l of HSK_LEVELS) { const seen = new Set(); byL[l] = (L.hsk.get(l) || []).filter((w) => !seen.has(w.hanzi) && seen.add(w.hanzi)); sum += byL[l].length; }
+  const GW = Math.sqrt(sum * 1.3), GH = sum / GW, G = 0.9, rects = [];
+  tmapSquarify(HSK_LEVELS.map((l) => ({ l, v: byL[l].length })).filter((i) => i.v).sort((a, b) => b.v - a.v), 0, 0, GW, GH, rects);
+  const boxes = rects.map((r) => ({ l: r[0].l, x: GW - r[1] - r[3] + G / 2, y: GH - r[2] - r[4] + G / 2, w: r[3] - G, h: r[4] - G }));
+  const b1 = boxes.find((b) => b.l === "1"), b2 = boxes.find((b) => b.l === "2");
+  if (b1 && b2 && Math.abs(b1.y - b2.y) < 0.01 && b1.x > b2.x) { const left = b2.x; b2.x = left + b1.w + G; b1.x = left; }
+  const conts = [], bb = [1e9, 1e9, -1e9, -1e9];
+  for (const b of boxes) {
+    const words = byL[b.l], n = words.length; let best = null;
+    for (let c = 1; c <= n; c++) { const r = Math.ceil(n / c), t = Math.min(b.w / c, b.h / r), waste = b.w * b.h - n * t * t + (r * c - n) * t * t * 3; if (!best || waste < best.waste) best = { c, r, t, waste }; }
+    const { c, r, t } = best, gx = b.x + (b.w - c * t) / 2, gy = b.y + (b.h - r * t) / 2;
+    conts.push({ l: b.l, words, n, c, r, t, gx, gy, box: [gx, gy, gx + c * t, gy + r * t] });
+    bb[0] = Math.min(bb[0], gx); bb[1] = Math.min(bb[1], gy); bb[2] = Math.max(bb[2], gx + c * t); bb[3] = Math.max(bb[3], gy + r * t);
+  }
+  L.tmap = { n: HSK_LEVELS.reduce((a, l) => a + (L.hsk.get(l)?.length || 0), 0), conts, bb };
+  return L.tmap;
+}
+function templeMapView(pills) {
+  const L = state.lu, missing = HSK_LEVELS.filter((l) => !L.hsk.has(l));
+  missing.forEach((l) => ztLoadLevel(l));
+  const head = `<div class="ztthead"><span class="ztplaceart">${ztImg("temple")}</span><span class="small muted">Every HSK word on one map, one box per level.<br>Grey: not met yet · light green: seen · dark green: known. Zoom in and tap a square.</span></div>`;
+  const top = `${ztHeader(ztStreak(), `HSK Temple <span class='zhsub'>${trad() ? "漢語廟" : "汉语庙"}</span>`)}${head}<div class="ztlvpills">${pills}</div>`;
+  if (missing.length) return `${top}<div class="card"><p class="muted small" style="margin:0">Loading every HSK word (${HSK_LEVELS.length - missing.length} of ${HSK_LEVELS.length} levels)…</p></div>`;
+  const ws = ztWordStatus(), M = tmapLayout(), inDeck = new Set(L.cards.flatMap((c) => [c.hanzi, c.hanzi_trad].filter(Boolean)));
+  let tl = 0, ts = 0, tn = 0;
+  const chips = M.conts.slice().sort((a, b) => HSK_LEVELS.indexOf(a.l) - HSK_LEVELS.indexOf(b.l)).map((c) => {
+    let l = 0; for (const w of c.words) { const st = statusOf(w, ws); if (st === "learned") l++; else if (st === "seen") ts++; } tl += l; tn += c.n;
+    const p = Math.round((l / c.n) * 100);
+    return `<button type="button" class="tmchip" data-zt="tmap-go" data-v="${c.l}"><b style="color:${TMAP_COL[c.l]}">HSK ${c.l}</b><span>${p}%</span><i><em style="width:${p}%;background:${TMAP_COL[c.l]}"></em></i></button>`;
+  }).join("");
+  const wsel = L.word && M.conts.flatMap((c) => c.words).find((w) => w.id === L.word);
+  const side = wsel ? ztWordCard(wsel, ws, inDeck) : "";
+  const main = `<div class="card" style="gap:8px"><div class="row between"><b>All HSK · ${tn.toLocaleString()} words</b><b style="color:var(--green)">${tl.toLocaleString()} learned</b></div>
+      <div class="ztlvbar"><i class="l" style="width:${(tl / tn) * 100}%"></i><i class="s" style="width:${(ts / tn) * 100}%"></i></div>
+      <div class="tmchips">${chips}</div></div>
+    <div class="tmap" id="tmap"><canvas id="tmapCv" aria-label="Map of every HSK word, coloured by how well you know it"></canvas>
+      <div class="tmzoom"><button type="button" data-zt="tmap-zoom" data-v="in" aria-label="Zoom in">+</button><button type="button" data-zt="tmap-zoom" data-v="out" aria-label="Zoom out">−</button><button type="button" data-zt="tmap-zoom" data-v="fit" aria-label="See the whole map">⤢</button></div>
+      <span class="tmhint">Drag to move · pinch or scroll to zoom · tap a square</span></div>`;
+  return `${top}${wide() && side ? `<div class="ztcols"><div class="grow" style="min-width:0;display:flex;flex-direction:column;gap:12px">${main}</div><div class="ztsidecol">${side}</div></div>` : `${main}${side ? `<div class="ztwordsheet">${side}</div>` : ""}`}`;
+}
+// draws the map after each render (the camera is kept in state.lu.tcam)
+function tmapAfterRender() {
+  const cv = document.getElementById("tmapCv"); if (!cv) return;
+  const L = state.lu, M = L.tmap, wrap = cv.parentElement, ctx = cv.getContext("2d"), ws = ztWordStatus();
+  const hex = (c, a) => { const n = parseInt(c.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; };
+  const cam = L.tcam || (L.tcam = { x: 0, y: 0, s: 0 });
+  let W = 0, H = 0, dpr = 1, raf = 0;
+  const fit = () => { const b = M.bb; cam.s = Math.min(W / (b[2] - b[0] + 4), H / (b[3] - b[1] + 4)); cam.x = (b[0] + b[2]) / 2; cam.y = (b[1] + b[3]) / 2; };
+  const toS = (x, y) => [(x - cam.x) * cam.s + W / 2, (y - cam.y) * cam.s + H / 2];
+  const toW = (px, py) => [(px - W / 2) / cam.s + cam.x, (py - H / 2) / cam.s + cam.y];
+  const COL = { learned: "#3f8f2f", seen: "#b8e2aa", none: "#e9e4df" };
+  function paint() {
+    raf = 0; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.fillStyle = "#f6f2ee"; ctx.fillRect(0, 0, W, H);
+    const tl = toW(0, 0), br = toW(W, H), z = trad();
+    for (const c of M.conts) {
+      const a = toS(c.box[0], c.box[1]), e = toS(c.box[2], c.box[3]), col = TMAP_COL[c.l];
+      if (c.box[2] < tl[0] || c.box[0] > br[0] || c.box[3] < tl[1] || c.box[1] > br[1]) continue;
+      const ts = c.t * cam.s, gap = ts > 6 ? Math.max(1, ts * 0.07) : 0, txt = ts >= 24;
+      c.words.forEach((w, j) => {
+        const X = c.gx + (j % c.c) * c.t, Y = c.gy + Math.floor(j / c.c) * c.t;
+        if (X + c.t < tl[0] || X > br[0] || Y + c.t < tl[1] || Y > br[1]) return;
+        const p = toS(X, Y), st = statusOf(w, ws);
+        ctx.fillStyle = COL[st]; ctx.fillRect(p[0] + gap / 2, p[1] + gap / 2, ts - gap, ts - gap);
+        if (w.id === L.word) { ctx.strokeStyle = "#2a2420"; ctx.lineWidth = Math.max(2, ts * 0.08); ctx.strokeRect(p[0] + 1, p[1] + 1, ts - 2, ts - 2); }
+        if (txt) { const h = z && w.hanzi_trad ? w.hanzi_trad : w.hanzi, fs = Math.min(ts * 0.42, (ts * 0.86) / Math.max(1, h.length));
+          ctx.fillStyle = st === "learned" ? "#fff" : "#2a2420"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+          ctx.font = `700 ${fs}px "Noto Sans ${z ? "TC" : "SC"}", sans-serif`; ctx.fillText(h, p[0] + ts / 2, p[1] + ts * (ts >= 40 ? 0.6 : 0.52));
+          if (ts >= 40) { ctx.font = `600 ${Math.min(ts * 0.17, (ts * 1.55) / Math.max(1, (w.pinyin || "").length))}px Outfit, sans-serif`; ctx.fillStyle = st === "learned" ? "rgba(255,255,255,.9)" : "#a8431a"; ctx.fillText(py(w.pinyin || ""), p[0] + ts / 2, p[1] + ts * 0.22); } }
+      });
+      ctx.strokeStyle = hex(col, 0.8); ctx.lineWidth = 2; ctx.strokeRect(a[0] - 1.5, a[1] - 1.5, e[0] - a[0] + 3, e[1] - a[1] + 3);
+      if (ts < 16) { // level name + % learned
+        const bw = e[0] - a[0], bh = e[1] - a[1], big = Math.max(12, Math.min(52, bw * 0.2, bh * 0.32)), cx = (a[0] + e[0]) / 2, cy = (a[1] + e[1]) / 2;
+        let l = 0; for (const w of c.words) if (statusOf(w, ws) === "learned") l++;
+        const lab = (t, y, f, color) => { ctx.font = f; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.lineJoin = "round"; ctx.lineWidth = 5; ctx.strokeStyle = "rgba(255,255,255,.9)"; ctx.strokeText(t, cx, y); ctx.fillStyle = color; ctx.fillText(t, cx, y); };
+        lab(`HSK ${c.l.replace("-", "–")}`, cy - big * 0.2, `800 ${big}px Outfit, sans-serif`, col);
+        if (bh > big * 2.6 && bw > big * 3.2) lab(`${Math.round((l / c.n) * 100)}% learned`, cy + big * 0.55, `700 ${Math.max(10, big * 0.34)}px Outfit, sans-serif`, "#5c4f47");
+      }
+    }
+  }
+  const draw = () => { if (!raf) raf = requestAnimationFrame(paint); };
+  function size() { dpr = Math.min(2, devicePixelRatio || 1); W = wrap.clientWidth; H = wrap.clientHeight; cv.width = W * dpr; cv.height = H * dpr; if (!cam.s) fit(); draw(); }
+  const zoomAt = (px, py, f) => { const a = toW(px, py); cam.s = Math.max(1, Math.min(120, cam.s * f)); const b = toW(px, py); cam.x += a[0] - b[0]; cam.y += a[1] - b[1]; draw(); };
+  const flyTo = (x, y, s) => { const s0 = cam.s, x0 = cam.x, y0 = cam.y, t0 = performance.now();
+    const step = (t) => { const k = Math.min(1, (t - t0) / 450), e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2; cam.x = x0 + (x - x0) * e; cam.y = y0 + (y - y0) * e; cam.s = s0 + (s - s0) * e; draw(); if (k < 1) requestAnimationFrame(step); }; requestAnimationFrame(step); };
+  const hit = (x, y) => { for (const c of M.conts) { if (x < c.box[0] || y < c.box[1] || x >= c.box[2] || y >= c.box[3]) continue; const j = Math.floor((y - c.gy) / c.t) * c.c + Math.floor((x - c.gx) / c.t); return j < c.n ? [c, c.words[j]] : [c, null]; } return null; };
+  const pts = new Map(); let moved = false, last = null, pinch = null;
+  cv.onpointerdown = (e) => { cv.setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.offsetX, e.offsetY]); moved = false; last = [e.offsetX, e.offsetY];
+    if (pts.size === 2) { const a = [...pts.values()]; pinch = { d: Math.hypot(a[0][0] - a[1][0], a[0][1] - a[1][1]), s: cam.s }; } };
+  cv.onpointermove = (e) => { if (!pts.has(e.pointerId)) return; pts.set(e.pointerId, [e.offsetX, e.offsetY]);
+    if (pts.size === 2 && pinch) { const a = [...pts.values()], d = Math.hypot(a[0][0] - a[1][0], a[0][1] - a[1][1]); zoomAt((a[0][0] + a[1][0]) / 2, (a[0][1] + a[1][1]) / 2, (pinch.s * d) / pinch.d / cam.s); moved = true; return; }
+    const dx = e.offsetX - last[0], dy = e.offsetY - last[1]; if (Math.abs(dx) + Math.abs(dy) > 4) moved = true;
+    if (moved) { cam.x -= dx / cam.s; cam.y -= dy / cam.s; last = [e.offsetX, e.offsetY]; draw(); } };
+  cv.onpointerup = (e) => { const tap = pts.size === 1 && !moved; pts.delete(e.pointerId); if (pts.size < 2) pinch = null;
+    if (!tap) return; const p = toW(e.offsetX, e.offsetY), h = hit(p[0], p[1]); if (!h) return;
+    if (h[1] && h[0].t * cam.s >= 14) { L.word = h[1].id; render(); } else flyTo(p[0], p[1], 30 / h[0].t); };
+  cv.onpointercancel = (e) => { pts.delete(e.pointerId); pinch = null; };
+  cv.onwheel = (e) => { e.preventDefault(); zoomAt(e.offsetX, e.offsetY, Math.exp(-e.deltaY * 0.0016)); };
+  L.tmapApi = { zoom: (v) => (v === "fit" ? (fit(), draw()) : zoomAt(W / 2, H / 2, v === "in" ? 1.6 : 1 / 1.6)),
+    go: (l) => { const c = M.conts.find((c) => c.l === l); if (c) flyTo((c.box[0] + c.box[2]) / 2, (c.box[1] + c.box[3]) / 2, Math.min(W / (c.box[2] - c.box[0] + 2), H / (c.box[3] - c.box[1] + 2))); } };
+  size(); if (document.fonts) document.fonts.ready.then(draw);
 }
 
 async function ztAddWords(ws, source = "hsk") {
@@ -3690,6 +3816,8 @@ document.addEventListener("click", async (e) => {
     toast("Your tree is back! 💧"); render();
   } else if (a === "restart") { lsSet("mz-zt-restart", dayBack(1)); render(); }
   else if (a === "lv") { L.lv = el.dataset.v; lsSet("mz-zt-lv", L.lv); L.show = 300; L.word = null; render(); }
+  else if (a === "tmap-zoom") L.tmapApi?.zoom(el.dataset.v);
+  else if (a === "tmap-go") L.tmapApi?.go(el.dataset.v);
   else if (a === "more") { L.show += 600; render(); }
   else if (a === "word") { L.word = el.dataset.id ? +el.dataset.id : null; render(); }
   else if (a === "pick") { L.pick = L.pick ? null : new Set(); L.word = null; render(); }
@@ -3700,7 +3828,7 @@ document.addEventListener("click", async (e) => {
   }
   else if (a === "tick") { const id = +el.dataset.id; L.pick.has(id) ? L.pick.delete(id) : L.pick.add(id); keepForm(() => render()); }
   else if (a === "add-word" || a === "add-picked") {
-    const words = L.hsk.get(L.lv) || [];
+    const words = L.lv === "map" ? HSK_LEVELS.flatMap((l) => L.hsk.get(l) || []) : L.hsk.get(L.lv) || [];
     const list = a === "add-word" ? words.filter((w) => w.id === +el.dataset.id) : words.filter((w) => L.pick.has(w.id));
     el.disabled = true;
     const n = await ztAddWords(list);
@@ -3716,7 +3844,7 @@ document.addEventListener("click", async (e) => {
     toast(n ? `Added ${n.toLocaleString()} HSK ${L.lv} words to your flashcards.` : "They're already in your flashcards.");
     render();
   } else if (a === "know" || a === "know-picked" || a === "unknow") {
-    const words = L.hsk.get(L.lv) || [];
+    const words = L.lv === "map" ? HSK_LEVELS.flatMap((l) => L.hsk.get(l) || []) : L.hsk.get(L.lv) || [];
     const list = a === "know-picked" ? words.filter((w) => L.pick.has(w.id)) : words.filter((w) => w.id === +el.dataset.id);
     el.disabled = true;
     const n = await ztMarkKnown(list, a !== "unknow");
@@ -4923,7 +5051,7 @@ async function cgRemember(t) {
   if (data?.length) await sb.from("char_recent").delete().eq("user_id", state.user.id).in("text", data.map((r) => r.text));
 }
 let cgHW = null;
-const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=142")).default);
+const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=143")).default);
 const cgStrokes = async (c) => {
   const S = cgState(); if (S.data.has(c)) return S.data.get(c);
   const HW = await cgLib(); const d = await HW.loadCharacterData(c).catch(() => null);
