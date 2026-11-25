@@ -1,12 +1,12 @@
-import { createClient } from "./vendor/supabase.js?v=140";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=140";
-import { COUNTRIES } from "./countries.js?v=140";
-import { toZhuyin } from "./zhuyin.js?v=140";
-import { ORACLE, ORACLE_T } from "./course-oracle.js?v=140";
+import { createClient } from "./vendor/supabase.js?v=141";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=141";
+import { COUNTRIES } from "./countries.js?v=141";
+import { toZhuyin } from "./zhuyin.js?v=141";
+import { ORACLE, ORACLE_T } from "./course-oracle.js?v=141";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=140";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=141";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -1390,7 +1390,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=140"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=141"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -2007,7 +2007,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=140");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=141");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2915,7 +2915,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=140").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=141").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -3251,8 +3251,9 @@ const ivText = (n) => (n === 0 ? "now" : n === 1 ? "1 day" : n < 30 ? `${n} days
 async function ztGrade(g) {
   const R = state.lu.review; if (!R) return;
   const c = R.queue[R.i]; if (!c) return;
-  const scheduled = c.reps === 0 || c.due <= todayKey();
-  if (scheduled) {
+  // Every answer reschedules the card, also a card reviewed before it's due (by session / HSK level), like Anki's
+  // "review ahead"; until 25 Nov those were practice only and the buttons showed no days.
+  {
     const iv = ztPreview(c, g), wasNew = c.reps === 0;
     const upd = {
       interval_days: iv, due: addDays(iv), reps: c.reps + 1, last_review: new Date().toISOString(),
@@ -3485,7 +3486,6 @@ function reviewView() {
   const c = R.queue[R.i], s = c.session_id && ztSession(c.session_id);
   const src = c.source === "session" && s ? `From “${esc(s.title)}”` : c.hsk_level ? `HSK ${esc(c.hsk_level)}` : "";
   const g = [["Again", 0, "again"], ["Hard", 1, "hard"], ["Good", 2, "good"], ["Easy", 3, "easy"]];
-  const scheduled = c.reps === 0 || c.due <= todayKey();
   return `${ztHeader(null, esc(R.title))}
   <div class="ztprog"><span>${Math.min(R.i + 1, R.queue.length)} / ${R.queue.length}</span><span class="ztbar"><i style="width:${(R.i / R.queue.length) * 100}%"></i></span><button type="button" class="link small" data-zt="end">Stop</button></div>
   <button type="button" class="ztcard ${R.flipped ? "flipped" : ""}" data-zt="flip" aria-label="${R.flipped ? "Answer shown" : "Show the answer"}">
@@ -3493,9 +3493,8 @@ function reviewView() {
     <span class="ztzh">${esc(cardZh(c))}</span>
     ${R.flipped ? `<span class="ztpy">${esc(py(c.pinyin))}</span><span class="ztmean">${esc(c.meaning)}</span>${src ? `<span class="small muted">${src}</span>` : ""}` : `<span class="small muted">Say it out loud, then tap to check</span>`}
   </button>
-  ${R.flipped ? `<div class="ztgrades">${g.map(([t, v, cls]) => `<button type="button" class="${cls}" data-zt="grade" data-v="${v}"><b>${t}</b><small>${scheduled ? ivText(ztPreview(c, v)) : "practice"}</small></button>`).join("")}</div>`
-    : `<button type="button" class="btn block" data-zt="flip">Show answer</button>`}
-  ${R.cram && !scheduled ? `<p class="small muted" style="text-align:center">Practice mode: cards that aren't due yet keep their schedule.</p>` : ""}`;
+  ${R.flipped ? `<div class="ztgrades">${g.map(([t, v, cls]) => `<button type="button" class="${cls}" data-zt="grade" data-v="${v}"><b>${t}</b><small>${ivText(ztPreview(c, v))}</small></button>`).join("")}</div>`
+    : `<button type="button" class="btn block" data-zt="flip">Show answer</button>`}`;
 }
 function templeView() {
   const L = state.lu, lv = L.lv, words = L.hsk.get(lv), ws = ztWordStatus();
@@ -4923,7 +4922,7 @@ async function cgRemember(t) {
   if (data?.length) await sb.from("char_recent").delete().eq("user_id", state.user.id).in("text", data.map((r) => r.text));
 }
 let cgHW = null;
-const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=140")).default);
+const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=141")).default);
 const cgStrokes = async (c) => {
   const S = cgState(); if (S.data.has(c)) return S.data.get(c);
   const HW = await cgLib(); const d = await HW.loadCharacterData(c).catch(() => null);
