@@ -1456,3 +1456,47 @@ i.py { font-style: normal; color: #8a6a55; font-weight: 600; }
 .qlplus { position: absolute; top: 12px; right: 14px; font: 400 13px/1 "Press Start 2P", ui-monospace, monospace; color: #f37a48; text-shadow: 2px 2px 0 #2a2420; animation: qlfloat 1.4s ease-out both; }
 @keyframes qlfloat { from { opacity: 0; translate: 0 10px; } to { opacity: 1; translate: 0 0; } }
 .ztover.still { animation: none; }
+
+/* ---- Zest Town dashboard (26 Nov) ---- */
+.dash { display: flex; flex-direction: column; gap: 8px; }
+.ztwide.town .ztsidein .dash { flex: 1; min-height: 0; }
+.ztwide.town .ztsidein .dgrid { flex: 1; min-height: 0; }
+.dgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.dash.one .dgrid { grid-template-columns: 1fr; }
+.dtree { flex-direction: row; align-items: center; gap: 12px; padding: 8px 12px; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+.dtree .zttreeart { width: 58px; height: 58px; flex: none; }
+.dtreeday { display: block; font-size: 19px; line-height: 1.2; }
+.dtreeday .muted { font-size: 15px; font-weight: 700; }
+.dok { color: #1b6f1b; } .dok svg { width: 13px; height: 13px; vertical-align: -2px; }
+.dwarn { color: #c2410c; }
+.deye { display: block; font-size: 10px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: #1b6f1b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dtile, .dql, .dforest { display: flex; align-items: center; gap: 10px; min-width: 0; min-height: 0; background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 8px 10px;
+  text-decoration: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.dtile:hover, .dforest:hover, .dql:hover { color: inherit; border-color: #bfe0b0; }
+.dart { position: relative; flex: none; width: 40px; height: 40px; border-radius: 10px; background: #a8d68a; display: grid; place-items: center; }
+.dart > img.px { width: 32px; }
+.dart .dcover { width: 27px; border-radius: 3px; box-shadow: 0 1px 3px rgba(0,0,0,.3); }
+.dstk svg { display: block; width: 32px; height: 32px; filter: drop-shadow(1.5px 0 0 #fff) drop-shadow(-1.5px 0 0 #fff) drop-shadow(0 1.5px 0 #fff) drop-shadow(0 -1.5px 0 #fff); }
+.dbadge { position: absolute; top: -6px; right: -6px; min-width: 18px; height: 18px; box-sizing: border-box; border-radius: 9px; background: var(--orange); color: #fff; font: 800 11px/14px Outfit, sans-serif; font-style: normal; text-align: center; border: 2px solid #fff; padding: 0 3px; }
+.dtxt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.dbig { font-size: 15.5px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dsub { display: block; font-size: 11.5px; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dgo { color: #c2410c; font-size: 15px; flex: none; }
+.dbar { display: block; margin-top: 3px; height: 5px; border-radius: 9px; background: #f1e7de; overflow: hidden; }
+.dbar i { display: block; height: 100%; border-radius: 9px; }
+.dql { grid-column: 1 / -1; background: #fffaf0; border: 2px solid #f3d3bd; }
+.dql.ready { border-color: #f3a27a; box-shadow: 0 0 0 2px #fde3d6; }
+.dqlart { position: relative; flex: none; width: 52px; height: 52px; border-radius: 12px; background: radial-gradient(circle at 50% 60%, #fff6dc, #e9c98a); display: grid; place-items: center; }
+.dqlart img { width: 44px; }
+.dqlart .qlbang { left: auto; right: -8px; top: -8px; bottom: auto; transform: none; margin: 0; font-style: normal; }
+.dql .dtxt { gap: 4px; }
+.dqrow { display: grid; grid-template-columns: 50px 1fr auto; gap: 8px; align-items: center; font-size: 12px; }
+.dqlab { font: 400 7.5px/1.4 "Press Start 2P", ui-monospace, monospace; }
+.dqt { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dqn { color: var(--faint); text-align: right; white-space: nowrap; }
+.dqn.ready { color: #c2410c; }
+.dforest { grid-column: 1 / -1; background: #e8f3df; border-color: #d6ebc9; padding: 6px 12px; font-size: 13px; }
+.dfruits { display: flex; flex: none; }
+.dfruits img { width: 24px; margin-right: -6px; }
+.dforest .grow { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dforest .dgo { color: #1b6f1b; font-size: 13px; }
