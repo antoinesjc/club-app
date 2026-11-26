@@ -1,12 +1,12 @@
-import { createClient } from "./vendor/supabase.js?v=144";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=144";
-import { COUNTRIES } from "./countries.js?v=144";
-import { toZhuyin } from "./zhuyin.js?v=144";
-import { ORACLE, ORACLE_T } from "./course-oracle.js?v=144";
+import { createClient } from "./vendor/supabase.js?v=145";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=145";
+import { COUNTRIES } from "./countries.js?v=145";
+import { toZhuyin } from "./zhuyin.js?v=145";
+import { ORACLE, ORACLE_T } from "./course-oracle.js?v=145";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=144";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=145";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -1391,7 +1391,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=144"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=145"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -2008,7 +2008,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=144");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=145");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2915,7 +2915,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=144").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=145").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -3440,31 +3440,31 @@ function treeMini(st) {
 }
 const dTile = ({ href, art, eye, big, sub, badge, extra = "", cls = "", attrs = "" }) =>
   `<a class="dtile ${cls}" href="${href}" ${attrs}><span class="dart">${art}${badge ? `<i class="dbadge">${badge}</i>` : ""}</span>
-    <span class="dtxt"><span class="deye">${eye}</span><b class="dbig">${big}</b><span class="dsub">${sub}</span>${extra}</span><b class="dgo" aria-hidden="true">›</b></a>`;
+    <span class="dtxt"><span class="deye">${eye}</span><b class="dbig">${big}</b><span class="dsub">${sub}</span>${extra}</span></a>`;
 const dBar = (pct, col) => `<span class="dbar"><i style="width:${Math.max(0, Math.min(100, pct))}%;background:${col}"></i></span>`;
 function dashTiles() {
   const out = [], z = trad();
   // Flashcards
   const q = ztQueueAll(), newN = q.filter((c) => c.reps === 0).length, dueN = q.length - newN, deck = ztDeck().cards.length;
-  out.push(dTile({ href: "#/learn/cards", art: ztImg("house"), eye: `Flashcards ${z ? "字卡" : "字卡"}`, badge: q.length || "",
-    big: q.length ? `${q.length} to review` : deck ? "All done for today" : "No cards yet",
-    sub: deck ? `${dueN ? `${dueN} due` : "nothing due"}${newN ? ` + ${newN} new` : ""} · ${deck.toLocaleString()} in your deck` : "Add words in the HSK Temple" }));
+  out.push(dTile({ href: "#/learn/cards", art: ztImg("house"), eye: "Flashcards", badge: q.length || "",
+    big: q.length ? `${q.length} to review` : deck ? "All done today" : "No cards yet",
+    sub: deck ? (q.length ? [dueN ? `${dueN} due` : "", newN ? `${newN} new` : ""].filter(Boolean).join(" + ") : `${deck.toLocaleString()} in your deck`) : "Add words in the HSK Temple" }));
   // Character box
   if (calligOpen()) {
     const S = cgState(), box = S.box;
     if (box) {
       const due = cgDue(), n = due.length;
-      out.push(dTile({ href: box.length ? "#/learn/callig/box" : "#/learn/callig", art: ztImg("callig"), eye: `Character box ${z ? "漢字" : "汉字"}`, badge: n || "",
-        big: n ? `${n} to write` : box.length ? "All done for today" : "Start your box",
-        sub: box.length ? `${box.length} character${box.length === 1 ? "" : "s"} in your box` : "Add characters in the Calligraphy School" }));
-    } else out.push(dTile({ href: "#/learn/callig", art: ztImg("callig"), eye: `Character box ${z ? "漢字" : "汉字"}`, big: "…", sub: "Opening your box…" }));
+      out.push(dTile({ href: box.length ? "#/learn/callig/box" : "#/learn/callig", art: ztImg("callig"), eye: "Character box", badge: n || "",
+        big: n ? `${n} to write` : box.length ? "All done today" : "Start your box",
+        sub: box.length ? `${box.length} in your box` : "Add some at the School" }));
+    } else out.push(dTile({ href: "#/learn/callig", art: ztImg("callig"), eye: "Character box", big: "…", sub: "" }));
   }
   // Letters
   if (postOpen()) {
     const P = postState(), n = postUnread(), from = [...new Set(P.letters.filter((l) => l.recipient === state.user.id && !l.read_at).map((l) => postPerson(l.sender).name))];
-    out.push(dTile({ href: "#/learn/post", art: ztImg("post"), eye: `Post Office ${z ? "郵局" : "邮局"}`, badge: n || "",
+    out.push(dTile({ href: "#/learn/post", art: ztImg("post"), eye: "Post Office", badge: n || "",
       big: n ? `${n} new letter${n === 1 ? "" : "s"}` : "No new letters",
-      sub: n ? `From ${esc(from.slice(0, 2).join(" and "))}${from.length > 2 ? ` +${from.length - 2}` : ""}` : "Write a letter to someone" }));
+      sub: n ? `From ${esc(from.slice(0, 2).join(" and "))}${from.length > 2 ? ` +${from.length - 2}` : ""}` : "Write to someone" }));
   }
   // Reading
   if (libOpen()) {
@@ -3472,25 +3472,25 @@ function dashTiles() {
     if (b) {
       const nRead = Object.keys(D.read.state?.read || {}).length, c = L.content.get(b.id), total = c?.s?.chapters?.length || 0;
       out.push(dTile({ href: `#/learn/library/${b.id}`, art: b.cover ? `<img class="dcover" src="${esc(b.cover)}" alt="">` : ztImg("library"), eye: "Reading", cls: "lzh",
-        big: esc(b.title_zh || b.title), sub: nRead ? `${nRead}${total ? ` of ${total}` : ""} chapter${nRead === 1 && !total ? "" : "s"} read` : "Just started",
+        big: esc(b.title_zh || b.title), sub: nRead ? `${nRead}${total ? `/${total}` : ""} chapter${nRead === 1 && !total ? "" : "s"} read` : "Just started",
         extra: total ? dBar((nRead / total) * 100, "#2f6fa3") : "" }));
-    } else out.push(dTile({ href: "#/learn/library", art: ztImg("library"), eye: "Reading", big: "Find a book", sub: "Your free book is waiting in the Library" }));
+    } else out.push(dTile({ href: "#/learn/library", art: ztImg("library"), eye: "Reading", big: "Find a book", sub: "A free one is waiting" }));
   }
   // Latest sticker
   const mine = (state.stickerAwards || []).filter((a) => a.user_id === state.user.id && stickerInfo(a.sticker)).sort((a, b) => (b.awarded_at || "").localeCompare(a.awarded_at || ""));
   const sc = sbCount();
-  if (isHost()) out.push(dTile({ href: "#/learn/gallery", art: ztImg("gallery"), eye: "Sticker Gallery", big: "Every sticker", sub: "Hosts have the whole collection" }));
+  if (isHost()) out.push(dTile({ href: "#/learn/gallery", art: ztImg("gallery"), eye: "Stickers", big: "Every sticker", sub: "Hosts have them all" }));
   else if (mine[0]) {
     const s = stickerInfo(mine[0].sticker);
     out.push(dTile({ href: "#/learn/gallery", art: `<span class="dstk">${stickerSvg(mine[0].sticker)}</span>`, eye: "Latest sticker", cls: "lzh",
-      big: `${esc((Array.isArray(s.zh) ? s.zh[z ? 1 : 0] : s.zh) || "")} ${esc(s.en || "")}`.trim(), sub: `${mine[0].awarded_at ? ago(mine[0].awarded_at) + " · " : ""}${sc.n} of ${sc.total} collected` }));
-  } else out.push(dTile({ href: "#/learn/gallery", art: ztImg("gallery"), eye: "Stickers", big: "No stickers yet", sub: "See how to earn them" }));
+      big: `${esc((Array.isArray(s.zh) ? s.zh[z ? 1 : 0] : s.zh) || "")} ${esc(s.en || "")}`.trim(), sub: `${mine[0].awarded_at ? ago(mine[0].awarded_at) + " · " : ""}${sc.n}/${sc.total}` }));
+  } else out.push(dTile({ href: "#/learn/gallery", art: ztImg("gallery"), eye: "Stickers", big: "None yet", sub: "See how to earn them" }));
   // HSK Temple
-  const lv = state.lu.lv, words = state.lu.hsk.get(lv), ws = ztWordStatus();
+  const lv = HSK_LEVELS.includes(state.lu.lv) ? state.lu.lv : "1", words = state.lu.hsk.get(lv), ws = ztWordStatus();
   const learnedAll = ztDeck().cards.filter((c) => c.hsk_level && (c.interval_days || 0) >= ZT_KNOWN_DAYS).length;
   let pct = null; if (words?.length) pct = Math.round((words.filter((w) => statusOf(w, ws) === "learned").length / words.length) * 100); else ztLoadLevel(lv);
-  out.push(dTile({ href: "#/learn/temple", art: ztImg("temple"), eye: `HSK Temple ${z ? "漢語廟" : "汉语庙"}`,
-    big: `${learnedAll.toLocaleString()} word${learnedAll === 1 ? "" : "s"} learned`, sub: pct === null ? `HSK ${esc(lv)}` : `HSK ${esc(lv)} · ${pct}% learned`, extra: pct === null ? "" : dBar(pct, "#2e7d48") }));
+  out.push(dTile({ href: "#/learn/temple", art: ztImg("temple"), eye: "HSK Temple",
+    big: `${learnedAll.toLocaleString()} learned`, sub: pct === null ? `HSK ${esc(lv)} words` : `HSK ${esc(lv)} · ${pct}%`, extra: pct === null ? "" : dBar(pct, "#2e7d48") }));
   return out;
 }
 function dashQilin() {
@@ -3506,7 +3506,7 @@ function dashQilin() {
 function dashForest() {
   const F = state.lu.forest, list = F.list ? forestWithMe(F.list).filter((m) => m.user_id !== state.user.id) : null;
   const n = list?.length || 0, fr = (list || []).slice(0, 3).map((m) => ztImg("fruit-" + (ZT_FRUITS.has(m.fruit) ? m.fruit : "orange"))).join("");
-  return `<a class="dforest" href="#/learn/forest"><span class="dfruits">${fr || ztImg("sign-forest")}</span><span class="grow"><b>${list === null ? "Magical Forest" : n ? `${n} member${n === 1 ? "" : "s"} in the Magical Forest today` : "Nobody in the Magical Forest yet today"}</b> <span class="muted">· ${n ? "say hi" : "be the first"}</span></span><b class="dgo">Go ›</b></a>`;
+  return `<a class="dforest" href="#/learn/forest"><span class="dfruits">${fr || ztImg("sign-forest")}</span><span class="grow"><b>${list === null ? "Magical Forest" : n ? `${n} in the Magical Forest today` : "Magical Forest: nobody yet today"}</b></span><b class="dgo">Go ›</b></a>`;
 }
 function townDash(st, one) {
   dashLoad();
@@ -5159,7 +5159,7 @@ async function cgRemember(t) {
   if (data?.length) await sb.from("char_recent").delete().eq("user_id", state.user.id).in("text", data.map((r) => r.text));
 }
 let cgHW = null;
-const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=144")).default);
+const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=145")).default);
 const cgStrokes = async (c) => {
   const S = cgState(); if (S.data.has(c)) return S.data.get(c);
   const HW = await cgLib(); const d = await HW.loadCharacterData(c).catch(() => null);
