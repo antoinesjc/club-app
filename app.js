@@ -1,12 +1,12 @@
-import { createClient } from "./vendor/supabase.js?v=145";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=145";
-import { COUNTRIES } from "./countries.js?v=145";
-import { toZhuyin } from "./zhuyin.js?v=145";
-import { ORACLE, ORACLE_T } from "./course-oracle.js?v=145";
+import { createClient } from "./vendor/supabase.js?v=146";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=146";
+import { COUNTRIES } from "./countries.js?v=146";
+import { toZhuyin } from "./zhuyin.js?v=146";
+import { ORACLE, ORACLE_T } from "./course-oracle.js?v=146";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=145";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=146";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -286,7 +286,7 @@ async function loadAll() {
   claimSeasonal();
   logOpen();
   ztCheckBeta();
-  if (!isHost()) rewardCheck();
+  if (!isHost()) { rewardCheck(); nbCheersCheck(); }
 }
 
 // Reward pop-ups: level up (new fruit), new sticker, new character, XP given by the team.
@@ -296,7 +296,7 @@ function rewardCheck() {
   const uid = state.user.id;
   try {
     const lv = myLevel(), seen = +(lsGet("mz-level") || 0);
-    if (seen && lv > seen) q.push({ kind: "level", lv, fruits: FRUITS.filter((x) => x.level > seen && x.level <= lv) });
+    if (seen && lv > seen) { q.push({ kind: "level", lv, fruits: FRUITS.filter((x) => x.level > seen && x.level <= lv) }); nbPost("level", lv, String(lv)); }
     lsSet("mz-level", String(lv));
     const mine = myStickers(), raw = lsGet("mz-stickers"), had = raw ? JSON.parse(raw) : null;
     if (had) for (const k of mine.filter((k) => !had.includes(k))) q.push({ kind: "sticker", key: k });
@@ -1391,7 +1391,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=145"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=146"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1847,7 +1847,7 @@ function ideaOverlay() {
 function profileView() {
   const d = draft(), info = fruitInfo(d.fruit), idx = trad() ? 1 : 0;
   const level = myLevel();
-  const changed = ["display_name", "fruit", "bg", "country", "chinese_level", "discord", "script", "phonetic", "bio", "sticker"]
+  const changed = ["display_name", "fruit", "bg", "country", "chinese_level", "discord", "script", "phonetic", "bio", "sticker", "show_milestones"]
     .some((k) => (d[k] ?? null) !== (state.me[k] ?? null))
     || (isHost() && d.meet_name !== undefined && d.meet_name.trim() !== (state.meetName || ""));
   const stickerKeys = isHost() ? STICKERS.map((t) => t.key) : myStickers();
@@ -1956,6 +1956,15 @@ function profileView() {
       <p class="tiny muted" style="margin:6px 0 0">Pinyin <span lang="zh-Latn">nǐ hǎo</span> or zhuyin (bopomofo) <span lang="zh">ㄋㄧˇ ㄏㄠˇ</span>, shown everywhere in the app: notes, flashcards, the HSK Temple, the Library, the Calligraphy School…</p>
     </div>
 
+    ${state.role === "member" ? `<div>
+      <h2 style="margin-bottom:8px">Notice board</h2>
+      <div class="seg" role="group" aria-label="Show my milestones on the notice board">
+        <button type="button" data-act="milestones" data-v="1" aria-pressed="${d.show_milestones !== false}">Show my wins</button>
+        <button type="button" data-act="milestones" data-v="0" aria-pressed="${d.show_milestones === false}">Keep them private</button>
+      </div>
+      <p class="tiny muted" style="margin:6px 0 0">The notice board in the Magical Forest celebrates members' milestones (streak tree, level ups, stickers, finished books, sessions joined) and lets others cheer 加油！</p>
+    </div>` : ""}
+
     <button class="btn block" ${changed ? "" : "disabled"}>${changed ? "Save changes" : "Saved"}</button>
   </form>
 
@@ -1982,6 +1991,7 @@ async function saveProfile() {
   const d = draft();
   const patch = {};
   for (const k of ["display_name", "fruit", "bg", "country", "chinese_level", "discord", "script", "phonetic", "bio", "sticker"]) patch[k] = d[k] ?? null;
+  if (state.role === "member" && typeof d.show_milestones === "boolean") patch.show_milestones = d.show_milestones;
   patch.display_name = String(patch.display_name || "").trim().slice(0, 40);
   patch.discord = String(patch.discord || "").trim().replace(/^@/, "").slice(0, 40);
   patch.bio = String(patch.bio || "").replace(/\s+/g, " ").trim().slice(0, BIO_MAX);
@@ -2008,7 +2018,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=145");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=146");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2582,6 +2592,8 @@ document.addEventListener("click", async (e) => {
     state.calDay = el.dataset.v; render();
   } else if (act === "toggle-in") {
     await toggleIn(el.dataset.id);
+  } else if (act === "milestones") {
+    draft().show_milestones = el.dataset.v === "1"; keepForm(() => render());
   } else if (act === "fruit" || act === "bg" || act === "script" || act === "phonetic") {
     const d = draft();
     if (act === "fruit") d.fruit = el.dataset.key;
@@ -2915,7 +2927,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=145").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=146").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -3327,6 +3339,7 @@ function learnView() {
   if (sub === "cards") return L.review ? reviewView() : cardsView();
   if (sub === "temple") return templeView();
   if (sub === "forest") return forestView();
+  if (sub === "forest/board") return nbView();
   if (sub === "gallery") return galleryView();
   if (sub === "post" || sub.startsWith("post/") || sub.startsWith("post?")) {
     const [path, qs] = sub.split("?");
@@ -3409,6 +3422,122 @@ function townMap(st) {
     <button type="button" class="ztlabel day ${st.wilted ? "dead" : ""}" data-zt="sheet" style="${at(M.plaza[0], M.plaza[1] + 11)}">${st.wilted ? "WILTED" : `DAY ${st.n}`}</button>
   </div>`;
 }
+// ---------------------------------------------------------------------------
+// Notice board 公告栏 in the Magical Forest (26 Nov 2026): the club's wins from the last 14 days, 加油！ cheers,
+// and short announcements pinned by hosts/admins. Table notices (+ notice_cheers). Stickers, sessions attended and
+// new members are posted by the database; streak-tree stages, level ups, a finished book and the Oracle Bone course
+// by the app (nbPost). Members only; profiles.show_milestones = false keeps someone off the board.
+// Route: #/learn/forest/board
+// ---------------------------------------------------------------------------
+const NB_TREE_DAYS = ZT_STAGES.map((x) => x[3]).filter((d) => d >= 7); // a new stage of the streak tree: day 7, 30, 90…
+const nbState = () => (state.nb ??= { list: null, loading: false, at: 0, draft: "", days: 7 });
+async function nbLoad(force) {
+  const N = nbState();
+  if (N.loading || (!force && N.list && Date.now() - N.at < 60e3)) return;
+  N.loading = true;
+  const { data, error } = await sb.rpc("notice_board");
+  N.loading = false; N.at = Date.now();
+  N.list = error ? (N.list || []) : data;
+  if (route() === "learn") render();
+}
+const nbSeen = () => lsGet("mz-nb-seen") || "";
+const nbNew = () => (nbState().list || []).filter((n) => n.user_id !== state.user.id && n.created_at > nbSeen()).length;
+function nbPost(kind, key, label) {
+  if (state.role !== "member" || state.me?.show_milestones === false) return;
+  const k = `mz-nb-${kind}-${key}`; if (lsGet(k)) return; lsSet(k, "1");
+  sb.rpc("post_notice", { p_kind: kind, p_key: String(key), p_label: label || null }).then(({ error }) => { if (error) console.error(error); });
+}
+// Streak-tree stage reached today (called when the town is drawn).
+function nbTreeCheck(st) { if (st.doneToday && !st.wilted && NB_TREE_DAYS.includes(st.n)) nbPost("tree", `${st.n}-${todayKey()}`, String(st.n)); }
+// "4 people cheered you on" (once, the next time the app opens after someone cheered).
+async function nbCheersCheck() {
+  if (state.role !== "member") return;
+  const since = lsGet("mz-nb-cheers") || new Date(Date.now() - 864e5).toISOString();
+  const { data, error } = await sb.rpc("my_new_cheers", { p_since: since });
+  lsSet("mz-nb-cheers", new Date().toISOString());
+  const r = !error && data?.[0];
+  if (r?.n) toast(`🎉 ${r.n === 1 ? `${esc(r.names?.[0] || "Someone")} cheered you on` : `${r.n} cheers for you`} on the notice board. 加油！`);
+}
+function nbText(n) {
+  const L = esc(n.label || ""), k = n.key;
+  switch (n.kind) {
+    case "tree": { const d = +String(k).split("-")[0]; const i = ZT_STAGES.findIndex((s) => s[3] === d); return [`reached <b>day ${d}</b> of their streak tree${i >= 0 ? `: it's now a ${esc(stageName(i))}` : ""} 🌳`, "Streak tree"]; }
+    case "level": { const lv = +k, f = FRUITS.filter((x) => x.level === lv).map((x) => x.en); return [`reached <b>Level ${lv}</b>${f.length ? ` and unlocked the ${esc(f.join(" and "))}` : ""} ⭐`, "Level up"]; }
+    case "sticker": { const s = stickerInfo(k); return [`unlocked the <b class="lzh">${esc((Array.isArray(s?.zh) ? s.zh[trad() ? 1 : 0] : s?.zh) || "")} ${esc(s?.en || k)}</b> sticker`, "Sticker"]; }
+    case "book": return [`finished the book <b class="lzh">${L}</b> 📖`, "Library"];
+    case "course": return [`finished the <b>Oracle Bone Mystery</b> course 🦴`, "Calligraphy School"];
+    case "sessions": return [`joined their <b>${esc(k)}th</b> live session 🎉`, "Sessions"];
+    case "joined": return ["just joined the club. Say hi! 👋", "New member"];
+    default: return [L, ""];
+  }
+}
+const NB_COLORS = ["#fffaf0", "#e8f4ff", "#fff0f0", "#fff6d6", "#eef8e6", "#f3ecff"];
+function nbView() {
+  const N = nbState(), me = state.user.id, staff = state.role === "host" || state.role === "admin";
+  nbLoad();
+  if (N.list) lsSet("mz-nb-seen", new Date().toISOString());
+  const head = `<header class="zthead"><a class="ztback" href="#/learn/forest">‹ Magical Forest</a></header>`;
+  const items = (N.list || []).map((n, i) => {
+    if (n.kind === "announce") return `<div class="nbnote ann" style="--r:.5deg"><i class="nbpin"></i>
+      <div class="nbann">📌 From the hosts</div><div class="nbtext">${esc(n.label)}</div>
+      <div class="nbmeta">${esc(n.name)} · ${ago(n.created_at)} · until ${new Date(n.until).toLocaleDateString([], { day: "numeric", month: "short" })}${isAdmin() || n.user_id === me ? ` · <button type="button" class="linkbtn" data-nb="del" data-id="${n.id}">Remove</button>` : ""}</div></div>`;
+    const [txt, cat] = nbText(n), mine = n.user_id === me;
+    return `<div class="nbnote" style="--bg:${NB_COLORS[i % NB_COLORS.length]};--r:${[-1.1, 0.9, -0.5, 1.2, -0.8, 0.4][i % 6]}deg"><i class="nbpin"></i>
+      <div class="row" style="gap:10px;align-items:center">${ztImg("fruit-" + (ZT_FRUITS.has(n.fruit) ? n.fruit : "orange"), "nbfruit")}
+        <div class="grow" style="min-width:0"><div class="nbtext"><b>${mine ? "You" : esc(n.name)}</b> ${txt}</div><div class="nbmeta">${cat ? `${cat} · ` : ""}${ago(n.created_at)}${isAdmin() ? ` · <button type="button" class="linkbtn" data-nb="del" data-id="${n.id}">Remove</button>` : ""}</div></div></div>
+      <div class="nbfoot">${mine ? `<span class="nbcheer mine">加油！ ${n.cheers}</span>` : `<button type="button" class="nbcheer ${n.cheered ? "on" : ""}" data-nb="cheer" data-id="${n.id}" ${n.cheered ? "disabled" : ""} aria-label="Cheer ${esc(n.name)} on">加油！ ${n.cheers}</button>`}</div></div>`;
+  }).join("");
+  const form = staff ? `<form class="card nbform" data-nb-form><b>Pin an announcement</b><span class="tiny muted">Shown at the top of the board for everyone, then it disappears.</span>
+    <textarea maxlength="200" rows="2" data-nb-draft placeholder="Saturday's session moves to 10:00 (Taiwan time)…">${esc(N.draft)}</textarea>
+    <div class="row between" style="gap:8px;align-items:center"><label class="small">Show for <select data-nb-days>${[1, 3, 7, 14, 30].map((d) => `<option value="${d}" ${N.days === d ? "selected" : ""}>${d} day${d === 1 ? "" : "s"}</option>`).join("")}</select></label><button class="btn small">📌 Pin it</button></div></form>` : "";
+  return `${head}
+    <div class="nbboard"><div class="nbtop">${ztImg("noticeboard", "nbart")}<div><h1>Notice board <span class="zhsub">${trad() ? "公告欄" : "公告栏"}</span></h1><span class="small">The club's wins from the last 2 weeks</span></div></div>
+      <div class="nbnotes">${N.list ? items || `<div class="nbnote" style="--bg:#fffaf0;--r:-.6deg"><i class="nbpin"></i><div class="nbtext">Nothing pinned yet. Grow your streak tree, unlock a sticker or finish a book, and your win shows up here!</div></div>` : `<p class="small" style="color:#fff7e8">Reading the board…</p>`}</div></div>
+    ${form}
+    <p class="tiny muted" style="margin:0">Only these milestones are shown: streak-tree stages, level ups, stickers, finished books and courses, sessions joined, new members. ${state.role === "member" ? `Don't want yours here? Turn it off in <a href="#/me">Me</a>.` : ""}</p>`;
+}
+// The board in the forest, and the summary card under it.
+const NB_SPOT = { phone: [68, 26, 26], wide: [150, 16, 28] };
+function nbForestSprite(k, M) {
+  const [x, y, w] = NB_SPOT[k], n = nbNew(), pct = (v, t) => `${(v / t) * 100}%`;
+  return `<a class="nbsprite" href="#/learn/forest/board" style="left:${pct(x, M.w)};top:${pct(y, M.h)};width:${pct(w, M.w)}" aria-label="Notice board${n ? `, ${n} new` : ""}">${ztImg("noticeboard")}${n ? `<i class="dbadge">${n}</i>` : ""}<span class="nblabel">NOTICE BOARD</span></a>`;
+}
+function nbCard() {
+  nbLoad();
+  const N = nbState(), n = nbNew(), fresh = (N.list || []).filter((x) => x.kind !== "announce" && x.user_id !== state.user.id && x.created_at > nbSeen()).slice(0, 3);
+  const ann = (N.list || []).find((x) => x.kind === "announce");
+  const names = [...new Set(fresh.map((x) => x.name))];
+  const line = ann ? `📌 ${esc(ann.label)}` : n ? `${n} new · ${esc(names.join(", "))}${n > names.length ? "…" : ""}` : N.list?.length ? `${N.list.length} win${N.list.length === 1 ? "" : "s"} in the last 2 weeks` : "The club's wins show up here";
+  return `<a class="card nbcard" href="#/learn/forest/board">${ztImg("noticeboard", "nbcardart")}<span class="grow" style="min-width:0"><b>Notice board ${trad() ? "公告欄" : "公告栏"}</b>${n ? ` <i class="dbadge static">${n}</i>` : ""}<br><span class="small muted">${line}</span></span><b class="dgo">›</b></a>`;
+}
+document.addEventListener("click", async (e) => {
+  const el = e.target.closest("[data-nb]"); if (!el) return;
+  const N = nbState(), a = el.dataset.nb, id = +el.dataset.id;
+  if (a === "cheer") {
+    const n = N.list?.find((x) => x.id === id); if (!n || n.cheered) return;
+    n.cheered = true; n.cheers++; render();
+    const { error } = await sb.rpc("notice_cheer", { p_id: id });
+    if (error) { n.cheered = false; n.cheers--; render(); toast("Couldn't cheer. Check your connection."); }
+  } else if (a === "del") {
+    if (!confirm("Remove this from the notice board?")) return;
+    const { error } = await sb.rpc("notice_delete", { p_id: id });
+    if (error) return toast("Couldn't remove it.");
+    N.list = N.list.filter((x) => x.id !== id); render();
+  }
+});
+document.addEventListener("input", (e) => {
+  if (e.target.matches("[data-nb-draft]")) nbState().draft = e.target.value;
+  if (e.target.matches("[data-nb-days]")) nbState().days = +e.target.value;
+});
+document.addEventListener("submit", async (e) => {
+  if (!e.target.matches("[data-nb-form]")) return;
+  e.preventDefault();
+  const N = nbState(), text = N.draft.trim(); if (!text) return toast("Write the announcement first.");
+  const { error } = await sb.rpc("notice_announce", { p_text: text, p_days: N.days });
+  if (error) return toast("Couldn't pin it.");
+  N.draft = ""; toast("📌 Pinned on the notice board."); nbLoad(true);
+});
+
 // ---------------------------------------------------------------------------
 // Zest Town dashboard (26 Nov 2026): replaces the List view. On a computer it sits next to the map, exactly as tall
 // as the map, no scrolling (tiles stretch). On a phone it's the "Dashboard" side of the Town / Dashboard switch,
@@ -3517,7 +3646,8 @@ function townDash(st, one) {
 }
 
 function townView() {
-  const st = ztStreak(), L = state.lu, dash = L.view === "dash" || L.view === "list"; // "list" = the old List view, now the dashboard
+  const st = ztStreak(), L = state.lu, dash = L.view === "dash" || L.view === "list";
+  nbTreeCheck(st); // "list" = the old List view, now the dashboard
   // Computer: map + dashboard side by side (no switch). Phone: Town / Dashboard.
   const toggle = wide() ? "" : `<div class="seg ztseg" role="group" aria-label="Show Zest Town as"><button type="button" data-zt="view" data-v="town" aria-pressed="${!dash}">Town</button><button type="button" data-zt="view" data-v="dash" aria-pressed="${dash}">Dashboard</button></div>`;
   let body;
@@ -4032,6 +4162,7 @@ function forestMap(list) {
   const [sx, sy] = M.sign;
   return `<div class="ztmap forest ${k}" style="aspect-ratio:${M.w}/${M.h}">
     ${ztImg(`forest4-${k}`, "ztbg")}${fish}
+    ${nbForestSprite(k, M)}
     <a class="ztforestsign" href="#/learn" style="${at(sx + 4, sy - 1)};width:${pct(23, M.w)};height:${pct(9, M.h)};font-size:${((k === "wide" ? 2.35 : 1.85) / M.w) * 100}cqw" aria-label="Back to Zest Town">ZEST TOWN</a>
     ${members}
     ${list.some((m) => m.user_id !== state.user.id) ? "" : `<div class="ztempty">Nobody else has been here in the last 24 hours. Come back later!</div>`}
@@ -4070,10 +4201,10 @@ function forestView() {
   const sel = F.sel && forestMember(F.sel);
   const toggle = `<div class="seg ztseg" role="group" aria-label="Show the forest as"><button type="button" data-zt="fview" data-v="forest" aria-pressed="${F.view !== "list"}">Forest</button><button type="button" data-zt="fview" data-v="list" aria-pressed="${F.view === "list"}">List</button></div>`;
   setTimeout(forestHop, 60);
-  if (F.view === "list") return `${head}${toggle}${forestMsgBox()}${forestDiscord()}<div class="card" style="gap:0;padding:4px 14px">${forestRows(list) || `<p class="small muted">Nobody yet today.</p>`}</div>${sel ? (wide() ? `<div style="max-width:420px">${forestCard(sel)}</div>` : `<div class="ztover" data-zt="mem" data-id=""><div class="ztsheet" data-stop>${forestCard(sel)}</div></div>`) : ""}`;
-  if (wide()) return `${head}${toggle}<div class="ztwide">${forestMap(list)}<div class="ztside">${forestDiscord()}${sel ? forestCard(sel) : `<div class="card"><p class="small muted" style="margin:0">Click a fruit to see their streak tree and send them a hongbao.</p></div>`}${forestMsgBox()}
+  if (F.view === "list") return `${head}${toggle}${nbCard()}${forestMsgBox()}${forestDiscord()}<div class="card" style="gap:0;padding:4px 14px">${forestRows(list) || `<p class="small muted">Nobody yet today.</p>`}</div>${sel ? (wide() ? `<div style="max-width:420px">${forestCard(sel)}</div>` : `<div class="ztover" data-zt="mem" data-id=""><div class="ztsheet" data-stop>${forestCard(sel)}</div></div>`) : ""}`;
+  if (wide()) return `${head}${toggle}<div class="ztwide">${forestMap(list)}<div class="ztside">${nbCard()}${forestDiscord()}${sel ? forestCard(sel) : `<div class="card"><p class="small muted" style="margin:0">Click a fruit to see their streak tree and send them a hongbao.</p></div>`}${forestMsgBox()}
     ${list.length ? `<div class="card" style="gap:0;padding:6px 14px"><b style="padding:6px 0">Here today · ${list.length}</b>${forestRows(list)}</div>` : ""}</div></div>`;
-  return `${head}${toggle}${forestMap(list)}${forestMsgBox()}${forestDiscord()}${sel ? `<div class="ztover" data-zt="mem" data-id=""><div class="ztsheet" data-stop>${forestCard(sel)}</div></div>` : ""}`;
+  return `${head}${toggle}${forestMap(list)}${nbCard()}${forestMsgBox()}${forestDiscord()}${sel ? `<div class="ztover" data-zt="mem" data-id=""><div class="ztsheet" data-stop>${forestCard(sel)}</div></div>` : ""}`;
 }
 // Your message in the forest: Chinese only (traditional or simplified), up to 30 characters. Shown over your fruit when people arrive.
 const FOREST_MSG_OK = /^[\u3400-\u4dbf\u4e00-\u9fff\u3000-\u303f\uff01\uff08\uff09\uff0c\uff1a\uff1b\uff1f\uff5e\u2026\u2014\u00b7\u201c\u201d\u2018\u2019 ]+$/;
@@ -4695,6 +4826,8 @@ document.addEventListener("click", async (e) => {
   else if (a === "read") {
     if (!libGet(id, `read.${d.ch}`)) { qLog("lib_chapter"); const m = libState().books?.find((b) => b.id === id); tEvent("lib_chapter", `${m?.title_zh || m?.title || id} · chapter ${+d.ch + 1}`); }
     libSet(id, `read.${d.ch}`, true); toast("Chapter ticked off. 加油！"); render();
+    { const c = libState().content.get(id), total = c?.s?.chapters?.length || 0, m = libState().books?.find((b) => b.id === id);
+      if (total && [...Array(total).keys()].every((i) => libGet(id, `read.${i}`))) nbPost("book", id, m?.title_zh || m?.title || id); }
     ztCountDay().then((grew) => { if (grew) toast("Chapter ticked off. Your streak tree grew today 🌱"); });
   }
   else if (a === "show") { libSet(id, `ex.${d.ex}.show.${d.k}`, true); render(); }
@@ -5159,7 +5292,7 @@ async function cgRemember(t) {
   if (data?.length) await sb.from("char_recent").delete().eq("user_id", state.user.id).in("text", data.map((r) => r.text));
 }
 let cgHW = null;
-const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=145")).default);
+const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=146")).default);
 const cgStrokes = async (c) => {
   const S = cgState(); if (S.data.has(c)) return S.data.get(c);
   const HW = await cgLib(); const d = await HW.loadCharacterData(c).catch(() => null);
@@ -5752,6 +5885,7 @@ async function coMarkDone(n) {
   S.done = [...S.done, n].sort((a, b) => a - b);
   const { error } = await sb.from("course_progress").upsert({ course: CO.id, done: S.done, updated_at: new Date().toISOString() }, { onConflict: "user_id,course" });
   if (error) console.error(error);
+  if (CO.chapters.every((_, i) => S.done.includes(i + 1)) && S.done.includes(CO_LAST)) nbPost("course", CO.id, "Oracle Bone Mystery");
 }
 function coCard() {
   const S = coState(); if (!S.done) coLoad();
