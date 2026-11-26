@@ -1,12 +1,12 @@
-import { createClient } from "./vendor/supabase.js?v=148";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=148";
-import { COUNTRIES } from "./countries.js?v=148";
-import { toZhuyin } from "./zhuyin.js?v=148";
-import { ORACLE, ORACLE_T } from "./course-oracle.js?v=148";
+import { createClient } from "./vendor/supabase.js?v=149";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=149";
+import { COUNTRIES } from "./countries.js?v=149";
+import { toZhuyin } from "./zhuyin.js?v=149";
+import { ORACLE, ORACLE_T } from "./course-oracle.js?v=149";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=148";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=149";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -1391,7 +1391,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=148"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=149"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -2018,7 +2018,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=148");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=149");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2927,7 +2927,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=148").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=149").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -3398,7 +3398,7 @@ function townMap(st) {
   const at = (x, y) => `left:${pct(x, M.w)};top:${pct(y, M.h)}`;
   const dueN = ztQueueAll().length, fruit = myFruitKey(), h0 = ztPosFor("fruit", k);
   return `<div class="ztmap ${k}" style="aspect-ratio:${M.w}/${M.h}">
-    ${ztImg(szArt(M.bg), "ztbg")}${szFx()}
+    ${ztImg(szArt(M.bg), "ztbg")}
     ${[["house", 21, 18, 43, 33, "a", "#/learn/cards", "Flashcard Center"], ["temple", 23, 19, 46, 36, "a", "#/learn/temple", "HSK Temple"], ["gallery", 21, 18, 42, 34, "a", "#/learn/gallery", "Sticker Gallery"],
       libOpen() ? ["library", 21, 18, 42, 34, "a", "#/learn/library", "Library"] : ["library", 21, 18, 42, 34, "b", "library", "Library, opening soon"], calligOpen() ? ["callig", 21, 18, 42, 34, "a", "#/learn/callig", "Calligraphy School"] : ["callig", 21, 18, 42, 34, "b", "callig", "Calligraphy School, opening soon"],
       ...(postOpen() ? [["post", 21, 18, 42, 34, "a", "#/learn/post", "Post Office"]] : [])]
@@ -3957,7 +3957,7 @@ async function ztMarkKnown(words, known) {
 }
 
 // ---------------------------------------------------------------------------
-// Seasons in Zest Town and the Magical Forest (27 Nov 2026; beta: admins only, szOn()).
+// Seasons in Zest Town and the Magical Forest (27 Nov 2026; live for everyone). Falling petals/leaves/snow… only in the forest.
 // Winter 1 Dec → the day before Lunar New Year (Christmas tree in December), Lunar New Year week (night, lanterns,
 // plum blossom; 初一–初七), spring until 31 May, summer June–August, autumn September–November.
 // The art for every season is made from the hand-drawn town by tools/zt-seasons (see its README).
@@ -3973,7 +3973,7 @@ function seasonOf(d = new Date()) {
   }
   return m === 12 || m <= 2 ? "winter" : m <= 5 ? "spring" : m <= 8 ? "summer" : "autumn";
 }
-const szOn = () => isAdmin();
+const szOn = () => true; // live for everyone since 27 Nov (v149)
 const szPick = () => (isAdmin() && lsGet("mz-season")) || "auto";
 const season = () => { if (!szOn()) return "summer"; const o = szPick(); return o === "auto" ? seasonOf() : o === "xmas" ? "winter" : o; };
 const xmasOn = () => szOn() && season() === "winter" && (szPick() === "xmas" || (szPick() === "auto" && new Date().getMonth() === 11));
@@ -5363,7 +5363,7 @@ async function cgRemember(t) {
   if (data?.length) await sb.from("char_recent").delete().eq("user_id", state.user.id).in("text", data.map((r) => r.text));
 }
 let cgHW = null;
-const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=148")).default);
+const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=149")).default);
 const cgStrokes = async (c) => {
   const S = cgState(); if (S.data.has(c)) return S.data.get(c);
   const HW = await cgLib(); const d = await HW.loadCharacterData(c).catch(() => null);
