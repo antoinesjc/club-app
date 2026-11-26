@@ -1547,3 +1547,26 @@ i.py { font-style: normal; color: #8a6a55; font-weight: 600; }
 .nbsheet .nbx { position: absolute; top: 22px; right: 26px; z-index: 3; background: #fff7e8; }
 
 .nbsheet .nbtop { padding-right: 44px; }
+
+/* ---- Seasons in Zest Town (27 Nov 2026) ---- */
+.szchip { display: inline-flex; align-items: center; border-radius: 999px; padding: 4px 10px; font-size: 13px; font-weight: 800; white-space: nowrap; }
+.szchip.spring { background: #ffe1ec; color: #b0306a; }
+.szchip.summer { background: #e3f2df; color: #1b6f1b; }
+.szchip.autumn { background: #fde4c8; color: #a4440f; }
+.szchip.winter { background: #e3eef9; color: #2c5c8f; }
+.szchip.lny { background: #c8102e; color: #ffe08a; }
+.szpick { font: inherit; font-size: 12px; border-radius: 8px; padding: 3px 4px; border: 1.5px solid var(--line); background: #fff; }
+.szfx { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 6; }
+.szfx i { position: absolute; top: -6%; display: block; animation: szfall linear infinite; }
+.szfx.winter i { width: 5px; height: 5px; border-radius: 50%; background: #fff; box-shadow: 0 0 2px rgba(80,110,150,.6); }
+.szfx.spring i { width: 7px; height: 5px; border-radius: 70% 0 70% 0; background: #ffc6dc; box-shadow: inset -1px -1px 0 #f39ac0; }
+.szfx.autumn i { width: 8px; height: 6px; border-radius: 0 80% 0 80%; }
+.szfx.summer i { width: 4px; height: 4px; border-radius: 50%; background: #fff6a8; box-shadow: 0 0 6px 2px rgba(255,240,120,.8); animation: szglow 3s ease-in-out infinite; }
+.szfx.lny i { width: 5px; height: 7px; border-radius: 2px 2px 1px 1px; background: #ffb24a; box-shadow: 0 0 8px 3px rgba(255,150,60,.7); animation: szrise linear infinite; }
+.szfx.lny b { position: absolute; width: 3px; height: 3px; border-radius: 50%; color: #ffd24a; opacity: 0; animation: szboom 5.5s ease-out infinite;
+  box-shadow: 0 -14px, 10px -10px #ff6a6a, 14px 0, 10px 10px #ff6a6a, 0 14px, -10px 10px #ff6a6a, -14px 0, -10px -10px #ff6a6a, 0 -7px #fff3b0, 7px 0 #fff3b0, 0 7px #fff3b0, -7px 0 #fff3b0; }
+@keyframes szfall { from { top: -6%; } to { top: 106%; transform: translateX(40px) rotate(360deg); } }
+@keyframes szrise { from { top: 106%; } to { top: -8%; transform: translateX(20px); } }
+@keyframes szglow { 50% { opacity: .2; } }
+@keyframes szboom { 0% { opacity: 0; transform: scale(.1); } 6% { opacity: 1; } 30% { opacity: 0; transform: scale(1.6); } 100% { opacity: 0; transform: scale(1.6); } }
+@media (prefers-reduced-motion: reduce) { .szfx { display: none; } }

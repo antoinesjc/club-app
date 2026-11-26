@@ -1,12 +1,12 @@
-import { createClient } from "./vendor/supabase.js?v=147";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=147";
-import { COUNTRIES } from "./countries.js?v=147";
-import { toZhuyin } from "./zhuyin.js?v=147";
-import { ORACLE, ORACLE_T } from "./course-oracle.js?v=147";
+import { createClient } from "./vendor/supabase.js?v=148";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=148";
+import { COUNTRIES } from "./countries.js?v=148";
+import { toZhuyin } from "./zhuyin.js?v=148";
+import { ORACLE, ORACLE_T } from "./course-oracle.js?v=148";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=147";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=148";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -1391,7 +1391,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=147"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=148"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -2018,7 +2018,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=147");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=148");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2927,7 +2927,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=147").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=148").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -3355,7 +3355,7 @@ function learnView() {
 function ztHeader(st, back) {
   const pills = st ? `<span class="ztpill leaf ${st.wilted ? "off" : ""}" title="Streak (days in a row)">${ZT_LEAF}${st.wilted ? 0 : st.n}</span><span class="ztpill drop" title="Watering cans left this month">${ZT_DROP}${ztWaterLeft()}</span>` : "";
   return `<header class="zthead">${back ? `<a class="ztback" href="#/learn">‹ Zest Town</a>` : `<div class="eyebrow">Learning Universe · ${trad() ? "學習宇宙" : "学习宇宙"}</div>`}
-    <div class="row between" style="align-items:center;gap:10px"><h1>${back || "Zest Town"}</h1><span class="row" style="gap:6px">${pills}</span></div></header>`;
+    <div class="row between" style="align-items:center;gap:10px"><h1>${back || "Zest Town"}</h1><span class="row" style="gap:6px;flex-wrap:wrap;justify-content:flex-end">${szChip()}${pills}</span></div></header>`;
 }
 function todayCard(st) {
   return st.doneToday
@@ -3398,16 +3398,16 @@ function townMap(st) {
   const at = (x, y) => `left:${pct(x, M.w)};top:${pct(y, M.h)}`;
   const dueN = ztQueueAll().length, fruit = myFruitKey(), h0 = ztPosFor("fruit", k);
   return `<div class="ztmap ${k}" style="aspect-ratio:${M.w}/${M.h}">
-    ${ztImg(M.bg, "ztbg")}
+    ${ztImg(szArt(M.bg), "ztbg")}${szFx()}
     ${[["house", 21, 18, 43, 33, "a", "#/learn/cards", "Flashcard Center"], ["temple", 23, 19, 46, 36, "a", "#/learn/temple", "HSK Temple"], ["gallery", 21, 18, 42, 34, "a", "#/learn/gallery", "Sticker Gallery"],
       libOpen() ? ["library", 21, 18, 42, 34, "a", "#/learn/library", "Library"] : ["library", 21, 18, 42, 34, "b", "library", "Library, opening soon"], calligOpen() ? ["callig", 21, 18, 42, 34, "a", "#/learn/callig", "Calligraphy School"] : ["callig", 21, 18, 42, 34, "b", "callig", "Calligraphy School, opening soon"],
       ...(postOpen() ? [["post", 21, 18, 42, 34, "a", "#/learn/post", "Post Office"]] : [])]
       .map(([key, ox, oy, bw, bh, tag, to, label]) => { const [x, y] = M[key], st = `${at(x - ox, y - oy)};width:${pct(bw, M.w)};height:${pct(bh, M.h)}`;
         return tag === "a" ? `<a class="zthit" href="${to}" style="${st}" aria-label="${label}"></a>` : `<button type="button" class="zthit" data-zt="soon" data-v="${to}" style="${st}" aria-label="${label}"></button>`; }).join("")}
-    <div class="ztriver" style="top:${pct(M.river[0], M.h)};height:${pct(M.river[1], M.h)}" aria-hidden="true"><img class="px" src="icons/zt/river3-${k}.png" alt="" draggable="false"></div>
-    <img class="px ztbridge" src="icons/zt/bridge-${k}.png" alt="" draggable="false" style="${at(M.bridge[0], M.bridge[1])};width:${pct(M.bridge[2], M.w)}">
+    <div class="ztriver" style="top:${pct(M.river[0], M.h)};height:${pct(M.river[1], M.h)}" aria-hidden="true"><img class="px" src="icons/zt/${szArt(`river3-${k}`)}.png" alt="" draggable="false"></div>
+    <img class="px ztbridge" src="icons/zt/${szArt(`bridge-${k}`)}.png" alt="" draggable="false" style="${at(M.bridge[0], M.bridge[1])};width:${pct(M.bridge[2], M.w)}">
     ${(() => { const [x, y, sz] = M.fsign, k = sz / 24; return `<a class="ztsignwrap" href="#/learn/forest" style="${at(x, y)};width:${pct(sz, M.w)}" aria-label="To the Magical Forest">${ztImg("sign-forest")}<span class="ztsigntext" style="width:${(16 / 24) * 100}%;height:${(11 / 18) * 100}%;font-size:${(k * 1.75 / M.w) * 100}cqw">MAGICAL<br>FOREST</span></a>`; })()}
-    ${M.trees.map(([x, y, big], i) => `<img class="px ztbush" src="icons/zt/tree4-${big ? "big" : "small"}.png" alt="" draggable="false" style="${at(x, y)};width:${pct(big ? 24 : 17, M.w)};animation-delay:-${(i * 0.7) % 3}s">`).join("")}
+    ${M.trees.map(([x, y, big], i) => `<img class="px ztbush" src="icons/zt/${szArt(`tree4-${big ? "big" : "small"}`)}.png" alt="" draggable="false" style="${at(x, y)};width:${pct(big ? 24 : 17, M.w)};animation-delay:-${(i * 0.7) % 3}s">`).join("")}
     <button type="button" class="zttreebtn" data-zt="sheet" style="${at(...M.tree)};width:${pct(42, M.w)}" aria-label="Your streak tree">${treeImg(st)}</button>
     ${qlOpen() ? (() => { qlLoad(); const [qx, qy] = ztPosFor("qilin", k); return `<button type="button" class="ztqilin" data-ql="open" style="${at(qx, qy)};width:${pct(26, M.w)}" aria-label="The qilin: daily, weekly and monthly challenges">${qlBang() ? `<span class="qlbang" aria-hidden="true">!</span>` : ""}${ztImg("qilin-0", "q0")}${ztImg("qilin-1", "q1")}</button>`; })() : ""}
     ${st.wilted ? "" : `<button type="button" class="ztfruit" data-zt="cheer" style="${at(...h0)};width:${pct(18, M.w)}" aria-label="Your fruit"><span class="ztbubble" hidden></span>${ztImg("fruit-" + fruit)}</button>`}
@@ -3956,6 +3956,57 @@ async function ztMarkKnown(words, known) {
   return n;
 }
 
+// ---------------------------------------------------------------------------
+// Seasons in Zest Town and the Magical Forest (27 Nov 2026; beta: admins only, szOn()).
+// Winter 1 Dec → the day before Lunar New Year (Christmas tree in December), Lunar New Year week (night, lanterns,
+// plum blossom; 初一–初七), spring until 31 May, summer June–August, autumn September–November.
+// The art for every season is made from the hand-drawn town by tools/zt-seasons (see its README).
+// ---------------------------------------------------------------------------
+const LNY_DAYS = ["2027-02-06", "2028-01-26", "2029-02-13", "2030-02-03", "2031-01-23", "2032-02-11", "2033-01-31", "2034-02-19", "2035-02-08", "2036-01-28", "2037-02-15", "2038-02-04"];
+const SZ_NAMES = { spring: ["Spring", "春"], summer: ["Summer", "夏"], autumn: ["Autumn", "秋"], winter: ["Winter", "冬"], lny: ["Happy Lunar New Year", "春節快樂", "春节快乐"] };
+function seasonOf(d = new Date()) {
+  const key = dkey(d), m = d.getMonth() + 1, ny = LNY_DAYS.find((x) => x.startsWith(String(d.getFullYear())));
+  if (ny) {
+    const end = new Date(`${ny}T12:00:00`); end.setDate(end.getDate() + 7);
+    if (key >= ny && key < dkey(end)) return "lny";
+    if (m <= 2) return key < ny ? "winter" : "spring";
+  }
+  return m === 12 || m <= 2 ? "winter" : m <= 5 ? "spring" : m <= 8 ? "summer" : "autumn";
+}
+const szOn = () => isAdmin();
+const szPick = () => (isAdmin() && lsGet("mz-season")) || "auto";
+const season = () => { if (!szOn()) return "summer"; const o = szPick(); return o === "auto" ? seasonOf() : o === "xmas" ? "winter" : o; };
+const xmasOn = () => szOn() && season() === "winter" && (szPick() === "xmas" || (szPick() === "auto" && new Date().getMonth() === 11));
+// File name of a seasonal picture: town7-wide → town7-wide-autumn, forest → forest5-wide-lny…
+function szArt(base) {
+  const s = season();
+  if (base.startsWith("forest4-")) return szOn() ? base.replace("forest4", "forest5") + (s === "summer" ? "" : `-${s}`) : base;
+  if (s === "summer") return base;
+  if (base.startsWith("town7-") && xmasOn()) return `${base}-xmas`;
+  return `${base}-${s}`;
+}
+const ZT_XMAS = { wide: [81, 194, 103, 224], phone: [11, 122, 33, 152] }; // the Christmas tree (nobody walks through it)
+// Falling petals (spring), fireflies (summer), leaves (autumn), snow (winter), sky lanterns 天燈 + fireworks (Lunar New Year).
+function szFx() {
+  if (!szOn()) return "";
+  const s = season(), n = { spring: 22, summer: 12, autumn: 20, winter: 40, lny: 9 }[s], r = (i, k) => ((Math.sin((i + 1) * (k + 3.7) * 12.9898) * 43758.5453) % 1 + 1) % 1;
+  const leaf = ["#e8892f", "#c9542b", "#f2c04a", "#b8401f"];
+  let h = "";
+  for (let i = 0; i < n; i++) h += `<i style="left:${(r(i, 1) * 100).toFixed(1)}%;${s === "summer" ? `top:${(r(i, 2) * 96).toFixed(1)}%;` : ""}animation-duration:${(6 + r(i, 3) * 6).toFixed(1)}s;animation-delay:-${(r(i, 4) * 9).toFixed(1)}s${s === "autumn" ? `;background:${leaf[i % 4]}` : ""}${s === "winter" && r(i, 5) > 0.6 ? ";width:3px;height:3px" : ""}"></i>`;
+  if (s === "lny") h += [[16, 8, 0], [70, 5, 1.6], [44, 14, 3.1], [84, 18, 4.4]].map(([x, y, d]) => `<b style="left:${x}%;top:${y}%;animation-delay:${d}s"></b>`).join("");
+  return `<div class="szfx ${s}" aria-hidden="true">${h}</div>`;
+}
+function szChip() {
+  if (!szOn()) return "";
+  const s = season(), [en, zh, zs] = SZ_NAMES[s];
+  const pick = isAdmin() ? `<select class="szpick" data-sz aria-label="Season preview (admins)">${[["auto", "Season: today"], ["spring", "Spring"], ["summer", "Summer"], ["autumn", "Autumn"], ["winter", "Winter"], ["xmas", "Winter + Christmas"], ["lny", "Lunar New Year"]].map(([v, l]) => `<option value="${v}" ${szPick() === v ? "selected" : ""}>${l}</option>`).join("")}</select>` : "";
+  return `<span class="szchip ${s}">${esc(!trad() && zs ? zs : zh)} ${esc(en)}</span>${pick}`;
+}
+document.addEventListener("change", (e) => {
+  if (!e.target.matches("[data-sz]")) return;
+  lsSet("mz-season", e.target.value); for (const k in ztSpotCache) delete ztSpotCache[k]; render();
+});
+
 // Walking around town: your fruit and the qilin each wander on their own over the town's grass and paths.
 // ZT_WALK = spots where a character can stand (left/top in map units on a g-unit grid, flat [x, y, x, y…]), worked
 // out from the town7 backgrounds: grass, paths and plots, no buildings, river (the bridge is the only way across),
@@ -3964,7 +4015,16 @@ const ZT_WALK = { phone: { g: 3, p: [68,36,71,36,74,36,77,36,80,36,83,36,86,36,1
   wide: { g: 4, p: [196,12,200,12,204,12,196,16,200,16,204,16,196,20,200,20,204,20,208,20,212,20,216,20,188,24,192,24,196,24,200,24,204,24,208,24,212,24,216,24,8,28,188,28,192,28,196,28,200,28,204,28,208,28,212,28,-4,32,0,32,4,32,8,32,184,32,188,32,192,32,196,32,200,32,204,32,208,32,212,32,-4,36,0,36,4,36,8,36,12,36,16,36,20,36,24,36,28,36,200,36,204,36,208,36,212,36,-4,40,0,40,4,40,8,40,12,40,16,40,96,40,100,40,104,40,108,40,112,40,116,40,120,40,124,40,204,40,208,40,212,40,216,40,-4,44,0,44,4,44,8,44,12,44,16,44,92,44,96,44,100,44,104,44,108,44,112,44,116,44,120,44,124,44,128,44,132,44,204,44,208,44,212,44,216,44,-4,48,0,48,4,48,8,48,12,48,16,48,92,48,96,48,100,48,104,48,108,48,112,48,116,48,120,48,124,48,128,48,132,48,152,48,156,48,160,48,164,48,168,48,172,48,176,48,180,48,200,48,204,48,208,48,212,48,216,48,-4,52,0,52,4,52,8,52,12,52,16,52,20,52,24,52,28,52,32,52,36,52,40,52,44,52,48,52,52,52,56,52,60,52,64,52,68,52,88,52,92,52,96,52,100,52,104,52,108,52,112,52,116,52,120,52,124,52,128,52,132,52,136,52,140,52,144,52,148,52,152,52,156,52,160,52,164,52,168,52,172,52,176,52,180,52,184,52,188,52,192,52,196,52,200,52,204,52,208,52,212,52,216,52,-4,56,0,56,4,56,8,56,12,56,16,56,20,56,24,56,28,56,32,56,36,56,40,56,44,56,48,56,52,56,56,56,60,56,64,56,68,56,72,56,76,56,80,56,84,56,88,56,92,56,96,56,100,56,104,56,108,56,112,56,116,56,120,56,124,56,128,56,132,56,136,56,140,56,144,56,148,56,152,56,156,56,160,56,164,56,168,56,172,56,176,56,180,56,184,56,188,56,192,56,196,56,200,56,204,56,208,56,212,56,216,56,-4,60,0,60,4,60,8,60,12,60,16,60,20,60,24,60,28,60,32,60,36,60,40,60,44,60,48,60,52,60,56,60,60,60,64,60,68,60,72,60,76,60,80,60,84,60,88,60,92,60,96,60,100,60,104,60,108,60,112,60,116,60,120,60,124,60,128,60,132,60,136,60,140,60,144,60,148,60,152,60,156,60,160,60,164,60,168,60,172,60,176,60,180,60,184,60,188,60,192,60,196,60,208,60,212,60,216,60,-4,64,0,64,4,64,8,64,12,64,16,64,20,64,24,64,28,64,32,64,36,64,40,64,44,64,48,64,52,64,56,64,60,64,64,64,68,64,72,64,76,64,80,64,84,64,88,64,92,64,96,64,100,64,104,64,108,64,112,64,116,64,120,64,124,64,128,64,132,64,136,64,140,64,144,64,148,64,152,64,156,64,160,64,164,64,168,64,172,64,176,64,180,64,184,64,188,64,192,64,196,64,208,64,212,64,216,64,-4,68,0,68,4,68,8,68,12,68,16,68,20,68,24,68,28,68,32,68,36,68,40,68,44,68,48,68,52,68,56,68,60,68,64,68,68,68,72,68,76,68,80,68,84,68,88,68,92,68,96,68,100,68,104,68,108,68,112,68,116,68,120,68,124,68,128,68,132,68,136,68,140,68,144,68,148,68,152,68,156,68,160,68,164,68,168,68,172,68,176,68,180,68,184,68,188,68,192,68,196,68,200,68,204,68,208,68,212,68,216,68,-4,72,0,72,4,72,8,72,12,72,16,72,20,72,24,72,28,72,32,72,36,72,40,72,44,72,48,72,52,72,56,72,60,72,64,72,68,72,72,72,76,72,80,72,84,72,88,72,92,72,124,72,128,72,132,72,136,72,140,72,144,72,148,72,152,72,156,72,160,72,164,72,168,72,172,72,176,72,180,72,184,72,188,72,192,72,196,72,200,72,204,72,208,72,212,72,216,72,-4,76,0,76,4,76,8,76,12,76,16,76,20,76,24,76,28,76,32,76,36,76,40,76,44,76,48,76,52,76,56,76,60,76,64,76,68,76,72,76,76,76,80,76,84,76,88,76,132,76,136,76,140,76,144,76,148,76,152,76,156,76,160,76,164,76,168,76,172,76,176,76,180,76,184,76,188,76,192,76,196,76,200,76,204,76,208,76,212,76,216,76,-4,80,0,80,4,80,8,80,12,80,16,80,20,80,24,80,28,80,32,80,36,80,40,80,44,80,48,80,52,80,56,80,68,80,72,80,76,80,80,80,84,80,88,80,132,80,136,80,148,80,152,80,156,80,160,80,164,80,168,80,172,80,176,80,180,80,184,80,188,80,192,80,196,80,200,80,204,80,208,80,212,80,216,80,-4,84,0,84,4,84,8,84,12,84,16,84,20,84,24,84,28,84,32,84,36,84,40,84,44,84,48,84,52,84,68,84,72,84,76,84,80,84,84,84,88,84,92,84,124,84,128,84,132,84,136,84,140,84,144,84,148,84,152,84,156,84,160,84,164,84,168,84,172,84,176,84,180,84,184,84,188,84,192,84,196,84,200,84,204,84,16,88,20,88,24,88,28,88,32,88,36,88,40,88,44,88,48,88,52,88,56,88,68,88,72,88,76,88,80,88,84,88,136,88,140,88,144,88,148,88,152,88,156,88,160,88,164,88,168,88,172,88,176,88,180,88,184,88,188,88,192,88,196,88,200,88,204,88,16,92,20,92,24,92,36,92,40,92,44,92,48,92,52,92,56,92,60,92,64,92,68,92,72,92,76,92,80,92,84,92,136,92,140,92,144,92,148,92,152,92,156,92,160,92,164,92,168,92,172,92,176,92,180,92,188,92,192,92,196,92,200,92,204,92,16,96,40,96,44,96,48,96,52,96,56,96,60,96,64,96,68,96,72,96,76,96,80,96,84,96,132,96,136,96,140,96,144,96,148,96,152,96,156,96,160,96,164,96,204,96,48,100,52,100,56,100,60,100,64,100,68,100,72,100,76,100,80,100,84,100,132,100,136,100,140,100,144,100,148,100,152,100,156,100,160,100,208,100,56,104,60,104,64,104,68,104,72,104,76,104,80,104,84,104,132,104,136,104,140,104,144,104,148,104,152,104,156,104,160,104,56,108,60,108,64,108,68,108,72,108,76,108,80,108,84,108,132,108,136,108,140,108,144,108,148,108,152,108,156,108,160,108,52,112,56,112,60,112,64,112,68,112,72,112,76,112,80,112,84,112,132,112,136,112,140,112,144,112,148,112,152,112,156,112,160,112,60,116,64,116,68,116,72,116,76,116,80,116,84,116,88,116,92,116,96,116,100,116,104,116,108,116,112,116,116,116,120,116,124,116,128,116,132,116,136,116,140,116,144,116,148,116,152,116,156,116,160,116,64,120,68,120,72,120,76,120,80,120,84,120,88,120,92,120,96,120,100,120,104,120,108,120,112,120,116,120,120,120,124,120,128,120,132,120,136,120,140,120,144,120,148,120,152,120,156,120,160,120,68,124,72,124,76,124,80,124,84,124,88,124,92,124,96,124,100,124,104,124,108,124,112,124,116,124,120,124,124,124,128,124,132,124,136,124,140,124,144,124,148,124,152,124,156,124,160,124,68,128,72,128,76,128,80,128,84,128,88,128,92,128,96,128,100,128,104,128,108,128,112,128,116,128,120,128,124,128,128,128,132,128,136,128,140,128,144,128,148,128,152,128,156,128,160,128,68,132,72,132,76,132,80,132,84,132,88,132,92,132,104,132,108,132,112,132,116,132,120,132,132,132,136,132,140,132,144,132,156,132,160,132,164,132,168,132,172,132,176,132,180,132,184,132,188,132,192,132,196,132,200,132,72,136,76,136,80,136,84,136,104,136,108,136,112,136,116,136,120,136,136,136,140,136,144,136,160,136,164,136,168,136,172,136,176,136,180,136,184,136,188,136,72,140,76,140,80,140,84,140,104,140,108,140,112,140,116,140,120,140,124,140,128,140,132,140,136,140,140,140,144,140,156,140,160,140,164,140,168,140,172,140,176,140,180,140,184,140,188,140,108,144,108,148,108,152,108,156,108,160,108,164,108,168,108,172,108,176,56,180,60,180,64,180,68,180,84,180,88,180,92,180,96,180,100,180,104,180,108,180,112,180,116,180,120,180,124,180,128,180,140,180,144,180,148,180,152,180,156,180,160,180,164,180,168,180,172,180,176,180,180,180,68,184,84,184,88,184,92,184,96,184,100,184,104,184,108,184,112,184,116,184,120,184,124,184,128,184,140,184,144,184,148,184,152,184,156,184,160,184,164,184,168,184,172,184,176,184,180,184,72,188,76,188,80,188,84,188,88,188,92,188,96,188,100,188,104,188,108,188,112,188,116,188,120,188,124,188,128,188,132,188,136,188,140,188,144,188,148,188,152,188,156,188,172,188,176,188,180,188,72,192,76,192,80,192,84,192,88,192,92,192,96,192,100,192,104,192,108,192,112,192,116,192,120,192,124,192,128,192,132,192,136,192,140,192,144,192,148,192,152,192,156,192,168,192,172,192,176,192,180,192,76,196,80,196,84,196,88,196,92,196,96,196,100,196,104,196,108,196,112,196,116,196,120,196,124,196,128,196,132,196,136,196,140,196,144,196,148,196,152,196,156,196,160,196,180,196,76,200,80,200,84,200,88,200,92,200,96,200,100,200,104,200,108,200,112,200,116,200,120,200,124,200,128,200,132,200,136,200,140,200,180,200,184,200,188,200,192,200,196,200,200,200,204,200,208,200,212,200,76,204,80,204,84,204,88,204,92,204,96,204,100,204,104,204,108,204,112,204,116,204,120,204,124,204,128,204,132,204,136,204,140,204,180,204,184,204,188,204,192,204,196,204,200,204,204,204,208,204,212,204,84,208,88,208,92,208,96,208,100,208,104,208,108,208,112,208,116,208,120,208,124,208,128,208,132,208,136,208,140,208,180,208,184,208,188,208,192,208,196,208,200,208,204,208,208,208,212,208,84,212,88,212,92,212,96,212,100,212,104,212,108,212,112,212,116,212,120,212,124,212,128,212,132,212,136,212,140,212,172,212,176,212,180,212,184,212,188,212,192,212,196,212,200,212,204,212,208,212,212,212,40,216,44,216,48,216,52,216,56,216,60,216,84,216,88,216,92,216,96,216,100,216,104,216,108,216,112,216,116,216,120,216,124,216,128,216,140,216,144,216,148,216,152,216,156,216,160,216,172,216,176,216,180,216,184,216,188,216,192,216,196,216,200,216,204,216,208,216,212,216,216,216,36,220,40,220,44,220,48,220,52,220,56,220,60,220,64,220,68,220,84,220,88,220,92,220,96,220,100,220,104,220,108,220,112,220,116,220,120,220,124,220,128,220,140,220,144,220,148,220,152,220,156,220,160,220,164,220,168,220,172,220,176,220,180,220,184,220,188,220,192,220,196,220,200,220,204,220,208,220,212,220,216,220,36,224,40,224,44,224,48,224,52,224,56,224,60,224,64,224,68,224,72,224,76,224,80,224,84,224,88,224,92,224,96,224,100,224,104,224,108,224,112,224,116,224,120,224,124,224,128,224,132,224,136,224,140,224,144,224,148,224,152,224,156,224,160,224,164,224,168,224,172,224,176,224,180,224,184,224,188,224,192,224,196,224,200,224,204,224,208,224,212,224,216,224] } };
 const ztSpotCache = {};
 function ztSpots(k) { // only spots where the qilin (26 wide) stays inside the map
-  if (!ztSpotCache[k]) { const a = ZT_WALK[k].p, w = ZT_MAP[k].w, list = []; for (let i = 0; i < a.length; i += 2) if (a[i] >= -2 && a[i] <= w - 26) list.push([a[i], a[i + 1]]); ztSpotCache[k] = { list, set: new Set(list.map((q) => q.join())) }; }
+  const xm = xmasOn();
+  if (!ztSpotCache[k] || ztSpotCache[k].xm !== xm) {
+    const a = ZT_WALK[k].p, w = ZT_MAP[k].w, list = [], [x0, y0, x1, y1] = ZT_XMAS[k];
+    for (let i = 0; i < a.length; i += 2) {
+      const x = a[i], y = a[i + 1];
+      if (x < -2 || x > w - 26 || (xm && x < x1 && x + 26 > x0 && y < y1 - 4 && y + 22 > y0)) continue;
+      list.push([x, y]);
+    }
+    ztSpotCache[k] = { list, xm, set: new Set(list.map((q) => q.join())) };
+  }
   return ztSpotCache[k].list;
 }
 // A straight walk from a to b stays on walkable ground (every grid point along the way is a spot).
@@ -4172,7 +4232,7 @@ function forestMap(list) {
   }).join("");
   const [sx, sy] = M.sign;
   return `<div class="ztmap forest ${k}" style="aspect-ratio:${M.w}/${M.h}">
-    ${ztImg(`forest4-${k}`, "ztbg")}${fish}
+    ${ztImg(szArt(`forest4-${k}`), "ztbg")}${season() === "winter" ? "" : fish}${szFx()}
     ${nbForestSprite(k, M)}
     <a class="ztforestsign" href="#/learn" style="${at(sx + 4, sy - 1)};width:${pct(23, M.w)};height:${pct(9, M.h)};font-size:${((k === "wide" ? 2.35 : 1.85) / M.w) * 100}cqw" aria-label="Back to Zest Town">ZEST TOWN</a>
     ${members}
@@ -5303,7 +5363,7 @@ async function cgRemember(t) {
   if (data?.length) await sb.from("char_recent").delete().eq("user_id", state.user.id).in("text", data.map((r) => r.text));
 }
 let cgHW = null;
-const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=147")).default);
+const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=148")).default);
 const cgStrokes = async (c) => {
   const S = cgState(); if (S.data.has(c)) return S.data.get(c);
   const HW = await cgLib(); const d = await HW.loadCharacterData(c).catch(() => null);
