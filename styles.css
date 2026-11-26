@@ -1543,3 +1543,7 @@ i.py { font-style: normal; color: #8a6a55; font-weight: 600; }
 .nbform { display: flex; flex-direction: column; gap: 8px; }
 .nbform textarea { font: inherit; font-size: 15px; border: 1.5px solid var(--line); border-radius: 12px; padding: 8px 10px; resize: vertical; }
 .nbform select { font: inherit; border-radius: 8px; padding: 4px 6px; }
+.nbsheet { max-width: 1000px; max-height: 90dvh; padding: 16px; gap: 14px; }
+.nbsheet .nbx { position: absolute; top: 22px; right: 26px; z-index: 3; background: #fff7e8; }
+
+.nbsheet .nbtop { padding-right: 44px; }
