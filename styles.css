@@ -1701,3 +1701,8 @@ a.arccart:hover { box-shadow: 0 0 0 2px var(--orange); }
 .ccadded { margin: 0 0 8px !important; color: #1b6f1b; font-weight: 700; font-size: 14px; }
 .ccmusic { font: inherit; font-size: 15px; line-height: 1; background: rgba(255,255,255,.12); border: 0; border-radius: 10px; padding: 5px 7px; cursor: pointer; }
 .ccmusic.off { opacity: .6; }
+.cctimer { position: absolute; left: 8px; right: 8px; top: 6px; height: 6px; border-radius: 99px; background: #efe6dc; overflow: hidden; }
+.cctimer i { display: block; height: 100%; width: 100%; background: #3fc25a; transform-origin: left; animation: cctick linear forwards; }
+.cctimer.stop i { animation-play-state: paused; }
+@keyframes cctick { 0% { transform: scaleX(1); background: #3fc25a; } 60% { background: #f5b301; } 100% { transform: scaleX(0); background: #e5484d; } }
+.ccask:has(.cctimer) { padding-top: 16px; }

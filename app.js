@@ -1,12 +1,12 @@
-import { createClient } from "./vendor/supabase.js?v=158";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=158";
-import { COUNTRIES } from "./countries.js?v=158";
-import { toZhuyin } from "./zhuyin.js?v=158";
-import { ORACLE, ORACLE_T } from "./course-oracle.js?v=158";
+import { createClient } from "./vendor/supabase.js?v=159";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=159";
+import { COUNTRIES } from "./countries.js?v=159";
+import { toZhuyin } from "./zhuyin.js?v=159";
+import { ORACLE, ORACLE_T } from "./course-oracle.js?v=159";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=158";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=159";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -41,7 +41,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=158"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=159"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -1391,7 +1391,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=158"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=159"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -2018,7 +2018,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=158");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=159");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2929,7 +2929,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=158").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=159").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -5369,7 +5369,7 @@ async function cgRemember(t) {
   if (data?.length) await sb.from("char_recent").delete().eq("user_id", state.user.id).in("text", data.map((r) => r.text));
 }
 let cgHW = null;
-const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=158")).default);
+const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=159")).default);
 const cgStrokes = async (c) => {
   const S = cgState(); if (S.data.has(c)) return S.data.get(c);
   const HW = await cgLib(); const d = await HW.loadCharacterData(c).catch(() => null);
@@ -5697,10 +5697,23 @@ function ccNext(b) {
   const bad = (x) => x.hanzi === w.hanzi || ccMean(x) === ccMean(w) || (t.includes("py") && ccPyKey(x.pinyin) === ccPyKey(w.pinyin));
   const others = ccShuffle(W.list.filter((x) => !bad(x))).slice(0, 3);
   b.q = { w, t, opts: ccShuffle([w, ...others]), pick: null }; b.phase = "ask";
+  // From level 6 there's a clock: 7 seconds (levels 6–8), 5 seconds (levels 9–10).
+  const secs = ccSecs(b.lv);
+  if (secs) { const q = b.q; q.start = Date.now(); q.secs = secs; setTimeout(() => ccTimeUp(b, q), secs * 1000 + 50); }
+}
+const ccSecs = (lv) => (lv >= 9 ? 5 : lv >= 6 ? 7 : 0);
+function ccTimeUp(b, q) {
+  if (arcState().b !== b || b.q !== q || b.phase !== "ask") return;
+  if (!/^#\/learn\/arcade\/battle\/\d+/.test(location.hash)) { q.start = Date.now(); setTimeout(() => ccTimeUp(b, q), q.secs * 1000 + 50); return; } // paused while away
+  q.timeout = true; q.pick = -1; q.end = Date.now();
+  if (!b.seen.includes(q.w)) b.seen.push(q.w);
+  b.combo = 0; b.hearts--; b.wrongs.set(q.w.hanzi, q.w); b.phase = "miss"; ccSfx("miss");
+  b.queue.splice(b.i + 2, 0, q.w);
+  render();
 }
 function ccAnswer(k) {
   const b = arcState().b; if (!b || b.phase !== "ask") return;
-  const q = b.q, ok = q.opts[k] === q.w; q.pick = k;
+  const q = b.q, ok = q.opts[k] === q.w; q.pick = k; q.end = Date.now();
   if (!b.seen.includes(q.w)) b.seen.push(q.w);
   if (ok) {
     b.combo++; b.best = Math.max(b.best, b.combo); b.right++;
@@ -5800,7 +5813,7 @@ function ccCartView() {
   const next = Math.min(done + 1, 10);
   const title = `${ztImg("arc-field2", "ccttlbg")}<span class="ccttl"><b class="lzh">${z ? "字妖大戰" : "字妖大战"}</b><span class="arcblink" style="font-size:clamp(5px,1vw,7px)">PRESS START</span></span>`;
   const nodes = CC_LEVELS.map((L, i) => { const n = i + 1, s = +st[n] || 0, open = n === 1 || +st[n - 1] > 0;
-    return open ? `<a class="ccnode ${s ? "done" : n === next ? "cur" : ""} ${L[5] ? "boss" : ""}" href="#/learn/arcade/battle/${n}" aria-label="Level ${n}${s ? `, ${s} stars` : ""}"><b>${n}</b><span>${s ? "★".repeat(s) + "☆".repeat(3 - s) : L[5] ? "BOSS" : ""}</span></a>`
+    return open ? `<a class="ccnode ${s ? "done" : n === next ? "cur" : ""} ${L[5] ? "boss" : ""}" href="#/learn/arcade/battle/${n}" aria-label="Level ${n}${s ? `, ${s} stars` : ""}"><b>${n}</b><span>${s ? "★".repeat(s) + "☆".repeat(3 - s) : L[5] ? "BOSS" : ccSecs(n) ? `⏱${ccSecs(n)}s` : ""}</span></a>`
       : `<span class="ccnode lock" aria-label="Level ${n}, locked"><b>🔒</b><span>${L[5] ? "BOSS" : ""}</span></span>`; }).join("");
   return `${ztHeader(ztStreak(), `Arcade <span class='zhsub'>${z ? "遊戲廳" : "游戏厅"}</span>`).replace('href="#/learn"', 'href="#/learn/arcade"').replace("‹ Zest Town", "‹ Arcade")}
     <div class="arcwrap">${arcadeRoom(`<a href="#/learn/arcade/battle/${next}" class="ccttlwrap" aria-label="Play level ${next}">${title}</a>`, "battle")}
@@ -5810,7 +5823,7 @@ function ccCartView() {
         <section class="card stack" style="gap:10px"><div class="row between"><b>Your progress</b><span class="small muted">${done * 10}% · ★ ${arcStars("battle")} of 30</span></div>
           ${arcBar(done * 10)}<div class="ccnodes">${nodes}</div></section>
         <a class="btn big" href="#/learn/arcade/battle/${next}">▶ ${done ? (done >= 10 ? "Play again · Level 10" : `Continue · Level ${next}`) : "Start · Level 1"}</a>
-        <p class="small muted" style="margin:0"><b>How to play:</b> the 字妖 shields itself with a word. Pick the right answer and your fruit strikes; three in a row is a critical hit. A wrong answer costs a heart, and that word comes back later. Win with all 3 hearts for ★★★.</p>
+        <p class="small muted" style="margin:0"><b>How to play:</b> the 字妖 shields itself with a word. Pick the right answer and your fruit strikes; three in a row is a critical hit. A wrong answer costs a heart, and that word comes back later. Win with all 3 hearts for ★★★. From level 6 the clock is ticking: 7 seconds per answer (levels 6–8), then only 5 seconds (levels 9–10).</p>
       </div></div>`;
 }
 function ccPlayView(lv) {
@@ -5827,7 +5840,7 @@ function ccPlayView(lv) {
   const opts = q.opts.map((x, k) => `<button type="button" class="ccopt ${q.t === "zh2en" ? "txt" : q.t === "zh2py" ? "py" : ""} ${answered && x === w ? "right" : ""} ${answered && q.pick === k && x !== w ? "wrong" : ""}" data-cc="ans" data-k="${k}" ${answered ? "disabled" : ""}>${optTxt(x)}</button>`).join("");
   const reveal = `<span class="lzh">${esc(ccZh(w))}</span> ${esc(py(w.pinyin))} · ${esc(ccMean(w))} <button type="button" class="ccsay" data-cc="say" aria-label="Hear it">🔊</button>`;
   const feed = b.phase === "hit" ? `<div class="ccfeed ok">${b.dmg > 1 ? "<b>CRITICAL!</b> " : "✓ "}${reveal}</div>`
-    : b.phase === "miss" ? `<div class="ccfeed no">✗ It's ${reveal}<button type="button" class="btn small" data-cc="next">Continue</button></div>` : `<div class="ccfeed"></div>`;
+    : b.phase === "miss" ? `<div class="ccfeed no">${q.timeout ? "⏱ Time's up! " : "✗ "}It's ${reveal}<button type="button" class="btn small" data-cc="next">Continue</button></div>` : `<div class="ccfeed"></div>`;
   const end = b.phase === "win" || b.phase === "lose" ? (() => {
     const words = b.seen.map((x) => `<span class="ccw ${b.wrongs.has(x.hanzi) ? "no" : ""}" title="${esc(py(x.pinyin))} · ${esc(ccMean(x))}"><span class="lzh">${esc(ccZh(x))}</span></span>`).join("");
     return `<div class="ccend"><div class="ccendbox">
@@ -5840,7 +5853,7 @@ function ccPlayView(lv) {
         <button type="button" class="btn ${b.phase === "win" ? "ghost" : ""}" data-cc="again">${b.phase === "win" ? "Play again" : "Try again"}</button>
         <a class="btn ghost" href="#/learn/arcade/battle">Back to the cartridge</a></div></div></div>`; })() : "";
   return `<div class="ccgame">
-    <div class="cctop"><a href="#/learn/arcade/battle" class="ccquit">‹ Quit</a><span class="ccpx">LEVEL ${lv}${L[5] ? " · BOSS" : ""}</span><span class="row" style="gap:8px;align-items:center"><span class="cccombo">${b.combo >= 2 ? `🔥 x${b.combo}` : ""}</span><button type="button" class="ccmusic ${CCM.on() ? "" : "off"}" data-cc="music" aria-pressed="${CCM.on()}" aria-label="Music and sounds ${CCM.on() ? "on" : "off"}" title="Music and sounds">${CCM.on() ? "🎵" : "🔇"}</button></span></div>
+    <div class="cctop"><a href="#/learn/arcade/battle" class="ccquit">‹ Quit</a><span class="ccpx">LEVEL ${lv}${L[5] ? " · BOSS" : ""}${ccSecs(lv) ? ` · ⏱${ccSecs(lv)}S` : ""}</span><span class="row" style="gap:8px;align-items:center"><span class="cccombo">${b.combo >= 2 ? `🔥 x${b.combo}` : ""}</span><button type="button" class="ccmusic ${CCM.on() ? "" : "off"}" data-cc="music" aria-pressed="${CCM.on()}" aria-label="Music and sounds ${CCM.on() ? "on" : "off"}" title="Music and sounds">${CCM.on() ? "🎵" : "🔇"}</button></span></div>
     <div class="ccfield ${b.phase}">${ztImg("arc-field2", "ccbg")}
       <div class="cchud me"><span class="ccpx">YOU</span><span class="cchearts">${ccHearts(b.hearts)}</span></div>
       <div class="cchud foe"><span class="ccpx"><span class="lzh">${esc(ccName(L))}</span></span><span class="ccbar"><i style="width:${(b.hp / b.max) * 100}%"></i></span></div>
@@ -5848,7 +5861,7 @@ function ccPlayView(lv) {
       <span class="ccfoe ${L[5] ? "boss" : ""}">${ztImg(L[3])}</span>
       ${b.phase === "hit" ? `<span class="ccdmg">-${b.dmg}</span>` : ""}${b.phase === "miss" ? `<span class="ccdmg me">-1 ♥</span>` : ""}
     </div>
-    <div class="ccask"><span class="ccpx">${prompt[0].toUpperCase()}</span>${prompt[1]}${q.t === "zh2en" || q.t === "zh2py" ? `<button type="button" class="ccsay" data-cc="say" aria-label="Hear it">🔊</button>` : ""}</div>
+    <div class="ccask">${q.secs ? `<span class="cctimer ${b.phase === "ask" ? "" : "stop"}" aria-hidden="true"><i style="animation-duration:${q.secs}s;animation-delay:-${Math.min(q.secs, ((q.end || Date.now()) - q.start) / 1000).toFixed(2)}s"></i></span>` : ""}<span class="ccpx">${prompt[0].toUpperCase()}</span>${prompt[1]}${q.t === "zh2en" || q.t === "zh2py" ? `<button type="button" class="ccsay" data-cc="say" aria-label="Hear it">🔊</button>` : ""}</div>
     <div class="ccopts">${opts}</div>${feed}${end}</div>`;
 }
 document.addEventListener("click", (e) => {
@@ -5972,7 +5985,7 @@ async function wsMake(mode, win) {
   W.busy = true; wsCount(); toast(`Making your ${list.length === 1 ? "sheet" : `${list.length} sheets`}…`);
   try {
     await wsInfo(list); try { await document.fonts.ready; } catch {}
-    const { jsPDF } = await import("./vendor/pdf.js?v=158");
+    const { jsPDF } = await import("./vendor/pdf.js?v=159");
     const pdf = new jsPDF({ unit: "mm", format: "a4", compress: true });
     const cv = document.createElement("canvas"); cv.width = WS_A4.w; cv.height = WS_A4.h; const ctx = cv.getContext("2d");
     for (let i = 0; i < list.length; i++) {
