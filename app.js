@@ -1,12 +1,12 @@
-import { createClient } from "./vendor/supabase.js?v=151";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=151";
-import { COUNTRIES } from "./countries.js?v=151";
-import { toZhuyin } from "./zhuyin.js?v=151";
-import { ORACLE, ORACLE_T } from "./course-oracle.js?v=151";
+import { createClient } from "./vendor/supabase.js?v=152";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=152";
+import { COUNTRIES } from "./countries.js?v=152";
+import { toZhuyin } from "./zhuyin.js?v=152";
+import { ORACLE, ORACLE_T } from "./course-oracle.js?v=152";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=151";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=152";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -41,7 +41,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=151"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=152"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -1391,7 +1391,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=151"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=152"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -2018,7 +2018,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=151");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=152");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2928,7 +2928,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=151").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=152").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -5364,7 +5364,7 @@ async function cgRemember(t) {
   if (data?.length) await sb.from("char_recent").delete().eq("user_id", state.user.id).in("text", data.map((r) => r.text));
 }
 let cgHW = null;
-const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=151")).default);
+const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=152")).default);
 const cgStrokes = async (c) => {
   const S = cgState(); if (S.data.has(c)) return S.data.get(c);
   const HW = await cgLib(); const d = await HW.loadCharacterData(c).catch(() => null);
@@ -5609,7 +5609,8 @@ const WS_MAX = 30, WS_A4 = { w: 1654, h: 2339 };
 const wsState = () => (state.ws ??= (() => { let o = {}; try { o = JSON.parse(lsGet("mz-ws-opt") || "{}"); } catch {}
   return { text: "", idx: 0, info: new Map(), grid: o.grid || "tian", trace: o.trace ?? 3, show: new Set(o.show || ["order", "info", "name"]), busy: false }; })());
 const wsSave = () => { const W = wsState(); lsSet("mz-ws-opt", JSON.stringify({ grid: W.grid, trace: W.trace, show: [...W.show] })); };
-const wsChars = () => [...new Set([...wsState().text].filter((c) => /\p{Script=Han}/u.test(c)))].slice(0, WS_MAX);
+const wsTyped = () => [...new Set([...wsState().text].filter((c) => /\p{Script=Han}/u.test(c)))].slice(0, WS_MAX);
+const wsChars = () => { const l = wsTyped(); return l.length ? l : ["好"]; }; // nothing typed: 好 as the example
 async function wsInfo(list) {
   const W = wsState(), need = list.filter((c) => !W.info.has(c));
   if (!need.length) return;
@@ -5686,7 +5687,6 @@ async function wsPreview() {
   const cv = document.getElementById("wscv"); if (!cv) return;
   const W = wsState(), list = wsChars(), tok = ++wsTok, meta = document.getElementById("wsmeta");
   const ctx = cv.getContext("2d");
-  if (!list.length) { ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, cv.width, cv.height); if (meta) meta.textContent = "Type a character to see its sheet"; wsCount(); return; }
   W.idx = Math.min(W.idx, list.length - 1);
   const c = list[W.idx];
   await wsInfo(list); const data = await cgStrokes(c);
@@ -5694,7 +5694,7 @@ async function wsPreview() {
   if (tok !== wsTok) return;
   ctx.clearRect(0, 0, cv.width, cv.height);
   wsDrawSheet(ctx, c, data, W.info.get(c), cv.width / WS_A4.w);
-  if (meta) meta.innerHTML = `<span class="cgzh">${esc(c)}</span> · page ${W.idx + 1} of ${list.length}${data ? "" : " · no stroke data for this one"}`;
+  if (meta) meta.innerHTML = wsTyped().length ? `<span class="cgzh">${esc(c)}</span> · page ${W.idx + 1} of ${list.length}${data ? "" : " · no stroke data for this one"}` : `Example: <span class="cgzh">好</span> ${esc(py("hǎo"))}, good. Type your own characters.`;
   wsCount();
 }
 function wsCount() {
@@ -5709,7 +5709,7 @@ async function wsMake(mode, win) {
   W.busy = true; wsCount(); toast(`Making your ${list.length === 1 ? "sheet" : `${list.length} sheets`}…`);
   try {
     await wsInfo(list); try { await document.fonts.ready; } catch {}
-    const { jsPDF } = await import("./vendor/pdf.js?v=151");
+    const { jsPDF } = await import("./vendor/pdf.js?v=152");
     const pdf = new jsPDF({ unit: "mm", format: "a4", compress: true });
     const cv = document.createElement("canvas"); cv.width = WS_A4.w; cv.height = WS_A4.h; const ctx = cv.getContext("2d");
     for (let i = 0; i < list.length; i++) {
@@ -5745,9 +5745,9 @@ async function wsAddSet(k) {
   else if (k === "box") chars = (S.box || []).map((r) => r.ch);
   else if (k === "oracle") chars = coLearned().map((x) => (trad() && ORACLE_T?.[x.ch]) || x.ch);
   else if (k.startsWith("pack:")) { const p = (S.packs || []).find((x) => x.id === k.slice(5)); const l = p && await cgPackChars(p); chars = (l || []).map((x) => x.ch); }
-  const W = wsState(), had = wsChars().length;
-  W.text = [...new Set([...wsChars(), ...chars])].join("");
-  const added = wsChars().length - had;
+  const W = wsState(), had = wsTyped().length;
+  W.text = [...new Set([...wsTyped(), ...chars])].join("");
+  const added = wsTyped().length - had;
   if ([...new Set([...W.text])].length >= WS_MAX && added < chars.length) toast(`One PDF holds ${WS_MAX} pages, so the first ${WS_MAX} characters are in.`);
   render();
 }
@@ -5759,7 +5759,7 @@ function wsView(pre) {
   const z = trad();
   const form = `<div class="stack" style="gap:12px">
     <div class="card stack" style="gap:10px"><div class="wsq">1. Characters <span class="tiny muted" data-ws-n></span></div>
-      <div class="wsfield"><input class="cgzh" data-ws-text value="${esc(W.text)}" placeholder="${z ? "例如：你好學" : "例如：你好学"}" aria-label="Characters" autocomplete="off" lang="zh">${W.text ? `<button type="button" class="linkbtn" data-ws="clear">Clear</button>` : ""}</div>
+      <div class="wsfield"><input class="cgzh" data-ws-text value="${esc(W.text)}" placeholder="好" aria-label="Characters" autocomplete="off" lang="zh">${W.text ? `<button type="button" class="linkbtn" data-ws="clear">Clear</button>` : ""}</div>
       <p class="tiny muted" style="margin:0">One A4 page per character, up to ${WS_MAX} in one PDF.</p><p class="tiny" id="wswarn" style="margin:0;color:#b4501d" hidden>Only the first ${WS_MAX} characters go in this PDF.</p>
       ${sets ? `<span class="small muted">Or add a set:</span><div class="wssets">${sets}</div>` : ""}</div>
     <div class="card stack" style="gap:8px">
