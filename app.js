@@ -1,12 +1,12 @@
-import { createClient } from "./vendor/supabase.js?v=154";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=154";
-import { COUNTRIES } from "./countries.js?v=154";
-import { toZhuyin } from "./zhuyin.js?v=154";
-import { ORACLE, ORACLE_T } from "./course-oracle.js?v=154";
+import { createClient } from "./vendor/supabase.js?v=155";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=155";
+import { COUNTRIES } from "./countries.js?v=155";
+import { toZhuyin } from "./zhuyin.js?v=155";
+import { ORACLE, ORACLE_T } from "./course-oracle.js?v=155";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=154";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=155";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -41,7 +41,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=154"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=155"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -1391,7 +1391,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=154"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=155"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -2018,7 +2018,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=154");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=155");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2315,6 +2315,7 @@ function feedText(e) {
     case "town_co_chapter": return `finished Oracle Bone chapter <b>${L}</b>`;
     case "town_letter": return `sent a letter to <b>${L}</b> at the Post Office`;
     case "town_writing_sheet": return `printed writing sheets in the Calligraphy School · <span class="lzh">${L}</span>`;
+    case "town_arcade": return `played in the Arcade · <span class="lzh">${L}</span>`;
     case "town_qilin": return `claimed a qilin challenge 麒麟 · ${L}`;
     case "xp": { const [p, ...r] = String(e.label).split(" · "); return `got <b>${+p > 0 ? "+" : ""}${esc(p)} XP</b>${r.length ? " · " + esc(r.join(" · ")) : ""}`; }
     default: return L;
@@ -2928,7 +2929,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=154").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=155").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -5368,7 +5369,7 @@ async function cgRemember(t) {
   if (data?.length) await sb.from("char_recent").delete().eq("user_id", state.user.id).in("text", data.map((r) => r.text));
 }
 let cgHW = null;
-const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=154")).default);
+const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=155")).default);
 const cgStrokes = async (c) => {
   const S = cgState(); if (S.data.has(c)) return S.data.get(c);
   const HW = await cgLib(); const d = await HW.loadCharacterData(c).catch(() => null);
@@ -5612,19 +5613,43 @@ function calligView(parts) {
 // ---------------------------------------------------------------------------
 const arcadeOpen = () => isAdmin();
 const ARC_GAMES = [{ id: "battle", zh: ["字妖大战", "字妖大戰"], en: "Character Clash", hsk: "HSK 1", free: true, levels: 10, blurb: "Battle ink monsters 字妖: pick the right meaning to strike." }];
-function arcadeRoom(screen) {
+const arcState = () => (state.arc ??= { prog: null, loading: false, b: null });
+async function arcLoad(force) {
+  const A = arcState(); if (A.loading || (A.prog && !force)) return;
+  A.loading = true;
+  const { data } = await sb.from("arcade_progress").select("game, stars, best, plays").eq("user_id", state.user.id);
+  A.loading = false; A.prog = new Map((data || []).map((r) => [r.game, r]));
+  if (route() === "learn") render();
+}
+const arcProg = (g) => arcState().prog?.get(g) || { stars: {}, best: 0, plays: 0 };
+const arcStars = (g) => Object.values(arcProg(g).stars || {}).reduce((t, v) => t + (+v || 0), 0);
+const arcDone = (g) => Object.values(arcProg(g).stars || {}).filter((v) => +v > 0).length;
+async function arcSave(g, lv, stars, score) {
+  const A = arcState(), cur = arcProg(g), st = { ...(cur.stars || {}) };
+  st[lv] = Math.max(+st[lv] || 0, stars);
+  const row = { user_id: state.user.id, game: g, stars: st, best: Math.max(cur.best || 0, score), plays: (cur.plays || 0) + 1, updated_at: new Date().toISOString() };
+  A.prog ??= new Map(); A.prog.set(g, row);
+  const { error } = await sb.from("arcade_progress").upsert(row, { onConflict: "user_id,game" });
+  if (error) { console.error(error); toast("Couldn't save your progress. Check your connection."); }
+}
+function arcadeRoom(screen, cart) {
   return `<div class="arcroom"><div class="arcfloor"></div>
     <div class="arctv">${ztImg("arcade-tv")}<div class="arcscreen">${screen || `<span class="arcblink"><b class="arczh">${trad() ? "插入卡帶" : "插入卡带"}</b>INSERT A CARTRIDGE</span>`}</div></div>
-    ${ztImg("arcade-console", "arccon")}${ztImg("arcade-pad", "arcpad")}</div>`;
+    ${cart ? ztImg(`cart-${cart}`, "arccartin") : ""}${ztImg("arcade-console", "arccon")}${ztImg("arcade-pad", "arcpad")}</div>`;
 }
+const arcBar = (pct) => `<span class="arcbar"><i style="width:${Math.max(0, Math.min(100, pct))}%"></i></span>`;
 function arcadeView(parts) {
+  arcLoad();
+  if (parts[0] === "battle") return parts[1] ? ccPlayView(+parts[1]) : ccCartView();
   const tab = parts[0] === "shop" ? "shop" : "mine", z = trad();
-  const cart = (g) => `<div class="arccart soon">${ztImg(`cart-${g.id}`)}<b class="arct"><span class="lzh">${esc(g.zh[z ? 1 : 0])}</span>${esc(g.en)}</b>
-    <span class="row" style="gap:4px;justify-content:center"><span class="arclv">${g.hsk}</span>${g.free ? `<span class="arcfree">Free</span>` : ""}</span><span class="tiny muted">Coming soon</span></div>`;
+  const cart = (g) => { const d = arcDone(g.id);
+    return `<a class="arccart" href="#/learn/arcade/${g.id}">${ztImg(`cart-${g.id}`)}<b class="arct"><span class="lzh">${esc(g.zh[z ? 1 : 0])}</span>${esc(g.en)}</b>
+    <span class="row" style="gap:4px;justify-content:center"><span class="arclv">${g.hsk}</span>${g.free ? `<span class="arcfree">Free</span>` : ""}</span>
+    ${arcBar((d / g.levels) * 100)}<span class="tiny muted">${d ? `Level ${Math.min(d + 1, g.levels)} of ${g.levels} · ★ ${arcStars(g.id)}` : "Not started"}</span></a>`; };
   const body = tab === "mine"
     ? `<div class="arccarts">${ARC_GAMES.filter((g) => g.free).map(cart).join("")}</div>
-       <p class="small muted" style="margin:0">Your cartridges live here: free games for everyone, plus the ones you buy. Each one shows how far you've got.</p>`
-    : `<section class="card" style="text-align:center"><b>The Game shop opens with the first games</b><p class="small muted" style="margin:4px 0 0">Games will be sold one by one, like the books in the Library.</p></section>`;
+       <p class="small muted" style="margin:0">Your cartridges live here: free games for everyone, plus the ones you buy. Tap one to put it in the console.</p>`
+    : `<section class="card" style="text-align:center"><b>The Game shop opens with the next games</b><p class="small muted" style="margin:4px 0 0">Games will be sold one by one, like the books in the Library.</p></section>`;
   return `${ztHeader(ztStreak(), `Arcade <span class='zhsub'>${z ? "遊戲廳" : "游戏厅"}</span>`)}
     <p class="small muted" style="margin:0"><b>Beta, admins only.</b> Members see the building with “SOON”.</p>
     <div class="arcwrap">${arcadeRoom()}
@@ -5632,6 +5657,134 @@ function arcadeView(parts) {
         <div class="arctabs" role="tablist"><a href="#/learn/arcade" class="${tab === "mine" ? "on" : ""}" role="tab" aria-selected="${tab === "mine"}">My cartridges</a><a href="#/learn/arcade/shop" class="${tab === "shop" ? "on" : ""}" role="tab" aria-selected="${tab === "shop"}">Game shop</a></div>
         ${body}</div></div>`;
 }
+
+// ---- Character Clash 字妖大戰 (27 Nov 2026): HSK 1, 10 levels, a turn-based battle against ink monsters 字妖.
+// Right answer = your fruit strikes (3 in a row = critical, 2 damage); wrong = the 字妖 hits back (3 hearts) and
+// the word comes back later in the battle. Stars: 3 hearts left = ★★★, 2 = ★★, 1 = ★. Progress in arcade_progress.
+// Words: the 300 HSK 1 words, shuffled once (same order for everyone) into 10 groups; later levels mix in review.
+const CC_LEVELS = [
+  ["小墨妖", "小墨妖", "Little Ink Imp", "arc-imp-1", 8], ["藍墨妖", "蓝墨妖", "Blue Ink Imp", "arc-imp-2", 9],
+  ["紅墨妖", "红墨妖", "Red Ink Imp", "arc-imp-3", 9], ["綠墨妖", "绿墨妖", "Green Ink Imp", "arc-imp-4", 10],
+  ["墨大王", "墨大王", "The Ink King", "arc-boss-1", 14, 1], ["影妖", "影妖", "Shadow Imp", "arc-imp-1", 10],
+  ["雷妖", "雷妖", "Thunder Imp", "arc-imp-2", 11], ["火妖", "火妖", "Fire Imp", "arc-imp-3", 11],
+  ["玉妖", "玉妖", "Jade Imp", "arc-imp-4", 12], ["字妖王", "字妖王", "King of the 字妖", "arc-boss-2", 18, 1],
+];
+const ccName = (L) => (trad() ? L[0] : L[1]);
+function ccWords() {
+  const all = state.lu.hsk.get("1"); if (!all) { ztLoadLevel("1"); return null; }
+  if (state.arc?.words?.src === all) return state.arc.words;
+  const seen = new Set(), list = all.filter((w) => !seen.has(w.hanzi) && seen.add(w.hanzi) && w.meaning);
+  let seed = 20261127; const rnd = () => ((seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648);
+  const sh = [...list]; for (let i = sh.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [sh[i], sh[j]] = [sh[j], sh[i]]; }
+  const per = Math.ceil(sh.length / 10), groups = [...Array(10)].map((_, i) => sh.slice(i * per, (i + 1) * per));
+  return (arcState().words = { src: all, list, groups });
+}
+const ccZh = (w) => (trad() && w.hanzi_trad) || w.hanzi;
+const ccMean = (w) => { let m = String(w.meaning || "").split(/;|\|/)[0].trim(); if (m.length > 38) m = m.slice(0, 36).replace(/[ ,]+\S*$/, "") + "…"; return m; };
+const ccShuffle = (a) => { a = [...a]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const ccPyKey = (p) => String(p || "").normalize("NFD").replace(/[^a-z]/gi, "").toLowerCase();
+function ccStart(lv) {
+  const W = ccWords(); if (!W) return null;
+  const L = CC_LEVELS[lv - 1], own = W.groups[lv - 1], earlier = W.groups.slice(0, lv - 1).flat();
+  const pool = ccShuffle([...own, ...ccShuffle(earlier).slice(0, Math.min(8, earlier.length))]);
+  const b = { lv, hp: L[4], max: L[4], hearts: 3, combo: 0, best: 0, queue: pool, i: 0, q: null, phase: "ask", right: 0, wrongs: new Map(), seen: [], tok: 0 };
+  arcState().b = b; ccNext(b); return b;
+}
+function ccNext(b) {
+  const W = ccWords(), w = b.queue[b.i % b.queue.length]; b.i++;
+  const types = ["zh2en", "en2zh", ...(b.lv >= 3 ? ["py2zh"] : []), ...(b.lv >= 6 ? ["zh2py"] : [])];
+  const t = types[Math.floor(Math.random() * types.length)];
+  const bad = (x) => x.hanzi === w.hanzi || ccMean(x) === ccMean(w) || (t.includes("py") && ccPyKey(x.pinyin) === ccPyKey(w.pinyin));
+  const others = ccShuffle(W.list.filter((x) => !bad(x))).slice(0, 3);
+  b.q = { w, t, opts: ccShuffle([w, ...others]), pick: null }; b.phase = "ask";
+}
+function ccAnswer(k) {
+  const b = arcState().b; if (!b || b.phase !== "ask") return;
+  const q = b.q, ok = q.opts[k] === q.w; q.pick = k;
+  if (!b.seen.includes(q.w)) b.seen.push(q.w);
+  if (ok) {
+    b.combo++; b.best = Math.max(b.best, b.combo); b.right++;
+    const dmg = b.combo >= 3 ? 2 : 1; b.hp = Math.max(0, b.hp - dmg); b.dmg = dmg; b.phase = "hit";
+    const tok = ++b.tok; render();
+    setTimeout(() => { if (arcState().b !== b || b.tok !== tok) return; if (b.hp <= 0) ccEnd(b, true); else { ccNext(b); render(); } }, 1100);
+  } else {
+    b.combo = 0; b.hearts--; b.wrongs.set(q.w.hanzi, q.w); b.phase = "miss";
+    b.queue.splice(b.i + 2, 0, q.w); // it comes back a bit later
+    render();
+  }
+}
+async function ccEnd(b, won) {
+  b.phase = won ? "win" : "lose"; b.stars = won ? Math.max(1, b.hearts) : 0; render();
+  if (won) await arcSave("battle", b.lv, b.stars, b.right);
+  const grew = await ztCountDay();
+  tEvent("arcade", `字妖大戰 · level ${b.lv} · ${won ? "★".repeat(b.stars) : "lost"}`);
+  if (grew) toast("Battle played. Your streak tree grew today 🌱");
+  render();
+}
+const ccSay = (w) => { try { const u = new SpeechSynthesisUtterance(ccZh(w)); u.lang = trad() ? "zh-TW" : "zh-CN"; u.rate = 0.8; speechSynthesis.cancel(); speechSynthesis.speak(u); } catch {} };
+const ccHearts = (n) => [0, 1, 2].map((i) => `<i class="cchp ${i < n ? "" : "off"}" aria-hidden="true"></i>`).join("");
+function ccCartView() {
+  const z = trad(), g = ARC_GAMES[0], st = arcProg("battle").stars || {}, done = arcDone("battle");
+  const next = Math.min(done + 1, 10);
+  const title = `${ztImg("arc-field", "ccttlbg")}<span class="ccttl"><b class="lzh">${z ? "字妖大戰" : "字妖大战"}</b><span class="arcblink" style="font-size:clamp(5px,1vw,7px)">PRESS START</span></span>`;
+  const nodes = CC_LEVELS.map((L, i) => { const n = i + 1, s = +st[n] || 0, open = n === 1 || +st[n - 1] > 0;
+    return open ? `<a class="ccnode ${s ? "done" : n === next ? "cur" : ""} ${L[5] ? "boss" : ""}" href="#/learn/arcade/battle/${n}" aria-label="Level ${n}${s ? `, ${s} stars` : ""}"><b>${n}</b><span>${s ? "★".repeat(s) + "☆".repeat(3 - s) : L[5] ? "BOSS" : ""}</span></a>`
+      : `<span class="ccnode lock" aria-label="Level ${n}, locked"><b>🔒</b><span>${L[5] ? "BOSS" : ""}</span></span>`; }).join("");
+  return `${ztHeader(ztStreak(), `Arcade <span class='zhsub'>${z ? "遊戲廳" : "游戏厅"}</span>`).replace('href="#/learn"', 'href="#/learn/arcade"').replace("‹ Zest Town", "‹ Arcade")}
+    <div class="arcwrap">${arcadeRoom(`<a href="#/learn/arcade/battle/${next}" class="ccttlwrap" aria-label="Play level ${next}">${title}</a>`, "battle")}
+      <div class="stack" style="gap:12px">
+        <div><b class="arct" style="font-size:20px;text-align:left"><span class="lzh" style="font-size:22px">${esc(g.zh[z ? 1 : 0])}</span>Character Clash</b>
+          <div class="row" style="gap:6px;margin-top:6px"><span class="arclv">HSK 1</span><span class="arcfree">Free</span><span class="tiny muted">300 words · 10 levels</span></div></div>
+        <section class="card stack" style="gap:10px"><div class="row between"><b>Your progress</b><span class="small muted">${done * 10}% · ★ ${arcStars("battle")} of 30</span></div>
+          ${arcBar(done * 10)}<div class="ccnodes">${nodes}</div></section>
+        <a class="btn big" href="#/learn/arcade/battle/${next}">▶ ${done ? (done >= 10 ? "Play again · Level 10" : `Continue · Level ${next}`) : "Start · Level 1"}</a>
+        <p class="small muted" style="margin:0"><b>How to play:</b> the 字妖 shields itself with a word. Pick the right answer and your fruit strikes; three in a row is a critical hit. A wrong answer costs a heart, and that word comes back later. Win with all 3 hearts for ★★★.</p>
+      </div></div>`;
+}
+function ccPlayView(lv) {
+  const A = arcState(), st = arcProg("battle").stars || {};
+  if (!(lv >= 1 && lv <= 10) || (lv > 1 && !(+st[lv - 1] > 0) && A.prog)) { location.hash = "#/learn/arcade/battle"; return ccCartView(); }
+  let b = A.b;
+  if (!b || b.lv !== lv || ((b.phase === "win" || b.phase === "lose") && b.restart)) { b = ccStart(lv); if (!b) return `<p class="muted small">Loading the words…</p>`; }
+  const L = CC_LEVELS[lv - 1], q = b.q, w = q.w, z = trad();
+  const prompt = { zh2en: [`What does it mean?`, `<b class="cczh lzh">${esc(ccZh(w))}</b>`], en2zh: [`Which character is it?`, `<b class="ccen">${esc(ccMean(w))}</b>`],
+    py2zh: [`Which one sounds like this?`, `<b class="ccpy">${esc(py(w.pinyin))}</b>`], zh2py: [`How do you say it?`, `<b class="cczh lzh">${esc(ccZh(w))}</b>`] }[q.t];
+  const optTxt = (x) => q.t === "zh2en" ? esc(ccMean(x)) : q.t === "zh2py" ? esc(py(x.pinyin)) : `<span class="lzh">${esc(ccZh(x))}</span>`;
+  const answered = b.phase !== "ask";
+  const opts = q.opts.map((x, k) => `<button type="button" class="ccopt ${q.t === "zh2en" ? "txt" : q.t === "zh2py" ? "py" : ""} ${answered && x === w ? "right" : ""} ${answered && q.pick === k && x !== w ? "wrong" : ""}" data-cc="ans" data-k="${k}" ${answered ? "disabled" : ""}>${optTxt(x)}</button>`).join("");
+  const reveal = `<span class="lzh">${esc(ccZh(w))}</span> ${esc(py(w.pinyin))} · ${esc(ccMean(w))} <button type="button" class="ccsay" data-cc="say" aria-label="Hear it">🔊</button>`;
+  const feed = b.phase === "hit" ? `<div class="ccfeed ok">${b.dmg > 1 ? "<b>CRITICAL!</b> " : "✓ "}${reveal}</div>`
+    : b.phase === "miss" ? `<div class="ccfeed no">✗ It's ${reveal}<button type="button" class="btn small" data-cc="next">Continue</button></div>` : `<div class="ccfeed"></div>`;
+  const end = b.phase === "win" || b.phase === "lose" ? (() => {
+    const words = b.seen.map((x) => `<span class="ccw ${b.wrongs.has(x.hanzi) ? "no" : ""}" title="${esc(py(x.pinyin))} · ${esc(ccMean(x))}"><span class="lzh">${esc(ccZh(x))}</span></span>`).join("");
+    return `<div class="ccend"><div class="ccendbox">
+      ${b.phase === "win" ? `<b class="ccbig">${z ? "勝利！" : "胜利！"}</b><div class="ccstars">${"★".repeat(b.stars)}${"☆".repeat(3 - b.stars)}</div><p>You beat ${esc(ccName(L))} · ${esc(L[2])}${lv === 10 ? ". You finished the game!" : ""}</p>`
+        : `<b class="ccbig">${z ? "逃走了！" : "逃走了！"}</b><p>${esc(ccName(L))} got away. Try again: the words you missed come back first.</p>`}
+      <p class="small">${b.right} right${b.wrongs.size ? ` · ${b.wrongs.size} to review (red)` : ""}${b.best >= 3 ? ` · best combo ${b.best}` : ""}</p><div class="ccws">${words}</div>
+      <div class="row" style="gap:8px;justify-content:center;flex-wrap:wrap">
+        ${b.phase === "win" && lv < 10 ? `<a class="btn" href="#/learn/arcade/battle/${lv + 1}">Next level ›</a>` : ""}
+        <button type="button" class="btn ${b.phase === "win" ? "ghost" : ""}" data-cc="again">${b.phase === "win" ? "Play again" : "Try again"}</button>
+        <a class="btn ghost" href="#/learn/arcade/battle">Back to the cartridge</a></div></div></div>`; })() : "";
+  return `<div class="ccgame">
+    <div class="cctop"><a href="#/learn/arcade/battle" class="ccquit">‹ Quit</a><span class="ccpx">LEVEL ${lv}${L[5] ? " · BOSS" : ""}</span><span class="cccombo">${b.combo >= 2 ? `🔥 x${b.combo}` : ""}</span></div>
+    <div class="ccfield ${b.phase}">${ztImg("arc-field", "ccbg")}
+      <div class="cchud me"><span class="ccpx">YOU</span><span class="cchearts">${ccHearts(b.hearts)}</span></div>
+      <div class="cchud foe"><span class="ccpx"><span class="lzh">${esc(ccName(L))}</span></span><span class="ccbar"><i style="width:${(b.hp / b.max) * 100}%"></i></span></div>
+      <span class="ccme">${ztImg(`fruit-${myFruitKey()}`)}</span>
+      <span class="ccfoe ${L[5] ? "boss" : ""}">${ztImg(L[3])}</span>
+      ${b.phase === "hit" ? `<span class="ccdmg">-${b.dmg}</span>` : ""}${b.phase === "miss" ? `<span class="ccdmg me">-1 ♥</span>` : ""}
+    </div>
+    <div class="ccask"><span class="ccpx">${prompt[0].toUpperCase()}</span>${prompt[1]}${q.t === "zh2en" || q.t === "zh2py" ? `<button type="button" class="ccsay" data-cc="say" aria-label="Hear it">🔊</button>` : ""}</div>
+    <div class="ccopts">${opts}</div>${feed}${end}</div>`;
+}
+document.addEventListener("click", (e) => {
+  const el = e.target.closest("[data-cc]"); if (!el) return;
+  const A = arcState(), b = A.b, a = el.dataset.cc;
+  if (a === "ans") ccAnswer(+el.dataset.k);
+  else if (a === "say" && b) ccSay(b.q.w);
+  else if (a === "next" && b && b.phase === "miss") { if (b.hearts <= 0) ccEnd(b, false); else { ccNext(b); render(); } }
+  else if (a === "again" && b) { ccStart(b.lv); render(); }
+});
 
 // ---------------------------------------------------------------------------
 // Writing sheets 練習紙 in the Calligraphy School (27 Nov 2026): A4 practice sheets like the website's sheet maker
@@ -5742,7 +5895,7 @@ async function wsMake(mode, win) {
   W.busy = true; wsCount(); toast(`Making your ${list.length === 1 ? "sheet" : `${list.length} sheets`}…`);
   try {
     await wsInfo(list); try { await document.fonts.ready; } catch {}
-    const { jsPDF } = await import("./vendor/pdf.js?v=154");
+    const { jsPDF } = await import("./vendor/pdf.js?v=155");
     const pdf = new jsPDF({ unit: "mm", format: "a4", compress: true });
     const cv = document.createElement("canvas"); cv.width = WS_A4.w; cv.height = WS_A4.h; const ctx = cv.getContext("2d");
     for (let i = 0; i < list.length; i++) {
