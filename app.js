@@ -1,12 +1,12 @@
-import { createClient } from "./vendor/supabase.js?v=156";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=156";
-import { COUNTRIES } from "./countries.js?v=156";
-import { toZhuyin } from "./zhuyin.js?v=156";
-import { ORACLE, ORACLE_T } from "./course-oracle.js?v=156";
+import { createClient } from "./vendor/supabase.js?v=157";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=157";
+import { COUNTRIES } from "./countries.js?v=157";
+import { toZhuyin } from "./zhuyin.js?v=157";
+import { ORACLE, ORACLE_T } from "./course-oracle.js?v=157";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=156";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=157";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -41,7 +41,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=156"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=157"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -1391,7 +1391,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=156"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=157"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -2018,7 +2018,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=156");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=157");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2929,7 +2929,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=156").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=157").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -5369,7 +5369,7 @@ async function cgRemember(t) {
   if (data?.length) await sb.from("char_recent").delete().eq("user_id", state.user.id).in("text", data.map((r) => r.text));
 }
 let cgHW = null;
-const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=156")).default);
+const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=157")).default);
 const cgStrokes = async (c) => {
   const S = cgState(); if (S.data.has(c)) return S.data.get(c);
   const HW = await cgLib(); const d = await HW.loadCharacterData(c).catch(() => null);
@@ -5721,6 +5721,23 @@ async function ccEnd(b, won) {
   if (grew) toast("Battle played. Your streak tree grew today 🌱");
   render();
 }
+// End screen: put the battle's words in the Flashcard Center (a game about single characters would offer the
+// character box instead).
+function ccAddBox(b) {
+  const deck = new Set((state.lu.cards || []).map((c) => c.hanzi)), fresh = b.seen.filter((x) => !deck.has(x.hanzi)), missed = fresh.filter((x) => b.wrongs.has(x.hanzi));
+  if (b.added) return `<p class="ccadded">✓ ${b.added} word${b.added === 1 ? "" : "s"} added to your flashcards</p>`;
+  if (!fresh.length) return `<p class="ccadded">✓ All these words are in your flashcards</p>`;
+  return `<div class="ccadd"><button type="button" class="btn small ghost" data-cc="addall">🃏 Add ${fresh.length === b.seen.length ? "these" : `the ${fresh.length} new`} word${fresh.length === 1 ? "" : "s"} to my flashcards</button>
+    ${missed.length && missed.length < fresh.length ? `<button type="button" class="linkbtn" data-cc="addmiss">Only the ${missed.length} I missed</button>` : ""}</div>`;
+}
+async function ccAdd(only) {
+  const b = arcState().b; if (!b || b.adding) return;
+  const deck = new Set((state.lu.cards || []).map((c) => c.hanzi));
+  const ws = b.seen.filter((x) => !deck.has(x.hanzi) && (!only || b.wrongs.has(x.hanzi)));
+  b.adding = true; const n = await ztAddWords(ws, "game"); b.adding = false;
+  if (n) { b.added = n; toast(`🃏 ${n} word${n === 1 ? "" : "s"} added. They'll come up in the Flashcard Center, a few new ones a day.`); }
+  render();
+}
 const ccSay = (w) => { try { const u = new SpeechSynthesisUtterance(ccZh(w)); u.lang = trad() ? "zh-TW" : "zh-CN"; u.rate = 0.8; speechSynthesis.cancel(); speechSynthesis.speak(u); } catch {} };
 const ccHearts = (n) => [0, 1, 2].map((i) => `<i class="cchp ${i < n ? "" : "off"}" aria-hidden="true"></i>`).join("");
 function ccCartView() {
@@ -5761,6 +5778,7 @@ function ccPlayView(lv) {
       ${b.phase === "win" ? `<b class="ccbig">${z ? "勝利！" : "胜利！"}</b><div class="ccstars">${"★".repeat(b.stars)}${"☆".repeat(3 - b.stars)}</div><p>You beat ${esc(ccName(L))} · ${esc(L[2])}${lv === 10 ? ". You finished the game!" : ""}</p>`
         : `<b class="ccbig">${z ? "逃走了！" : "逃走了！"}</b><p>${esc(ccName(L))} got away. Try again: the words you missed come back first.</p>`}
       <p class="small">${b.right} right${b.wrongs.size ? ` · ${b.wrongs.size} to review (red)` : ""}${b.best >= 3 ? ` · best combo ${b.best}` : ""}</p><div class="ccws">${words}</div>
+      ${ccAddBox(b)}
       <div class="row" style="gap:8px;justify-content:center;flex-wrap:wrap">
         ${b.phase === "win" && lv < 10 ? `<a class="btn" href="#/learn/arcade/battle/${lv + 1}">Next level ›</a>` : ""}
         <button type="button" class="btn ${b.phase === "win" ? "ghost" : ""}" data-cc="again">${b.phase === "win" ? "Play again" : "Try again"}</button>
@@ -5784,6 +5802,8 @@ document.addEventListener("click", (e) => {
   else if (a === "say" && b) ccSay(b.q.w);
   else if (a === "next" && b && b.phase === "miss") { if (b.hearts <= 0) ccEnd(b, false); else { ccNext(b); render(); } }
   else if (a === "again" && b) { ccStart(b.lv); render(); }
+  else if (a === "addall") ccAdd(false);
+  else if (a === "addmiss") ccAdd(true);
 });
 
 // ---------------------------------------------------------------------------
@@ -5895,7 +5915,7 @@ async function wsMake(mode, win) {
   W.busy = true; wsCount(); toast(`Making your ${list.length === 1 ? "sheet" : `${list.length} sheets`}…`);
   try {
     await wsInfo(list); try { await document.fonts.ready; } catch {}
-    const { jsPDF } = await import("./vendor/pdf.js?v=156");
+    const { jsPDF } = await import("./vendor/pdf.js?v=157");
     const pdf = new jsPDF({ unit: "mm", format: "a4", compress: true });
     const cv = document.createElement("canvas"); cv.width = WS_A4.w; cv.height = WS_A4.h; const ctx = cv.getContext("2d");
     for (let i = 0; i < list.length; i++) {
