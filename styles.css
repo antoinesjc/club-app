@@ -1699,3 +1699,5 @@ a.arccart:hover { box-shadow: 0 0 0 2px var(--orange); }
 @media (prefers-reduced-motion: reduce) { .ccfoe, .ccfield .ccme, .ccfield .ccfoe img { animation: none !important; } }
 .ccadd { display: flex; flex-direction: column; align-items: center; gap: 4px; margin: 0 0 8px; }
 .ccadded { margin: 0 0 8px !important; color: #1b6f1b; font-weight: 700; font-size: 14px; }
+.ccmusic { font: inherit; font-size: 15px; line-height: 1; background: rgba(255,255,255,.12); border: 0; border-radius: 10px; padding: 5px 7px; cursor: pointer; }
+.ccmusic.off { opacity: .6; }

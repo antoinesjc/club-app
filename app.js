@@ -1,12 +1,12 @@
-import { createClient } from "./vendor/supabase.js?v=157";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=157";
-import { COUNTRIES } from "./countries.js?v=157";
-import { toZhuyin } from "./zhuyin.js?v=157";
-import { ORACLE, ORACLE_T } from "./course-oracle.js?v=157";
+import { createClient } from "./vendor/supabase.js?v=158";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=158";
+import { COUNTRIES } from "./countries.js?v=158";
+import { toZhuyin } from "./zhuyin.js?v=158";
+import { ORACLE, ORACLE_T } from "./course-oracle.js?v=158";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=157";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=158";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -41,7 +41,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=157"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=158"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -1391,7 +1391,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=157"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=158"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -2018,7 +2018,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=157");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=158");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2929,7 +2929,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=157").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=158").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -5369,7 +5369,7 @@ async function cgRemember(t) {
   if (data?.length) await sb.from("char_recent").delete().eq("user_id", state.user.id).in("text", data.map((r) => r.text));
 }
 let cgHW = null;
-const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=157")).default);
+const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=158")).default);
 const cgStrokes = async (c) => {
   const S = cgState(); if (S.data.has(c)) return S.data.get(c);
   const HW = await cgLib(); const d = await HW.loadCharacterData(c).catch(() => null);
@@ -5704,17 +5704,17 @@ function ccAnswer(k) {
   if (!b.seen.includes(q.w)) b.seen.push(q.w);
   if (ok) {
     b.combo++; b.best = Math.max(b.best, b.combo); b.right++;
-    const dmg = b.combo >= 3 ? 2 : 1; b.hp = Math.max(0, b.hp - dmg); b.dmg = dmg; b.phase = "hit";
+    const dmg = b.combo >= 3 ? 2 : 1; b.hp = Math.max(0, b.hp - dmg); b.dmg = dmg; b.phase = "hit"; ccSfx(dmg > 1 ? "crit" : "hit");
     const tok = ++b.tok; render();
     setTimeout(() => { if (arcState().b !== b || b.tok !== tok) return; if (b.hp <= 0) ccEnd(b, true); else { ccNext(b); render(); } }, 1100);
   } else {
-    b.combo = 0; b.hearts--; b.wrongs.set(q.w.hanzi, q.w); b.phase = "miss";
+    b.combo = 0; b.hearts--; b.wrongs.set(q.w.hanzi, q.w); b.phase = "miss"; ccSfx("miss");
     b.queue.splice(b.i + 2, 0, q.w); // it comes back a bit later
     render();
   }
 }
 async function ccEnd(b, won) {
-  b.phase = won ? "win" : "lose"; b.stars = won ? Math.max(1, b.hearts) : 0; render();
+  b.phase = won ? "win" : "lose"; b.stars = won ? Math.max(1, b.hearts) : 0; ccMusicStop(); ccSfx(won ? "win" : "lose"); render();
   if (won) await arcSave("battle", b.lv, b.stars, b.right);
   const grew = await ztCountDay();
   tEvent("arcade", `字妖大戰 · level ${b.lv} · ${won ? "★".repeat(b.stars) : "lost"}`);
@@ -5738,6 +5738,61 @@ async function ccAdd(only) {
   if (n) { b.added = n; toast(`🃏 ${n} word${n === 1 ? "" : "s"} added. They'll come up in the Flashcard Center, a few new ones a day.`); }
   render();
 }
+// Chiptune for the battle (original, made live with Web Audio: no music files). A-minor pentatonic, 140 bpm,
+// square-wave lead + triangle bass + noise drums. "🎵" in the top bar turns music and sounds off (per device).
+const CCM = { ctx: null, timer: null, step: 0, next: 0, on: () => lsGet("mz-arc-music") !== "off" };
+const CCM_LEAD = [69, 72, 74, 76, 79, 76, 74, 72, 74, 0, 76, 0, 69, 0, 0, 0, 72, 74, 76, 79, 81, 79, 76, 74, 76, 74, 72, 74, 69, 0, 0, 0,
+  81, 0, 79, 76, 79, 0, 76, 74, 76, 0, 74, 72, 74, 0, 0, 0, 72, 74, 76, 74, 72, 69, 67, 69, 72, 0, 74, 0, 69, 0, 0, 0];
+const CCM_BASS = [45, 45, 48, 48, 50, 50, 40, 40, 45, 45, 48, 48, 43, 43, 45, 45];
+const ccHz = (m) => 440 * Math.pow(2, (m - 69) / 12);
+function ccAudio() {
+  if (!CCM.ctx) { const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return null; CCM.ctx = new AC(); CCM.out = CCM.ctx.createGain(); CCM.out.gain.value = 0.22; CCM.out.connect(CCM.ctx.destination); }
+  if (CCM.ctx.state === "suspended") CCM.ctx.resume().catch(() => {});
+  return CCM.ctx;
+}
+function ccTone(t, m, dur, type, vol) {
+  const c = CCM.ctx, o = c.createOscillator(), g = c.createGain();
+  o.type = type; o.frequency.setValueAtTime(ccHz(m), t);
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + 0.008); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g); g.connect(CCM.out); o.start(t); o.stop(t + dur + 0.03);
+}
+function ccNoise(t, dur, vol, freq) {
+  const c = CCM.ctx;
+  if (!CCM.noise) { const n = c.createBuffer(1, c.sampleRate * 0.3, c.sampleRate), d = n.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; CCM.noise = n; }
+  const src = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
+  src.buffer = CCM.noise; f.type = "highpass"; f.frequency.value = freq;
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  src.connect(f); f.connect(g); g.connect(CCM.out); src.start(t); src.stop(t + dur + 0.02);
+}
+function ccSched() {
+  const c = CCM.ctx, e = 60 / 140 / 2; // one eighth note
+  while (CCM.next < c.currentTime + 0.15) {
+    const i = CCM.step % CCM_LEAD.length, t = CCM.next, m = CCM_LEAD[i];
+    if (m) { let n = 1; while (CCM_LEAD[(i + n) % CCM_LEAD.length] === 0 && n < 4) n++; ccTone(t, m, e * n * 0.95, "square", 0.045); }
+    if (i % 2 === 0) ccTone(t, CCM_BASS[(i / 2) % CCM_BASS.length] + (i % 4 === 2 ? 12 : 0), e * 1.8, "triangle", 0.12);
+    if (i % 8 === 0) ccTone(t, 36, 0.12, "sine", 0.25);            // kick
+    if (i % 8 === 4) ccNoise(t, 0.12, 0.12, 1500);                  // snare
+    if (i % 2 === 1) ccNoise(t, 0.03, 0.03, 7000);                  // hi-hat
+    CCM.next += e; CCM.step++;
+  }
+}
+function ccMusicStart() {
+  if (!CCM.on() || CCM.timer) return;
+  const c = ccAudio(); if (!c) return;
+  CCM.next = c.currentTime + 0.06; CCM.step = 0; CCM.timer = setInterval(ccSched, 25);
+}
+function ccMusicStop() { clearInterval(CCM.timer); CCM.timer = null; }
+function ccSfx(kind) {
+  if (!CCM.on()) return; const c = ccAudio(); if (!c) return; const t = c.currentTime + 0.01;
+  const seq = { hit: [[84, 0, 0.08], [88, 0.06, 0.1]], crit: [[84, 0, 0.07], [88, 0.05, 0.07], [91, 0.1, 0.16]], miss: [[52, 0, 0.18], [47, 0.12, 0.25]],
+    win: [[72, 0, 0.12], [76, 0.12, 0.12], [79, 0.24, 0.12], [84, 0.36, 0.45]], lose: [[69, 0, 0.2], [65, 0.2, 0.2], [60, 0.4, 0.5]] }[kind] || [];
+  for (const [m, d, len] of seq) ccTone(t + d, m, len, "square", 0.07);
+  if (kind === "hit" || kind === "crit") ccNoise(t, 0.08, 0.1, 2500);
+}
+const ccPlaying = () => /^#\/learn\/arcade\/battle\/\d+/.test(location.hash) && arcState().b && !["win", "lose"].includes(arcState().b.phase);
+document.addEventListener("pointerdown", (e) => { if (e.target.closest(".ccgame") && ccPlaying()) ccMusicStart(); }, true);
+window.addEventListener("hashchange", () => { if (!ccPlaying()) ccMusicStop(); });
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") ccMusicStop(); });
 const ccSay = (w) => { try { const u = new SpeechSynthesisUtterance(ccZh(w)); u.lang = trad() ? "zh-TW" : "zh-CN"; u.rate = 0.8; speechSynthesis.cancel(); speechSynthesis.speak(u); } catch {} };
 const ccHearts = (n) => [0, 1, 2].map((i) => `<i class="cchp ${i < n ? "" : "off"}" aria-hidden="true"></i>`).join("");
 function ccCartView() {
@@ -5764,6 +5819,7 @@ function ccPlayView(lv) {
   let b = A.b;
   if (!b || b.lv !== lv || ((b.phase === "win" || b.phase === "lose") && b.restart)) { b = ccStart(lv); if (!b) return `<p class="muted small">Loading the words…</p>`; }
   const L = CC_LEVELS[lv - 1], q = b.q, w = q.w, z = trad();
+  if (CCM.ctx?.state === "running" && !['win', 'lose'].includes(b.phase)) setTimeout(() => { if (ccPlaying()) ccMusicStart(); }, 0);
   const prompt = { zh2en: [`What does it mean?`, `<b class="cczh lzh">${esc(ccZh(w))}</b>`], en2zh: [`Which character is it?`, `<b class="ccen">${esc(ccMean(w))}</b>`],
     py2zh: [`Which one sounds like this?`, `<b class="ccpy">${esc(py(w.pinyin))}</b>`], zh2py: [`How do you say it?`, `<b class="cczh lzh">${esc(ccZh(w))}</b>`] }[q.t];
   const optTxt = (x) => q.t === "zh2en" ? esc(ccMean(x)) : q.t === "zh2py" ? esc(py(x.pinyin)) : `<span class="lzh">${esc(ccZh(x))}</span>`;
@@ -5784,7 +5840,7 @@ function ccPlayView(lv) {
         <button type="button" class="btn ${b.phase === "win" ? "ghost" : ""}" data-cc="again">${b.phase === "win" ? "Play again" : "Try again"}</button>
         <a class="btn ghost" href="#/learn/arcade/battle">Back to the cartridge</a></div></div></div>`; })() : "";
   return `<div class="ccgame">
-    <div class="cctop"><a href="#/learn/arcade/battle" class="ccquit">‹ Quit</a><span class="ccpx">LEVEL ${lv}${L[5] ? " · BOSS" : ""}</span><span class="cccombo">${b.combo >= 2 ? `🔥 x${b.combo}` : ""}</span></div>
+    <div class="cctop"><a href="#/learn/arcade/battle" class="ccquit">‹ Quit</a><span class="ccpx">LEVEL ${lv}${L[5] ? " · BOSS" : ""}</span><span class="row" style="gap:8px;align-items:center"><span class="cccombo">${b.combo >= 2 ? `🔥 x${b.combo}` : ""}</span><button type="button" class="ccmusic ${CCM.on() ? "" : "off"}" data-cc="music" aria-pressed="${CCM.on()}" aria-label="Music and sounds ${CCM.on() ? "on" : "off"}" title="Music and sounds">${CCM.on() ? "🎵" : "🔇"}</button></span></div>
     <div class="ccfield ${b.phase}">${ztImg("arc-field2", "ccbg")}
       <div class="cchud me"><span class="ccpx">YOU</span><span class="cchearts">${ccHearts(b.hearts)}</span></div>
       <div class="cchud foe"><span class="ccpx"><span class="lzh">${esc(ccName(L))}</span></span><span class="ccbar"><i style="width:${(b.hp / b.max) * 100}%"></i></span></div>
@@ -5802,6 +5858,7 @@ document.addEventListener("click", (e) => {
   else if (a === "say" && b) ccSay(b.q.w);
   else if (a === "next" && b && b.phase === "miss") { if (b.hearts <= 0) ccEnd(b, false); else { ccNext(b); render(); } }
   else if (a === "again" && b) { ccStart(b.lv); render(); }
+  else if (a === "music") { if (CCM.on()) { lsSet("mz-arc-music", "off"); ccMusicStop(); } else { lsSet("mz-arc-music", "on"); if (ccPlaying()) ccMusicStart(); } render(); }
   else if (a === "addall") ccAdd(false);
   else if (a === "addmiss") ccAdd(true);
 });
@@ -5915,7 +5972,7 @@ async function wsMake(mode, win) {
   W.busy = true; wsCount(); toast(`Making your ${list.length === 1 ? "sheet" : `${list.length} sheets`}…`);
   try {
     await wsInfo(list); try { await document.fonts.ready; } catch {}
-    const { jsPDF } = await import("./vendor/pdf.js?v=157");
+    const { jsPDF } = await import("./vendor/pdf.js?v=158");
     const pdf = new jsPDF({ unit: "mm", format: "a4", compress: true });
     const cv = document.createElement("canvas"); cv.width = WS_A4.w; cv.height = WS_A4.h; const ctx = cv.getContext("2d");
     for (let i = 0; i < list.length; i++) {
