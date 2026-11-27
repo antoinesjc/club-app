@@ -1604,7 +1604,8 @@ i.py { font-style: normal; color: #8a6a55; font-weight: 600; }
 .arctv { position: absolute; left: 50%; top: 5%; width: 46%; transform: translateX(-62%); }
 .arctv img { width: 100%; display: block; }
 .arcscreen { position: absolute; left: calc(8 / 84 * 100%); top: calc(8 / 66 * 100%); width: calc(52 / 84 * 100%); height: calc(44 / 66 * 100%); background: #141228; display: grid; place-items: center; overflow: hidden; }
-.arcblink { font: 400 clamp(6px, 1.4vw, 10px)/1.6 "Press Start 2P", monospace; color: #fff; text-align: center; animation: arcblink 1.2s steps(1) infinite; }
+.arcblink { font: 400 clamp(5px, 1vw, 7px)/1.6 "Press Start 2P", monospace; color: #cfc8ea; text-align: center; animation: arcblink 1.2s steps(1) infinite; display: flex; flex-direction: column; align-items: center; gap: .5em; }
+.arczh { font: 700 clamp(14px, 3vw, 22px)/1 "Noto Sans TC", "Noto Sans SC", sans-serif; color: #fff; letter-spacing: .08em; }
 @keyframes arcblink { 50% { opacity: 0; } }
 .arccon { position: absolute; left: 50%; bottom: 5%; width: 38%; transform: translateX(-30%); }
 .arcpad { position: absolute; left: 4%; bottom: 6%; width: 17%; transform: rotate(-8deg); }

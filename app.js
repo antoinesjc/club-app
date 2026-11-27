@@ -1,12 +1,12 @@
-import { createClient } from "./vendor/supabase.js?v=153";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=153";
-import { COUNTRIES } from "./countries.js?v=153";
-import { toZhuyin } from "./zhuyin.js?v=153";
-import { ORACLE, ORACLE_T } from "./course-oracle.js?v=153";
+import { createClient } from "./vendor/supabase.js?v=154";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=154";
+import { COUNTRIES } from "./countries.js?v=154";
+import { toZhuyin } from "./zhuyin.js?v=154";
+import { ORACLE, ORACLE_T } from "./course-oracle.js?v=154";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=153";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=154";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -41,7 +41,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=153"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=154"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -1391,7 +1391,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=153"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=154"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -2018,7 +2018,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=153");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=154");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2928,7 +2928,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=153").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=154").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -5368,7 +5368,7 @@ async function cgRemember(t) {
   if (data?.length) await sb.from("char_recent").delete().eq("user_id", state.user.id).in("text", data.map((r) => r.text));
 }
 let cgHW = null;
-const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=153")).default);
+const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=154")).default);
 const cgStrokes = async (c) => {
   const S = cgState(); if (S.data.has(c)) return S.data.get(c);
   const HW = await cgLib(); const d = await HW.loadCharacterData(c).catch(() => null);
@@ -5614,7 +5614,7 @@ const arcadeOpen = () => isAdmin();
 const ARC_GAMES = [{ id: "battle", zh: ["字妖大战", "字妖大戰"], en: "Character Clash", hsk: "HSK 1", free: true, levels: 10, blurb: "Battle ink monsters 字妖: pick the right meaning to strike." }];
 function arcadeRoom(screen) {
   return `<div class="arcroom"><div class="arcfloor"></div>
-    <div class="arctv">${ztImg("arcade-tv")}<div class="arcscreen">${screen || `<span class="arcblink">INSERT A<br>CARTRIDGE</span>`}</div></div>
+    <div class="arctv">${ztImg("arcade-tv")}<div class="arcscreen">${screen || `<span class="arcblink"><b class="arczh">${trad() ? "插入卡帶" : "插入卡带"}</b>INSERT A CARTRIDGE</span>`}</div></div>
     ${ztImg("arcade-console", "arccon")}${ztImg("arcade-pad", "arcpad")}</div>`;
 }
 function arcadeView(parts) {
@@ -5742,7 +5742,7 @@ async function wsMake(mode, win) {
   W.busy = true; wsCount(); toast(`Making your ${list.length === 1 ? "sheet" : `${list.length} sheets`}…`);
   try {
     await wsInfo(list); try { await document.fonts.ready; } catch {}
-    const { jsPDF } = await import("./vendor/pdf.js?v=153");
+    const { jsPDF } = await import("./vendor/pdf.js?v=154");
     const pdf = new jsPDF({ unit: "mm", format: "a4", compress: true });
     const cv = document.createElement("canvas"); cv.width = WS_A4.w; cv.height = WS_A4.h; const ctx = cv.getContext("2d");
     for (let i = 0; i < list.length; i++) {
