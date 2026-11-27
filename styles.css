@@ -1570,3 +1570,25 @@ i.py { font-style: normal; color: #8a6a55; font-weight: 600; }
 @keyframes szglow { 50% { opacity: .2; } }
 @keyframes szboom { 0% { opacity: 0; transform: scale(.1); } 6% { opacity: 1; } 30% { opacity: 0; transform: scale(1.6); } 100% { opacity: 0; transform: scale(1.6); } }
 @media (prefers-reduced-motion: reduce) { .szfx { display: none; } }
+
+/* ---- Writing sheets 練習紙 (Calligraphy School, 27 Nov 2026) ---- */
+.wscard { display: flex; flex-direction: row; align-items: center; gap: 12px; text-decoration: none; color: inherit; }
+.wscard:hover { color: inherit; }
+.wsic { flex: none; width: 46px; height: 46px; box-sizing: border-box; padding: 3px; border-radius: 6px; background: #fff; box-shadow: inset 0 0 0 1.5px #e9a98a;
+  display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 2px; overflow: hidden; }
+.wsic i { font-style: normal; border: 1px solid #f3cdb9; display: grid; place-items: center; font: 600 9px/1 "Noto Sans SC", "Noto Sans TC", sans-serif; color: #2a2420; min-width: 0; min-height: 0; overflow: hidden; }
+.wsic i b { color: #e2d4ca; font-weight: 600; }
+.wsq { font-weight: 800; font-size: 14.5px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.wsfield { display: flex; align-items: center; gap: 8px; border: 1.5px solid var(--line); border-radius: 12px; padding: 6px 12px; background: #fff; }
+.wsfield input { flex: 1; min-width: 0; border: 0; outline: 0; font-size: 22px; padding: 4px 0; background: transparent; }
+.wspills { display: flex; flex-wrap: wrap; gap: 6px; }
+.wspill { font: inherit; border-radius: 999px; padding: 6px 12px; font-size: 13.5px; font-weight: 700; background: #fff; border: 1.5px solid #ecdccb; color: #5c4f47; cursor: pointer; }
+.wspill.on { background: var(--orange); border-color: var(--orange); color: #fff; }
+.wssets { display: grid; grid-template-columns: 1fr; gap: 6px; }
+.wsset { font: inherit; display: flex; align-items: center; gap: 8px; text-align: left; border-radius: 12px; padding: 8px 10px; border: 1.5px dashed #e2c9b0; background: #fffdf9; font-size: 13.5px; font-weight: 700; color: #5c4f47; cursor: pointer; }
+.wsset:hover { border-color: var(--orange); }
+.wsset i { font-style: normal; width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; background: #f3ece4; flex: none; }
+.wsprev { display: flex; flex-direction: column; gap: 8px; align-items: center; padding: 10px; }
+.wsprev canvas { width: 100%; max-width: 420px; height: auto; border-radius: 6px; box-shadow: 0 2px 10px rgba(60,30,10,.15); background: #fff; }
+.wswide { display: grid; grid-template-columns: minmax(320px, 400px) minmax(0, 1fr); gap: 22px; align-items: start; }
+.wswide .wsprev canvas { max-width: 520px; }

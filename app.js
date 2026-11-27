@@ -2314,6 +2314,7 @@ function feedText(e) {
     case "town_cg_pack": return `added ${L} from a character package`;
     case "town_co_chapter": return `finished Oracle Bone chapter <b>${L}</b>`;
     case "town_letter": return `sent a letter to <b>${L}</b> at the Post Office`;
+    case "town_writing_sheet": return `printed writing sheets in the Calligraphy School · <span class="lzh">${L}</span>`;
     case "town_qilin": return `claimed a qilin challenge 麒麟 · ${L}`;
     case "xp": { const [p, ...r] = String(e.label).split(" · "); return `got <b>${+p > 0 ? "+" : ""}${esc(p)} XP</b>${r.length ? " · " + esc(r.join(" · ")) : ""}`; }
     default: return L;
@@ -5588,6 +5589,7 @@ function calligView(parts) {
   if (t === "box") return mode === "review" ? cgReviewView() : cgBoxView();
   if (t === "pack") return cgPackView(mode);
   if (t === "course") return coView(mode, parts[2]);
+  if (t === "sheets") return wsView(mode);
   const text = cgCJK(t);
   if (!text) return cgHomeView();
   if (S.text !== text) cgLoad(text);
@@ -5597,6 +5599,203 @@ function calligView(parts) {
   if (!S.data.get(text[S.idx])) S.idx = [...text].findIndex((c) => S.data.get(c));
   return mode === "write" ? cgWriteView() : cgWatchView();
 }
+
+// ---------------------------------------------------------------------------
+// Writing sheets 練習紙 in the Calligraphy School (27 Nov 2026): A4 practice sheets like the website's sheet maker
+// (repo antoinesjc/writing-sheets), free and unlimited for the Club, up to 30 pages per PDF, made on the device.
+// Route: #/learn/callig/sheets[/<characters>]. Script and pinyin/zhuyin follow the member's settings.
+// ---------------------------------------------------------------------------
+const WS_MAX = 30, WS_A4 = { w: 1654, h: 2339 };
+const wsState = () => (state.ws ??= (() => { let o = {}; try { o = JSON.parse(lsGet("mz-ws-opt") || "{}"); } catch {}
+  return { text: "", idx: 0, info: new Map(), grid: o.grid || "tian", trace: o.trace ?? 3, show: new Set(o.show || ["order", "info", "name"]), busy: false }; })());
+const wsSave = () => { const W = wsState(); lsSet("mz-ws-opt", JSON.stringify({ grid: W.grid, trace: W.trace, show: [...W.show] })); };
+const wsChars = () => [...new Set([...wsState().text].filter((c) => /\p{Script=Han}/u.test(c)))].slice(0, WS_MAX);
+async function wsInfo(list) {
+  const W = wsState(), need = list.filter((c) => !W.info.has(c));
+  if (!need.length) return;
+  const { data } = await sb.rpc("char_lookup", { p_text: need.join("") });
+  for (const i of data?.chars || []) W.info.set(i.ch, i);
+  for (const c of need) if (!W.info.has(c)) W.info.set(c, {});
+}
+function wsCell(ctx, X, Y, S, kind) {
+  ctx.save();
+  ctx.strokeStyle = "#e9a98a"; ctx.lineWidth = 2.4; ctx.strokeRect(X, Y, S, S);
+  if (kind !== "plain") {
+    ctx.strokeStyle = "#f3cdb9"; ctx.lineWidth = 1.6; ctx.setLineDash([7, 7]); ctx.beginPath();
+    ctx.moveTo(X + S / 2, Y); ctx.lineTo(X + S / 2, Y + S); ctx.moveTo(X, Y + S / 2); ctx.lineTo(X + S, Y + S / 2);
+    if (kind === "mi") { ctx.moveTo(X, Y); ctx.lineTo(X + S, Y + S); ctx.moveTo(X + S, Y); ctx.lineTo(X, Y + S); }
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+function wsGlyph(ctx, data, X, Y, S, color, upto, cur) {
+  if (!data) return;
+  ctx.save();
+  const pad = S * 0.06, k = (S - pad * 2) / 1024;
+  ctx.translate(X + pad, Y + pad); ctx.scale(k, -k); ctx.translate(0, -900);
+  data.strokes.forEach((d, i) => { if (upto != null && i > upto) return; ctx.fillStyle = upto != null && i === upto && cur ? cur : color; ctx.fill(new Path2D(d)); });
+  ctx.restore();
+}
+const wsFont = (w, size, fam) => `${w} ${size}px ${fam || "Outfit"}, "Noto Sans SC", "Noto Sans TC", sans-serif`;
+function wsDrawSheet(ctx, c, data, info, scale) {
+  const W = wsState(), Wd = WS_A4.w, H = WS_A4.h, M = 110, B = 230, show = W.show;
+  ctx.save(); ctx.scale(scale, scale);
+  ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, Wd, H);
+  let y = 100;
+  wsCell(ctx, M, y, B, W.grid);
+  if (data) wsGlyph(ctx, data, M, y, B, "#2a2420");
+  else { ctx.fillStyle = "#2a2420"; ctx.font = wsFont(700, 170, "Noto Sans SC"); ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(c, M + B / 2, y + B / 2 + 8); ctx.textAlign = "left"; ctx.textBaseline = "alphabetic"; }
+  const tx = M + B + 40, hasInfo = show.has("info") && (info?.pinyin || info?.meaning);
+  if (hasInfo) {
+    ctx.fillStyle = "#e2632f"; ctx.font = wsFont(800, 76); ctx.fillText(py(info.pinyin || ""), tx, y + 80);
+    ctx.fillStyle = "#5c4f47"; ctx.font = wsFont(600, 34);
+    const n = data ? data.strokes.length : 0;
+    let line = [String(info.meaning || "").split(/[;,]/).slice(0, 3).join(","), n ? `${n} stroke${n === 1 ? "" : "s"}` : "", info.radical && info.radical !== c ? `radical ${info.radical}` : ""].filter(Boolean).join(" · ");
+    while (ctx.measureText(line).width > Wd - tx - M - 260 && line.length > 10) line = line.slice(0, -2);
+    ctx.fillText(line, tx, y + 135);
+  }
+  if (show.has("name")) { ctx.fillStyle = "#9a8b82"; ctx.font = wsFont(600, 28); ctx.fillText("Name: ______________________    Date: ____________", tx, y + (hasInfo ? 195 : 120)); }
+  ctx.textAlign = "right"; ctx.fillStyle = "#2a2420"; ctx.font = wsFont(800, 34); ctx.fillText("Mandarin Zest Club", Wd - M, y + 40);
+  ctx.fillStyle = "#9a8b82"; ctx.font = wsFont(600, 26); ctx.fillText("Writing practice", Wd - M, y + 78); ctx.textAlign = "left";
+  y += B + 26; ctx.fillStyle = "#f37a48"; ctx.fillRect(M, y, Wd - M * 2, 5); y += 44;
+  const label = (t) => { ctx.fillStyle = "#a8431a"; ctx.font = wsFont(800, 26); ctx.fillText(t, M, y); y += 22; };
+  if (show.has("order") && data) {
+    label("STROKE ORDER");
+    const n = data.strokes.length, S = n > 16 ? 72 : 96, gap = 14, per = Math.floor((Wd - M * 2 + gap) / (S + gap));
+    for (let i = 0; i < n; i++) {
+      const X = M + (i % per) * (S + gap), Y = y + Math.floor(i / per) * (S + 40);
+      wsCell(ctx, X, Y, S, W.grid); wsGlyph(ctx, data, X, Y, S, "#2a2420", i, "#f37a48");
+      ctx.fillStyle = "#9a8b82"; ctx.font = wsFont(700, 20); ctx.textAlign = "center"; ctx.fillText(String(i + 1), X + S / 2, Y + S + 26); ctx.textAlign = "left";
+    }
+    y += Math.ceil(n / per) * (S + 40) + 30;
+  }
+  label(W.trace ? "TRACE, THEN WRITE ON YOUR OWN" : "PRACTISE"); y += 4;
+  const cols = 8, S = Math.floor((Wd - M * 2) / cols), rows = Math.floor((H - 110 - y) / S);
+  for (let r = 0; r < rows; r++) for (let k = 0; k < cols; k++) {
+    const X = M + k * S, Y = y + r * S;
+    wsCell(ctx, X, Y, S, W.grid);
+    if (r === 0 && k === 0) wsGlyph(ctx, data, X, Y, S, "#2a2420");
+    else if (r < W.trace && k < 4) wsGlyph(ctx, data, X, Y, S, "#e7ddd6");
+  }
+  ctx.fillStyle = "#9a8b82"; ctx.font = wsFont(600, 24); ctx.fillText("Mandarin Zest Club · app.mandarinzest.com", M, H - 60);
+  ctx.textAlign = "right"; ctx.fillText("Stroke data: Make Me a Hanzi", Wd - M, H - 60); ctx.textAlign = "left";
+  ctx.restore();
+}
+let wsTok = 0;
+async function wsPreview() {
+  const cv = document.getElementById("wscv"); if (!cv) return;
+  const W = wsState(), list = wsChars(), tok = ++wsTok, meta = document.getElementById("wsmeta");
+  const ctx = cv.getContext("2d");
+  if (!list.length) { ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, cv.width, cv.height); if (meta) meta.textContent = "Type a character to see its sheet"; wsCount(); return; }
+  W.idx = Math.min(W.idx, list.length - 1);
+  const c = list[W.idx];
+  await wsInfo(list); const data = await cgStrokes(c);
+  try { await document.fonts.ready; } catch {}
+  if (tok !== wsTok) return;
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  wsDrawSheet(ctx, c, data, W.info.get(c), cv.width / WS_A4.w);
+  if (meta) meta.innerHTML = `<span class="cgzh">${esc(c)}</span> · page ${W.idx + 1} of ${list.length}${data ? "" : " · no stroke data for this one"}`;
+  wsCount();
+}
+function wsCount() {
+  const n = wsChars().length, all = [...new Set([...wsState().text].filter((c) => /\p{Script=Han}/u.test(c)))].length;
+  document.querySelectorAll("[data-ws-n]").forEach((e) => { e.textContent = n ? `${n} page${n === 1 ? "" : "s"}` : ""; });
+  const warn = document.getElementById("wswarn"); if (warn) warn.hidden = all <= WS_MAX;
+  document.querySelectorAll("[data-ws=prev],[data-ws=next]").forEach((b) => { b.hidden = n < 2; });
+  document.querySelectorAll("[data-ws=pdf],[data-ws=print]").forEach((b) => { b.disabled = !n || wsState().busy; });
+}
+async function wsMake(mode, win) {
+  const W = wsState(), list = wsChars(); if (!list.length || W.busy) return;
+  W.busy = true; wsCount(); toast(`Making your ${list.length === 1 ? "sheet" : `${list.length} sheets`}…`);
+  try {
+    await wsInfo(list); try { await document.fonts.ready; } catch {}
+    const { jsPDF } = await import("./vendor/pdf.js?v=150");
+    const pdf = new jsPDF({ unit: "mm", format: "a4", compress: true });
+    const cv = document.createElement("canvas"); cv.width = WS_A4.w; cv.height = WS_A4.h; const ctx = cv.getContext("2d");
+    for (let i = 0; i < list.length; i++) {
+      const data = await cgStrokes(list[i]);
+      ctx.clearRect(0, 0, cv.width, cv.height); wsDrawSheet(ctx, list[i], data, W.info.get(list[i]), 1);
+      if (i) pdf.addPage(); pdf.addImage(cv.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, 210, 297);
+    }
+    pdf.setProperties({ title: `Writing practice · ${list.join("")}`, author: "Mandarin Zest Club" });
+    const name = `mandarin-zest-writing-${list.map((c) => String(W.info.get(c)?.pinyin || "").normalize("NFD").replace(/[^a-zA-Z]/g, "")).filter(Boolean).join("-").slice(0, 60) || "chinese"}.pdf`;
+    if (mode === "print") { const url = pdf.output("bloburl"); if (win && !win.closed) win.location.href = url; else window.open(url, "_blank"); }
+    else { const a = document.createElement("a"); a.href = URL.createObjectURL(pdf.output("blob")); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 60e3); }
+    tEvent("writing_sheet", `${list.slice(0, 12).join("")}${list.length > 12 ? "…" : ""} · ${list.length} page${list.length === 1 ? "" : "s"}`);
+  } catch (e) { console.error(e); if (win && !win.closed) win.close(); toast("Couldn't make the PDF. Try again."); }
+  W.busy = false; wsCount();
+}
+// Sets to add in one tap: today's box round, the whole box, a package, the Oracle Bone course.
+function wsSets() {
+  const S = cgState(), out = [];
+  if (S.box) {
+    const due = cgDue().map((r) => r.ch), all = S.box.map((r) => r.ch);
+    if (due.length) out.push(["due", "📦", "Today's characters in my box", due.length]);
+    if (all.length) out.push(["box", cgZhIcon(), "My whole character box", all.length]);
+  } else cgBoxLoad();
+  if (!S.packs) cgPacksLoad();
+  for (const p of S.packs || []) out.push([`pack:${p.id}`, "💯", p.title, [...p.chars].length]);
+  if (coOpen()) out.push(["oracle", "🦴", "Oracle Bone Mystery course", coLearned().length]);
+  return out;
+}
+const cgZhIcon = () => `<span class="cgzh">${trad() ? "漢" : "汉"}</span>`;
+async function wsAddSet(k) {
+  const S = cgState(); let chars = [];
+  if (k === "due") chars = cgDue().map((r) => r.ch);
+  else if (k === "box") chars = (S.box || []).map((r) => r.ch);
+  else if (k === "oracle") chars = coLearned().map((x) => (trad() && ORACLE_T?.[x.ch]) || x.ch);
+  else if (k.startsWith("pack:")) { const p = (S.packs || []).find((x) => x.id === k.slice(5)); const l = p && await cgPackChars(p); chars = (l || []).map((x) => x.ch); }
+  const W = wsState(), had = wsChars().length;
+  W.text = [...new Set([...wsChars(), ...chars])].join("");
+  const added = wsChars().length - had;
+  if ([...new Set([...W.text])].length >= WS_MAX && added < chars.length) toast(`One PDF holds ${WS_MAX} pages, so the first ${WS_MAX} characters are in.`);
+  render();
+}
+function wsView(pre) {
+  const W = wsState();
+  if (pre && W.pre !== pre) { W.pre = pre; W.text = cgCJK(pre) || pre; W.idx = 0; }
+  const pill = (k, v, l) => `<button type="button" class="wspill ${(k === "show" ? W.show.has(v) : String(W[k]) === String(v)) ? "on" : ""}" data-ws="${k}" data-v="${v}" aria-pressed="${k === "show" ? W.show.has(v) : String(W[k]) === String(v)}">${l}</button>`;
+  const sets = wsSets().map(([k, ic, l, n]) => `<button type="button" class="wsset" data-ws="set" data-v="${esc(k)}"><i>${ic}</i><span class="grow">${esc(l)}</span><span class="muted">${n}</span></button>`).join("");
+  const z = trad();
+  const form = `<div class="stack" style="gap:12px">
+    <div class="card stack" style="gap:10px"><div class="wsq">1. Characters <span class="tiny muted" data-ws-n></span></div>
+      <div class="wsfield"><input class="cgzh" data-ws-text value="${esc(W.text)}" placeholder="${z ? "例如：你好學" : "例如：你好学"}" aria-label="Characters" autocomplete="off" lang="zh">${W.text ? `<button type="button" class="linkbtn" data-ws="clear">Clear</button>` : ""}</div>
+      <p class="tiny muted" style="margin:0">One A4 page per character, up to ${WS_MAX} in one PDF.</p><p class="tiny" id="wswarn" style="margin:0;color:#b4501d" hidden>Only the first ${WS_MAX} characters go in this PDF.</p>
+      ${sets ? `<span class="small muted">Or add a set:</span><div class="wssets">${sets}</div>` : ""}</div>
+    <div class="card stack" style="gap:8px">
+      <div class="wsq">2. Grid</div><div class="wspills">${pill("grid", "tian", "田 Tian grid")}${pill("grid", "mi", "米 Mi grid")}${pill("grid", "plain", "□ Plain")}</div>
+      <div class="wsq">3. Tracing rows</div><div class="wspills">${pill("trace", 1, "1")}${pill("trace", 3, "3")}${pill("trace", 6, "6")}${pill("trace", 0, "None")}</div>
+      <div class="wsq">4. Show</div><div class="wspills">${pill("show", "order", "Stroke order")}${pill("show", "info", `${zhuyin() ? "Zhuyin" : "Pinyin"} &amp; meaning`)}${pill("show", "name", "Name &amp; date line")}</div>
+    </div></div>`;
+  const prev = `<div class="card wsprev"><canvas id="wscv" width="827" height="1170" aria-label="Preview of the sheet"></canvas>
+    <div class="row" style="gap:10px;justify-content:center;align-items:center"><button type="button" class="wspill" data-ws="prev" aria-label="Previous page">‹</button><span class="small" id="wsmeta"></span><button type="button" class="wspill" data-ws="next" aria-label="Next page">›</button></div></div>`;
+  const btns = `<div class="stack" style="gap:8px"><button type="button" class="btn big" data-ws="pdf">⬇ Download PDF (A4) <span data-ws-n></span></button><button type="button" class="btn ghost" data-ws="print">🖨 Open it to print</button></div>`;
+  setTimeout(wsPreview, 0);
+  return `${cgHead("#/learn/callig", "Calligraphy School", `Writing sheets <span class="zhsub">${z ? "練習紙" : "练习纸"}</span>`)}
+    <p class="small muted" style="margin:0">Pick characters, print the sheets, and write them by hand: stroke order, tracing rows and empty grids. Free for Club members.</p>
+    ${wide() ? `<div class="wswide"><div class="stack" style="gap:12px">${form}${btns}</div>${prev}</div>` : `${form}${prev}${btns}`}`;
+}
+const wsCard = () => `<a class="card wscard" href="#/learn/callig/sheets"><span class="wsic" aria-hidden="true">${[...Array(9)].map((_, i) => `<i>${i < 1 ? "好" : i < 5 ? `<b>好</b>` : ""}</i>`).join("")}</span>
+  <span class="grow"><b>Writing sheets <span class="cgzh">${trad() ? "練習紙" : "练习纸"}</span></b><br><span class="small muted">Print A4 practice sheets: stroke order, tracing rows, 田 or 米 grid. Free for Club members.</span></span><b class="dgo" aria-hidden="true">›</b></a>`;
+let wsDeb;
+document.addEventListener("input", (e) => {
+  if (!e.target.matches("[data-ws-text]")) return;
+  const W = wsState(); W.text = e.target.value; W.idx = 0;
+  clearTimeout(wsDeb); wsDeb = setTimeout(wsPreview, 300);
+});
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-ws]"); if (!b) return;
+  const W = wsState(), a = b.dataset.ws, v = b.dataset.v;
+  if (a === "grid") { W.grid = v; wsSave(); render(); }
+  else if (a === "trace") { W.trace = +v; wsSave(); render(); }
+  else if (a === "show") { W.show.has(v) ? W.show.delete(v) : W.show.add(v); wsSave(); render(); }
+  else if (a === "set") wsAddSet(v);
+  else if (a === "clear") { W.text = ""; W.idx = 0; render(); }
+  else if (a === "prev") { if (W.idx > 0) { W.idx--; wsPreview(); } }
+  else if (a === "next") { if (W.idx < wsChars().length - 1) { W.idx++; wsPreview(); } }
+  else if (a === "pdf") wsMake("pdf");
+  else if (a === "print") { const win = window.open("", "_blank"); wsMake("print", win); }
+});
 
 function cgBoxCard() {
   const S = cgState(), n = S.box?.length || 0, due = S.box ? cgDue().length : 0;
@@ -5659,6 +5858,7 @@ function cgHomeView() {
     ${cgSearch()}
     ${recent.length ? `<section><h2 class="cgh">You looked up</h2><div class="cgrecent">${recent.map((w) => `<a href="${cgHref(w)}">${esc(w)}</a>`).join("")}</div></section>` : ""}
     ${cgBoxCard()}
+    ${wsCard()}
     ${cgPacksSection()}
     <section><h2 class="cgh">Classes</h2>
       ${coOpen() ? coCard() : ""}
@@ -5676,7 +5876,7 @@ function cgInfoCard(ch, d) {
     <div class="cginfotop"><span class="cgzh cgbig">${esc(ch)}</span><b class="cgpy">${esc(py(i.pinyin || ""))}</b><span class="muted">${esc(i.meaning || "")}</span></div>
     <div class="row" style="gap:6px;flex-wrap:wrap">${tags}</div>
     ${S.rad && i.radical && i.radical !== ch && d.radStrokes?.length ? `<p class="tiny muted" style="margin:0">The radical's strokes turn green.</p>` : ""}
-    <div class="row" style="gap:8px;flex-wrap:wrap"><a class="btn" href="${cgHref(S.text, true)}">${ICON_CG.brush} Write it myself</a>
+    <div class="row" style="gap:8px;flex-wrap:wrap"><a class="btn" href="${cgHref(S.text, true)}">${ICON_CG.brush} Write it myself</a><a class="btn ghost" href="#/learn/callig/sheets/${encodeURIComponent(S.text)}">🖨 Print a writing sheet</a>
     ${!S.box ? "" : inBox ? `<span class="lindeck">✓ In your character box</span>${cgMastered(S.box.find((r) => r.ch === ch)) ? "" : `<button type="button" class="linkbtn" data-cg="cknown" data-c="${esc(ch)}">Mark as learned</button>`}<button type="button" class="linkbtn" data-cg="boxdel" data-c="${esc(ch)}">Remove</button>`
       : `<button type="button" class="btn ghost" data-cg="boxadd" data-c="${esc(ch)}">+ Add <span class="cgzh">${esc(ch)}</span> to my character box</button>`}</div>
   </div>`;
