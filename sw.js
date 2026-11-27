@@ -1,9 +1,10 @@
 // Keeps the app shell available offline, and shows Club notifications.
 // Data always comes from the network.
-const VERSION = "mz-club-v159";
+const IMG = "mz-club-img";
+const VERSION = "mz-club-v160";
 const SHELL = [
-  "./", "index.html", "styles.css?v=159", "app.js?v=159", "fruits.js?v=159", "hosts-art.js?v=159", "countries.js?v=159", "stickers.js?v=159", "zhuyin.js?v=159", "course-oracle.js?v=159", "worldmap.js?v=159",
-  "vendor/supabase.js?v=159", "manifest.webmanifest", "icons/logo.png", "icons/mascot.svg", "icons/icon-192.png", "icons/badge-96.png",
+  "./", "index.html", "styles.css?v=160", "app.js?v=160", "fruits.js?v=160", "hosts-art.js?v=160", "countries.js?v=160", "stickers.js?v=160", "zhuyin.js?v=160", "course-oracle.js?v=160", "worldmap.js?v=160",
+  "vendor/supabase.js?v=160", "manifest.webmanifest", "icons/logo.png", "icons/mascot.svg", "icons/icon-192.png", "icons/badge-96.png",
 ];
 
 self.addEventListener("install", (e) => {
@@ -12,7 +13,7 @@ self.addEventListener("install", (e) => {
 
 self.addEventListener("activate", (e) => {
   e.waitUntil(
-    caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== VERSION).map((k) => caches.delete(k))))
+    caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== VERSION && k !== IMG).map((k) => caches.delete(k))))
       .then(() => self.clients.claim()),
   );
 });
@@ -20,12 +21,29 @@ self.addEventListener("activate", (e) => {
 self.addEventListener("fetch", (e) => {
   const url = new URL(e.request.url);
   if (e.request.method !== "GET" || url.origin !== location.origin) return;
-  // Network first, so updates show up right away; cache as a fallback.
+  // Files with ?v=N never change (a new version gets a new N): straight from the cache, no trip to the server.
+  // Pictures (icons/…): from the cache at once, refreshed in the background for next time.
+  // Everything else (the page itself): network first, so updates show up right away; cache as a fallback.
+  if (url.searchParams.has("v")) {
+    e.respondWith(caches.match(e.request).then((hit) => hit || fetch(e.request).then((res) => {
+      if (res.ok) { const copy = res.clone(); caches.open(VERSION).then((c) => c.put(e.request, copy)); }
+      return res;
+    })));
+    return;
+  }
+  if (url.pathname.includes("/icons/")) {
+    e.respondWith(caches.open(IMG).then(async (c) => {
+      const hit = await c.match(e.request);
+      const net = fetch(e.request).then((res) => { if (res.ok) c.put(e.request, res.clone()); return res; }).catch(() => hit);
+      return hit || net;
+    }));
+    return;
+  }
   // Page loads ("navigate") can't be re-fetched with options (it throws, and we fell back to the cached page,
   // so phones kept an old version). Fetch them by URL instead.
   const net = e.request.mode === "navigate"
     ? fetch(url.href, { cache: "no-cache", credentials: "same-origin" })
-    : fetch(e.request, { cache: "no-cache" }); // always ask the server, so files never mix versions
+    : fetch(e.request, { cache: "no-cache" });
   e.respondWith(
     net
       .then((res) => {

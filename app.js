@@ -1,12 +1,12 @@
-import { createClient } from "./vendor/supabase.js?v=159";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=159";
-import { COUNTRIES } from "./countries.js?v=159";
-import { toZhuyin } from "./zhuyin.js?v=159";
-import { ORACLE, ORACLE_T } from "./course-oracle.js?v=159";
+import { createClient } from "./vendor/supabase.js?v=160";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=160";
+import { COUNTRIES } from "./countries.js?v=160";
+import { toZhuyin } from "./zhuyin.js?v=160";
+import { ORACLE, ORACLE_T } from "./course-oracle.js?v=160";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=159";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=160";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -41,7 +41,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=159"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=160"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -223,7 +223,7 @@ function greeting() {
 // ---------------------------------------------------------------------------
 // Data
 // ---------------------------------------------------------------------------
-async function loadAll() {
+async function loadAll(tail = true) {
   const since = new Date(Date.now() - 35 * 864e5).toISOString();
   const [ses, ints, profs, roles] = await Promise.all([
     sb.from("sessions").select("*").eq("cancelled", false).gte("starts_at", since).order("starts_at"),
@@ -283,6 +283,10 @@ async function loadAll() {
   state.roles = new Map(roles.data.map((r) => [r.id, r.role]));
   state.me = state.profiles.get(state.user.id) || state.me;
   state.loaded = true;
+  if (tail) loadTail();
+}
+// After the data is in and the role is known: seasonal gifts, the "app open" log, Zest Town access, reward pop-ups.
+function loadTail() {
   claimSeasonal();
   logOpen();
   ztCheckBeta();
@@ -366,11 +370,15 @@ const myStickers = (id = state.user?.id) => (state.stickerAwards || []).filter((
 
 async function startSession(user) {
   state.user = user;
+  // Ask for the role and load the Club's data at the same time (one round trip to the server instead of two).
+  const all = loadAll(false).then(() => null, (e) => e);
   const { data, error } = await sb.rpc("start_session");
   if (error) throw error;
   state.role = data?.role ?? null;
   if (!state.role) return render();
-  await loadAll();
+  const err = await all;
+  if (err || !state.me) await loadAll(); // a brand-new member's profile is made by start_session: load again
+  else loadTail();
   render();
   // Remember the member's time zone so notifications show the right time.
   try {
@@ -1391,7 +1399,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=159"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=160"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -2018,7 +2026,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=159");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=160");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2929,7 +2937,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=159").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=160").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -5369,7 +5377,7 @@ async function cgRemember(t) {
   if (data?.length) await sb.from("char_recent").delete().eq("user_id", state.user.id).in("text", data.map((r) => r.text));
 }
 let cgHW = null;
-const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=159")).default);
+const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=160")).default);
 const cgStrokes = async (c) => {
   const S = cgState(); if (S.data.has(c)) return S.data.get(c);
   const HW = await cgLib(); const d = await HW.loadCharacterData(c).catch(() => null);
@@ -5985,7 +5993,7 @@ async function wsMake(mode, win) {
   W.busy = true; wsCount(); toast(`Making your ${list.length === 1 ? "sheet" : `${list.length} sheets`}…`);
   try {
     await wsInfo(list); try { await document.fonts.ready; } catch {}
-    const { jsPDF } = await import("./vendor/pdf.js?v=159");
+    const { jsPDF } = await import("./vendor/pdf.js?v=160");
     const pdf = new jsPDF({ unit: "mm", format: "a4", compress: true });
     const cv = document.createElement("canvas"); cv.width = WS_A4.w; cv.height = WS_A4.h; const ctx = cv.getContext("2d");
     for (let i = 0; i < list.length; i++) {
