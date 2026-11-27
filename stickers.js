@@ -12,7 +12,7 @@ export const STICKERS = [
       <path d="M20 34 v12" stroke="#fff" stroke-width="2.4" stroke-linecap="round" opacity=".55"/>`,
   },
   {
-    key: "tones", how: "Finish the Chinese Pronunciation Bootcamp.", zh: ["四声", "四聲"], en: "Four tones", bootcamp: "pronunciation",
+    key: "tones", how: "Finish the Chinese Pronunciation Bootcamp (coming back later).", zh: ["四声", "四聲"], en: "Four tones", bootcamp: "pronunciation",
     svg: `<path d="M6 13 a7 7 0 0 1 7 -7 h38 a7 7 0 0 1 7 7 v26 a7 7 0 0 1 -7 7 h-21 l-12 10 v-10 h-5 a7 7 0 0 1 -7 -7z" fill="#7d5a8c"/>
       <g stroke="#fff" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round" fill="none">
         <path d="M13 19 h8"/><path d="M25 32 l6 -13"/><path d="M35 21 l3 8 l4 -8"/><path d="M47 19 l4 13"/>
@@ -28,7 +28,7 @@ export const STICKERS = [
       <path d="M22 45 l1.5 9" stroke="#fff" stroke-width="2.2" stroke-linecap="round" opacity=".5"/>`,
   },
   {
-    key: "diploma", how: "Finish the HSK 1 Intensive Bootcamp.", zh: ["证书", "證書"], en: "Certificate", bootcamp: "hsk1",
+    key: "diploma", how: "Finish the HSK 1 Intensive Bootcamp.", zh: ["证书", "證書"], en: "Certificate", bootcamp: "hsk 1",
     svg: `<path d="M12 14 h40 v34 h-40z" fill="#fffaf0" stroke="#5a3a1a" stroke-width="2.6" stroke-linejoin="round"/>
       <path d="M8 12 a4 4 0 0 1 8 0 v38 a4 4 0 0 1 -8 0z" fill="#e8c98a" stroke="#5a3a1a" stroke-width="2.4"/>
       <path d="M48 12 a4 4 0 0 1 8 0 v38 a4 4 0 0 1 -8 0z" fill="#e8c98a" stroke="#5a3a1a" stroke-width="2.4"/>
@@ -53,7 +53,7 @@ export const STICKERS = [
       <path d="M12 46 q20 7 40 0" stroke="#efe3c8" stroke-width="3" fill="none" stroke-linecap="round"/>`,
   },
   {
-    key: "brush", how: "Finish the Chinese Character Bootcamp.", zh: ["毛笔", "毛筆"], en: "Brush", bootcamp: "character",
+    key: "brush", how: "Finish the Chinese Character Bootcamp (coming back later).", zh: ["毛笔", "毛筆"], en: "Brush", bootcamp: "character",
     svg: `<path d="M47 4 l13 13 l-24 24 l-13 -13z" fill="#a8431a"/>
       <path d="M47 4 l13 13" stroke="#2a2420" stroke-width="3.5" stroke-linecap="round"/>
       <path d="M38 30 l-4 -4" stroke="#f2b631" stroke-width="3" stroke-linecap="round"/>
