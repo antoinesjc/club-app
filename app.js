@@ -1,12 +1,12 @@
-import { createClient } from "./vendor/supabase.js?v=155";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=155";
-import { COUNTRIES } from "./countries.js?v=155";
-import { toZhuyin } from "./zhuyin.js?v=155";
-import { ORACLE, ORACLE_T } from "./course-oracle.js?v=155";
+import { createClient } from "./vendor/supabase.js?v=156";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=156";
+import { COUNTRIES } from "./countries.js?v=156";
+import { toZhuyin } from "./zhuyin.js?v=156";
+import { ORACLE, ORACLE_T } from "./course-oracle.js?v=156";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=155";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=156";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -41,7 +41,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=155"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=156"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -1391,7 +1391,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=155"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=156"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -2018,7 +2018,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=155");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=156");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2929,7 +2929,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=155").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=156").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -5369,7 +5369,7 @@ async function cgRemember(t) {
   if (data?.length) await sb.from("char_recent").delete().eq("user_id", state.user.id).in("text", data.map((r) => r.text));
 }
 let cgHW = null;
-const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=155")).default);
+const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=156")).default);
 const cgStrokes = async (c) => {
   const S = cgState(); if (S.data.has(c)) return S.data.get(c);
   const HW = await cgLib(); const d = await HW.loadCharacterData(c).catch(() => null);
@@ -5726,7 +5726,7 @@ const ccHearts = (n) => [0, 1, 2].map((i) => `<i class="cchp ${i < n ? "" : "off
 function ccCartView() {
   const z = trad(), g = ARC_GAMES[0], st = arcProg("battle").stars || {}, done = arcDone("battle");
   const next = Math.min(done + 1, 10);
-  const title = `${ztImg("arc-field", "ccttlbg")}<span class="ccttl"><b class="lzh">${z ? "字妖大戰" : "字妖大战"}</b><span class="arcblink" style="font-size:clamp(5px,1vw,7px)">PRESS START</span></span>`;
+  const title = `${ztImg("arc-field2", "ccttlbg")}<span class="ccttl"><b class="lzh">${z ? "字妖大戰" : "字妖大战"}</b><span class="arcblink" style="font-size:clamp(5px,1vw,7px)">PRESS START</span></span>`;
   const nodes = CC_LEVELS.map((L, i) => { const n = i + 1, s = +st[n] || 0, open = n === 1 || +st[n - 1] > 0;
     return open ? `<a class="ccnode ${s ? "done" : n === next ? "cur" : ""} ${L[5] ? "boss" : ""}" href="#/learn/arcade/battle/${n}" aria-label="Level ${n}${s ? `, ${s} stars` : ""}"><b>${n}</b><span>${s ? "★".repeat(s) + "☆".repeat(3 - s) : L[5] ? "BOSS" : ""}</span></a>`
       : `<span class="ccnode lock" aria-label="Level ${n}, locked"><b>🔒</b><span>${L[5] ? "BOSS" : ""}</span></span>`; }).join("");
@@ -5767,7 +5767,7 @@ function ccPlayView(lv) {
         <a class="btn ghost" href="#/learn/arcade/battle">Back to the cartridge</a></div></div></div>`; })() : "";
   return `<div class="ccgame">
     <div class="cctop"><a href="#/learn/arcade/battle" class="ccquit">‹ Quit</a><span class="ccpx">LEVEL ${lv}${L[5] ? " · BOSS" : ""}</span><span class="cccombo">${b.combo >= 2 ? `🔥 x${b.combo}` : ""}</span></div>
-    <div class="ccfield ${b.phase}">${ztImg("arc-field", "ccbg")}
+    <div class="ccfield ${b.phase}">${ztImg("arc-field2", "ccbg")}
       <div class="cchud me"><span class="ccpx">YOU</span><span class="cchearts">${ccHearts(b.hearts)}</span></div>
       <div class="cchud foe"><span class="ccpx"><span class="lzh">${esc(ccName(L))}</span></span><span class="ccbar"><i style="width:${(b.hp / b.max) * 100}%"></i></span></div>
       <span class="ccme">${ztImg(`fruit-${myFruitKey()}`)}</span>
@@ -5895,7 +5895,7 @@ async function wsMake(mode, win) {
   W.busy = true; wsCount(); toast(`Making your ${list.length === 1 ? "sheet" : `${list.length} sheets`}…`);
   try {
     await wsInfo(list); try { await document.fonts.ready; } catch {}
-    const { jsPDF } = await import("./vendor/pdf.js?v=155");
+    const { jsPDF } = await import("./vendor/pdf.js?v=156");
     const pdf = new jsPDF({ unit: "mm", format: "a4", compress: true });
     const cv = document.createElement("canvas"); cv.width = WS_A4.w; cv.height = WS_A4.h; const ctx = cv.getContext("2d");
     for (let i = 0; i < list.length; i++) {
