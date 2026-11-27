@@ -1,0 +1,13 @@
+Copyright (c) 2026 Antoine (Mandarin Zest). All rights reserved.
+
+This repository contains the source code, artwork, text and other materials of the
+Mandarin Zest Club app (app.mandarinzest.com). It is published only so the app can be
+hosted. No licence is granted: you may not copy, modify, distribute, sell, host or
+create derivative works from any part of it, in whole or in part, without prior
+written permission from Mandarin Zest.
+
+Third-party components keep their own licences (for example the files in vendor/,
+stroke data from Make Me a Hanzi / hanzi-writer-data, and the oracle bone images
+credited in icons/oracle/credits.json).
+
+Contact: contact@mandarinzest.com

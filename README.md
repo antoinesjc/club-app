@@ -75,3 +75,7 @@ Same as the website calendar: the title gives the level (`HSK 2-4`) and category
 - Labels and colours in `app.js` (`SESSION_LEVELS`, `CATEGORIES`) mirror `categories.js` on the website: change both.
 - Home filters: one level (sessions for "All levels" always match) + any number of categories, remembered per device.
 - Desktop "My notes" page (`#/notes`): every attended session, most recent first, with notes and a search box (hosts: every session with notes).
+
+## Licence
+
+All rights reserved. See [LICENSE](LICENSE): no part of this app may be copied or reused without written permission from Mandarin Zest.
