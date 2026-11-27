@@ -7,7 +7,7 @@ import forest
 SRC, OUT = sys.argv[1], sys.argv[2]
 OL = (43,42,58)
 WIN = {}
-KEEP = {(226,58,80),(255,150,170)}
+KEEP = {(226,58,80),(255,150,170), (255,120,200),(120,240,255),(255,90,170),(240,80,120)}  # blossom + the Arcade's neon stay bright
 LEAF = {(150,214,96),(96,180,72),(58,140,52)}
 def night(im, windows=False, blossom=False, seed=''):
     im = im.convert('RGBA'); p = im.load(); W, H = im.size; rnd = random.Random(seed)
@@ -42,11 +42,11 @@ def lanterns(im, pts, string=None):
     for (x,y) in pts: im.alpha_composite(L, (x-3, y))
     return im
 # lanterns on both sides of each door: (centre x, top y), from the town7 art
-DOORS = {'wide': [(57,47),(72,47), (120,32),(132,32), (164,40),(179,40), (33,124),(45,124), (187,122),(201,122), (54,208),(63,208)],
-         'phone': [(28,35),(40,35), (79,29),(91,29), (24,167),(34,167), (81,167),(93,167), (33,232),(45,232), (82,238),(91,238)]}
+DOORS = {'wide': [(57,47),(72,47), (120,32),(132,32), (164,40),(179,40), (33,124),(45,124), (187,122),(201,122), (54,208),(63,208), (166,207),(180,207)],
+         'phone': [(28,35),(40,35), (79,29),(91,29), (24,167),(34,167), (81,167),(93,167), (33,232),(45,232), (82,238),(91,238), (57,279),(71,279)]}
 PLAZA = {'wide': (118,120), 'phone': (59,86)}
 def town(k):
-    im = night(Image.open(f'{SRC}/town7-{k}.png'), blossom=True, seed=k)
+    im = night(Image.open(f'{SRC}/town8-{k}.png'), blossom=True, seed=k)
     S = lantern(small=True)
     for (x, y) in DOORS[k]: glow(im, x, y+4, rad=9, k=.55)
     for (x, y) in DOORS[k]: im.alpha_composite(S, (x-2, y))
@@ -79,13 +79,13 @@ def forest_lny(k):
     return lanterns(im, pts)
 if __name__ == '__main__':
     for k in ('wide', 'phone'):
-        town(k).save(f'{OUT}/town7-{k}-lny.png')
+        town(k).save(f'{OUT}/town8-{k}-lny.png')
         forest_lny(k).save(f'{OUT}/forest5-{k}-lny.png')
         for f in (f'river3-{k}', f'bridge-{k}'): night(Image.open(f'{SRC}/{f}.png'), seed=f).save(f'{OUT}/{f}-lny.png')
     for f in ('tree4-big', 'tree4-small'): night(Image.open(f'{SRC}/{f}.png'), blossom=True, seed=f).save(f'{OUT}/{f}-lny.png')
     # winter + Christmas tree (December)
     X = xmas()
     for k, (x, y) in {'wide': (92, 224), 'phone': (22, 152)}.items():
-        im = Image.open(f'{OUT}/town7-{k}-winter.png').convert('RGBA')
-        im.alpha_composite(X, (x - X.width//2, y - X.height)); im.save(f'{OUT}/town7-{k}-xmas.png')
+        im = Image.open(f'{OUT}/town8-{k}-winter.png').convert('RGBA')
+        im.alpha_composite(X, (x - X.width//2, y - X.height)); im.save(f'{OUT}/town8-{k}-xmas.png')
     print('ok')

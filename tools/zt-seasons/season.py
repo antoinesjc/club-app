@@ -5,7 +5,7 @@ import sys, random, hashlib
 from collections import deque
 from PIL import Image
 SRC, OUT = sys.argv[1], sys.argv[2]
-FILES = ['town7-wide','town7-phone','tree4-big','tree4-small','river3-wide','river3-phone','bridge-wide','bridge-phone']
+FILES = ['town8-wide','town8-phone','tree4-big','tree4-small','river3-wide','river3-phone','bridge-wide','bridge-phone']
 OUTLINE = {(43,42,58),(29,29,36)}
 GRASS = {(143,207,90):0,(130,194,80):1,(121,184,74):2,(166,221,111):3,(112,172,70):4,(126,188,78):1,(111,191,76):1,(150,206,98):3,
          (95,174,62):0,(104,178,70):0,(79,154,74):1,(86,160,80):1,(100,160,64):4,(47,107,34):4}

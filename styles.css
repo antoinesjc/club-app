@@ -1592,3 +1592,30 @@ i.py { font-style: normal; color: #8a6a55; font-weight: 600; }
 .wsprev canvas { width: 100%; max-width: 420px; height: auto; border-radius: 6px; box-shadow: 0 2px 10px rgba(60,30,10,.15); background: #fff; }
 .wswide { display: grid; grid-template-columns: minmax(320px, 400px) minmax(0, 1fr); gap: 22px; align-items: start; }
 .wswide .wsprev canvas { max-width: 520px; }
+
+/* ---- Arcade 遊戲廳 (27 Nov 2026, beta) ---- */
+.ztlabel.arc { background: #4a2a7a; }
+.ztlabel.arc em { background: #ff78c8; color: #2b1640; border-radius: 3px; font-size: 6px; top: -10px; right: -14px; min-width: 0; height: auto; padding: 2px 3px; }
+.arcwrap { display: grid; gap: 14px; }
+@media (min-width: 900px) { .arcwrap { grid-template-columns: minmax(0, 470px) minmax(0, 1fr); align-items: start; } }
+.arcroom { position: relative; aspect-ratio: 16 / 10; border-radius: 18px; overflow: hidden; box-shadow: 0 0 0 3px #2a2420; background: linear-gradient(#3b2a5a 0 64%, #7a4c2e 64% 100%); }
+.arcroom::before { content: ""; position: absolute; inset: 0 0 36% 0; background-image: radial-gradient(#4c3870 1.5px, transparent 1.6px); background-size: 12px 12px; }
+.arcfloor { position: absolute; left: 0; right: 0; bottom: 0; height: 36%; background: repeating-linear-gradient(90deg, #7a4c2e 0 38px, #6b4228 38px 40px); }
+.arctv { position: absolute; left: 50%; top: 5%; width: 46%; transform: translateX(-62%); }
+.arctv img { width: 100%; display: block; }
+.arcscreen { position: absolute; left: calc(8 / 84 * 100%); top: calc(8 / 66 * 100%); width: calc(52 / 84 * 100%); height: calc(44 / 66 * 100%); background: #141228; display: grid; place-items: center; overflow: hidden; }
+.arcblink { font: 400 clamp(6px, 1.4vw, 10px)/1.6 "Press Start 2P", monospace; color: #fff; text-align: center; animation: arcblink 1.2s steps(1) infinite; }
+@keyframes arcblink { 50% { opacity: 0; } }
+.arccon { position: absolute; left: 50%; bottom: 5%; width: 38%; transform: translateX(-30%); }
+.arcpad { position: absolute; left: 4%; bottom: 6%; width: 17%; transform: rotate(-8deg); }
+.arctabs { display: flex; background: #f3ece4; border-radius: 12px; padding: 3px; }
+.arctabs a { flex: 1; text-align: center; padding: 8px; border-radius: 10px; font-weight: 800; font-size: 14px; color: #6f625a; text-decoration: none; }
+.arctabs a.on { background: #fff; color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.1); }
+.arccarts { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.arccart { background: #fff; border-radius: 14px; padding: 12px 10px; box-shadow: 0 0 0 1px var(--line); display: flex; flex-direction: column; gap: 6px; align-items: center; text-align: center; }
+.arccart img { width: 70px; }
+.arccart.soon img { filter: saturate(.6); opacity: .85; }
+.arct { font-size: 14px; line-height: 1.2; } .arct span { display: block; font-size: 16px; }
+.arclv { font-size: 11px; font-weight: 800; border-radius: 99px; padding: 2px 7px; background: #e8f1fb; color: #2c5c8f; }
+.arcfree { font-size: 11px; font-weight: 800; border-radius: 99px; padding: 2px 7px; background: #e3f2df; color: #1b6f1b; }
+@media (prefers-reduced-motion: reduce) { .arcblink { animation: none; } }
