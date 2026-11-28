@@ -1,12 +1,12 @@
-import { createClient } from "./vendor/supabase.js?v=165";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=165";
-import { COUNTRIES } from "./countries.js?v=165";
-import { toZhuyin } from "./zhuyin.js?v=165";
-import { ORACLE, ORACLE_T } from "./course-oracle.js?v=165";
+import { createClient } from "./vendor/supabase.js?v=166";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=166";
+import { COUNTRIES } from "./countries.js?v=166";
+import { toZhuyin } from "./zhuyin.js?v=166";
+import { ORACLE, ORACLE_T } from "./course-oracle.js?v=166";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=165";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=166";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -41,7 +41,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=165"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=166"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -856,18 +856,34 @@ document.addEventListener("click", (e) => {
   else if (a === "portal") openPortal(el);
   else if (a === "viewas") { state.viewAs = v; try { sessionStorage.setItem("mz-viewas", v); } catch { /* fine */ } if (v === "over") location.hash = "#/plans"; render(); }
   else if (a === "boot-buy") bootBuy(el);
+  else if (a === "bootclose") { if (e.target.closest("[data-stop]") && !e.target.closest(".ztx")) return; bootCloseCheckout(); }
   else if (a === "cust-cancel") { state.draft = null; render(); }
 });
 
 // Bootcamps at the regular price for Self-Study and trial users (Stripe Checkout through the billing function).
+// Stripe's form opens inside the app (same embedded checkout as the Library); Stripe's own page only as a fallback.
 async function bootBuy(el) {
   el.disabled = true; el.textContent = "Opening…";
-  const r = await billingCall({ action: "bootcamp", url: el.dataset.k, embedded: false });
-  if (r.url) { location.href = r.url; return; }
+  const r = await billingCall({ action: "bootcamp", url: el.dataset.k });
   if (r.paid) { await bootVerify(); return; }
+  if (r.url) { location.href = r.url; return; } // comes back to #/bootcamps/paid/…
+  if (r.client_secret) {
+    el.disabled = false; el.textContent = "Buy now";
+    try {
+      const Stripe = await loadStripe();
+      document.body.insertAdjacentHTML("beforeend", `<div class="ztover center lcheckover bootcheckover" data-pl="bootclose"><div class="ztsheet lcheck" data-stop><button type="button" class="ztx" data-pl="bootclose" aria-label="Close">×</button><b>Secure checkout · Stripe</b><div id="bootcheckout"></div></div></div>`);
+      const co = await Stripe(r.publishable_key).initEmbeddedCheckout({ fetchClientSecret: async () => r.client_secret, onComplete: () => { bootCloseCheckout(); bootVerify(r.session_id); } });
+      state.bootCo = co; co.mount("#bootcheckout");
+    } catch { bootCloseCheckout(); toast("Couldn't load the checkout. Please try again."); }
+    return;
+  }
   el.disabled = false; el.textContent = "Buy now";
   if (r.error && /^Stripe/.test(r.error)) console.error("bootcamp checkout:", r.error);
   toast(r.error && !/^Stripe/.test(r.error) ? r.error : "Couldn't open the checkout. Please try again.");
+}
+function bootCloseCheckout() {
+  try { state.bootCo?.destroy(); } catch { /* already gone */ }
+  state.bootCo = null; document.querySelector(".bootcheckover")?.remove();
 }
 async function bootVerify(sessionId) {
   if (state.bootVerifying) return;
@@ -876,7 +892,7 @@ async function bootVerify(sessionId) {
   state.bootVerifying = false;
   const before = state.bootPaid?.size || 0;
   state.bootPaid = new Set(r.paid || []);
-  if (sessionId) { toast(state.bootPaid.size > before ? "🎉 You're in! The team will email you the details soon." : "Payment received? It can take a minute. Your spot shows here as soon as Stripe confirms."); location.hash = "#/bootcamps"; }
+  if (sessionId) { toast(state.bootPaid.size > before ? "🎉 You're in! The team will email you the details soon." : "Payment received? It can take a minute. Your spot shows here as soon as Stripe confirms."); if (route() !== "bootcamps" || routeArg()) location.hash = "#/bootcamps"; }
   render();
 }
 
@@ -1633,7 +1649,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=165"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=166"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -2274,7 +2290,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=165");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=166");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -3185,7 +3201,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=165").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=166").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -5647,7 +5663,7 @@ async function cgRemember(t) {
   if (data?.length) await sb.from("char_recent").delete().eq("user_id", state.user.id).in("text", data.map((r) => r.text));
 }
 let cgHW = null;
-const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=165")).default);
+const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=166")).default);
 const cgStrokes = async (c) => {
   const S = cgState(); if (S.data.has(c)) return S.data.get(c);
   const HW = await cgLib(); const d = await HW.loadCharacterData(c).catch(() => null);
@@ -6270,7 +6286,7 @@ async function wsMake(mode, win) {
   W.busy = true; wsCount(); toast(`Making your ${list.length === 1 ? "sheet" : `${list.length} sheets`}…`);
   try {
     await wsInfo(list); try { await document.fonts.ready; } catch {}
-    const { jsPDF } = await import("./vendor/pdf.js?v=165");
+    const { jsPDF } = await import("./vendor/pdf.js?v=166");
     const pdf = new jsPDF({ unit: "mm", format: "a4", compress: true });
     const cv = document.createElement("canvas"); cv.width = WS_A4.w; cv.height = WS_A4.h; const ctx = cv.getContext("2d");
     for (let i = 0; i < list.length; i++) {
