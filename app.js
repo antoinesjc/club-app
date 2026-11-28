@@ -1,12 +1,12 @@
-import { createClient } from "./vendor/supabase.js?v=171";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=171";
-import { COUNTRIES } from "./countries.js?v=171";
-import { toZhuyin } from "./zhuyin.js?v=171";
-import { ORACLE, ORACLE_T } from "./course-oracle.js?v=171";
+import { createClient } from "./vendor/supabase.js?v=172";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=172";
+import { COUNTRIES } from "./countries.js?v=172";
+import { toZhuyin } from "./zhuyin.js?v=172";
+import { ORACLE, ORACLE_T } from "./course-oracle.js?v=172";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=171";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=172";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -41,7 +41,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=171"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=172"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -1705,7 +1705,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=171"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=172"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -2346,7 +2346,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=171");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=172");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -3257,7 +3257,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=171").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=172").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -5726,7 +5726,7 @@ async function cgRemember(t) {
   if (data?.length) await sb.from("char_recent").delete().eq("user_id", state.user.id).in("text", data.map((r) => r.text));
 }
 let cgHW = null;
-const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=171")).default);
+const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=172")).default);
 const cgStrokes = async (c) => {
   const S = cgState(); if (S.data.has(c)) return S.data.get(c);
   const HW = await cgLib(); const d = await HW.loadCharacterData(c).catch(() => null);
@@ -6136,7 +6136,24 @@ function ccNoise(t, dur, vol, freq) {
   g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
   src.connect(f); f.connect(g); g.connect(CCM.out); src.start(t); src.stop(t + dur + 0.02);
 }
+// Around the World has its own tune (28 Nov 2026): C-major pentatonic, 112 bpm, a soft flute-like lead (triangle),
+// plucked bass on the beats, a shaker and a little bell at the start of each bar. No battle drums.
+const WDM_LEAD = [72, 0, 76, 79, 81, 0, 79, 76, 74, 0, 76, 0, 72, 0, 0, 0, 76, 0, 79, 81, 84, 0, 81, 79, 81, 0, 79, 0, 76, 0, 0, 0,
+  79, 0, 81, 84, 86, 0, 84, 81, 79, 0, 76, 0, 74, 0, 76, 79, 81, 79, 76, 74, 72, 0, 74, 76, 72, 0, 0, 0, 0, 0, 0, 0];
+const WDM_BASS = [48, 55, 48, 55, 53, 60, 53, 60, 48, 55, 48, 55, 43, 50, 43, 50, 45, 52, 45, 52, 53, 60, 53, 60, 43, 50, 43, 50, 48, 55, 48, 48];
+function wdSched() {
+  const c = CCM.ctx, e = 60 / 112 / 2;
+  while (CCM.next < c.currentTime + 0.15) {
+    const i = CCM.step % WDM_LEAD.length, t = CCM.next, m = WDM_LEAD[i];
+    if (m) { let n = 1; while (WDM_LEAD[(i + n) % WDM_LEAD.length] === 0 && n < 4) n++; ccTone(t, m, e * n * 0.98, "triangle", 0.11); ccTone(t, m + 12, e * 0.6, "sine", 0.018); }
+    if (i % 2 === 0) ccTone(t, WDM_BASS[(i / 2) % WDM_BASS.length], e * 1.4, "square", 0.028);
+    if (i % 8 === 0) ccTone(t, 96, 0.5, "sine", 0.03);              // bell
+    ccNoise(t, i % 2 ? 0.025 : 0.04, i % 2 ? 0.02 : 0.035, 8000);    // shaker
+    CCM.next += e; CCM.step++;
+  }
+}
 function ccSched() {
+  if (CCM.tune === "world") return wdSched();
   const c = CCM.ctx, e = 60 / 140 / 2; // one eighth note
   while (CCM.next < c.currentTime + 0.15) {
     const i = CCM.step % CCM_LEAD.length, t = CCM.next, m = CCM_LEAD[i];
@@ -6151,6 +6168,7 @@ function ccSched() {
 function ccMusicStart() {
   if (!CCM.on() || CCM.timer) return;
   const c = ccAudio(); if (!c) return;
+  CCM.tune = /^#\/learn\/arcade\/world/.test(location.hash) ? "world" : "battle";
   CCM.next = c.currentTime + 0.06; CCM.step = 0; CCM.timer = setInterval(ccSched, 25);
 }
 function ccMusicStop() { clearInterval(CCM.timer); CCM.timer = null; }
@@ -6255,7 +6273,7 @@ const wdState = () => (state.wd ??= { data: null, map: null, loading: false, b: 
 async function wdLoad() {
   const S = wdState(); if (S.data || S.loading) return; S.loading = true;
   try {
-    const [d, m] = await Promise.all([import("./countries-zh.js?v=171"), import("./worldmap.js?v=171")]);
+    const [d, m] = await Promise.all([import("./countries-zh.js?v=172"), import("./worldmap.js?v=172")]);
     S.data = d.WORLD_ZH.map((r) => ({ c: r[0], en: r[1], cont: r[2], twT: r[3], twS: r[4], twPy: r[5], cnS: r[6], cnT: r[7], cnPy: r[8], x: r[9], y: r[10], onMap: !!r[11] }));
     S.map = m.WORLD.filter((w) => w[0]);
     S.zoom = new Map(S.map.map((w) => [w[0], w[2]]));
@@ -6587,7 +6605,7 @@ async function wsMake(mode, win) {
   W.busy = true; wsCount(); toast(`Making your ${list.length === 1 ? "sheet" : `${list.length} sheets`}…`);
   try {
     await wsInfo(list); try { await document.fonts.ready; } catch {}
-    const { jsPDF } = await import("./vendor/pdf.js?v=171");
+    const { jsPDF } = await import("./vendor/pdf.js?v=172");
     const pdf = new jsPDF({ unit: "mm", format: "a4", compress: true });
     const cv = document.createElement("canvas"); cv.width = WS_A4.w; cv.height = WS_A4.h; const ctx = cv.getContext("2d");
     for (let i = 0; i < list.length; i++) {
