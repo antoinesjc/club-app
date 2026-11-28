@@ -1,11 +1,13 @@
 // Plans and bootcamps (28 Nov 2026). Called by the app with the user's login (checked here; verify_jwt off for CORS).
 //   { action: "portal" }                     -> { url } Stripe customer portal (change plan, card, cancel), back to Me
+//   { action: "links" }                      -> { self, clubMonthly, clubYearly } payment link addresses (plans screen)
 //   { action: "bootcamp", url }              -> { client_secret, publishable_key } (embedded) or { url }
 //                                               regular price from the website feed (early bird until earlyEnds)
 //                                               Self-Study and trial users only (Club members ask a host, Club price)
 //   { action: "bootcamp-verify", session_id? } -> { paid: [bootcamp urls] }; a paid one becomes a bootcamp_requests row
 //                                               ("Paid US$x in the app"), emailed to the team by bootcamp-notify
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { links as linkIds } from "../_shared/stripe.ts";
 
 const APP_URL = "https://app.mandarinzest.com";
 const FEED = "https://antoinesjc.github.io/Mandarin-Zest-Class-Calendar/bootcamps.json";
@@ -32,6 +34,24 @@ const ymd = (d = new Date()) => d.toISOString().slice(0, 10);
 // "US$139" -> 13900 cents
 const cents = (s: unknown) => { const m = /([\d.,]+)/.exec(String(s ?? "")); return m ? Math.round(parseFloat(m[1].replace(/,/g, "")) * 100) : 0; };
 
+// The three plans' payment links with their price, straight from Stripe (kept for the life of the function instance).
+let PLANS: Obj | null = null;
+async function planLinks() {
+  if (PLANS) return PLANS;
+  const L = await linkIds();
+  const ids: Record<string, string | undefined> = { self: L.ids.self, clubMonthly: "plink_1USwvpFSITwJ0tdSclfdQxwj", clubYearly: L.ids.clubYearly };
+  const out: Obj = {};
+  for (const [k, id] of Object.entries(ids)) {
+    if (!id) { out[k] = null; continue; }
+    const pl = await stripe("GET", `payment_links/${id}`);
+    const items = await stripe("GET", `payment_links/${id}/line_items`, { limit: "1" });
+    const pr = items.data?.[0]?.price ?? {};
+    out[k] = { url: pl.url, amount: pr.unit_amount ?? null, currency: pr.currency ?? "usd", interval: pr.recurring?.interval ?? null };
+  }
+  PLANS = out;
+  return out;
+}
+
 async function markPaid(s: Obj): Promise<string | null> {
   const user = s.metadata?.user_id, camp = s.metadata?.bootcamp;
   if (!user || !camp || s.payment_status !== "paid") return null;
@@ -55,6 +75,8 @@ Deno.serve(async (req) => {
     const { data: role } = await admin.rpc("access_role", { p_email: email });
     const body = await req.json().catch(() => ({}));
 
+    if (body.action === "links") return json(await planLinks());
+
     if (body.action === "portal") {
       // Expired trials and lapsed members can't change a plan here; they buy one from the plans screen.
       const { data: rows } = await admin.from("members_stripe").select("customer_id, active, tier").eq("email", email);
@@ -64,7 +86,7 @@ Deno.serve(async (req) => {
         customer = found.data?.[0]?.id ?? null;
       }
       if (!customer) return json({ error: "no_subscription" }, 404);
-      const s = await stripe("POST", "billing_portal/sessions", { customer, return_url: `${APP_URL}/#/me?plan=1` });
+      const s = await stripe("POST", "billing_portal/sessions", { customer, return_url: `${APP_URL}/#/me` });
       return json({ url: s.url });
     }
 
@@ -84,7 +106,7 @@ Deno.serve(async (req) => {
       if (done) return json({ paid: true });
       const { data: pk } = await admin.rpc("app_secret", { p_name: "stripe_publishable" });
       const embedded = !!pk && body.embedded !== false;
-      const back = `${APP_URL}/#/bootcamps?paid={CHECKOUT_SESSION_ID}`;
+      const back = `${APP_URL}/#/bootcamps/paid/{CHECKOUT_SESSION_ID}`;
       const s = await stripe("POST", "checkout/sessions", {
         mode: "payment",
         "line_items[0][quantity]": "1",

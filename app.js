@@ -1,12 +1,12 @@
-import { createClient } from "./vendor/supabase.js?v=162";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=162";
-import { COUNTRIES } from "./countries.js?v=162";
-import { toZhuyin } from "./zhuyin.js?v=162";
-import { ORACLE, ORACLE_T } from "./course-oracle.js?v=162";
+import { createClient } from "./vendor/supabase.js?v=163";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=163";
+import { COUNTRIES } from "./countries.js?v=163";
+import { toZhuyin } from "./zhuyin.js?v=163";
+import { ORACLE, ORACLE_T } from "./course-oracle.js?v=163";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=162";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=163";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -41,7 +41,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=162"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=163"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -104,6 +104,26 @@ function matchesFilter(s) {
 }
 const isHost = () => state.role === "host" || state.role === "admin";
 const isAdmin = () => state.role === "admin";
+// ---------- Plans (28 Nov 2026): Club member, Self-Study, 7-day free trial ----------
+// tier(): "club" (members, hosts, admins), "self" or "trial". Admins can preview the app as another plan
+// (Me → "View the app as", beta); that only changes what the plan screens show, not what the server allows.
+// Payment links: Self-Study and Club yearly are known; Club monthly is looked up in Stripe by the billing function.
+const PLAN_LINKS = {
+  self: "https://buy.stripe.com/fZu5kD6Wt4n32nm8C96oo0v",            // Self-Study, monthly
+  clubYearly: "https://buy.stripe.com/14A3cv6Wt4n30feg4B6oo0x",      // Club, yearly
+};
+const tier = () => {
+  const v = isAdmin() && state.viewAs;
+  if (v) return v === "member" ? "club" : v;
+  return state.role === "self" || state.role === "trial" ? state.role : "club";
+};
+const isClub = () => tier() === "club";
+// The new plan layout (no Home, Club Sessions with tabs, ...): admins (beta) and every Self-Study / trial user.
+const plansOn = () => isAdmin() || !isClub();
+const SESSION_COLS = "id, title, level, category, starts_at, ends_at, topic, about, host_name, cancelled, synced_at, skill_level, cats";
+const PROFILE_COLS = "id, display_name, fruit, bg, country, chinese_level, show_in_directory, script, created_at, updated_at, notify_reminders, notify_new, notify_notes, notify_email, timezone, bio, sticker, notify_rewards, notify_streak, phonetic, tour_seen, show_milestones";
+// Meet links and Discord names come from Club-only functions (empty for Self-Study and trial users).
+function withMeet(list) { for (const x of list) x.meet_url = state.meet?.get(x.id) || ""; return list; }
 
 // ---------- XP ----------
 const myRow = () => state.board.find((r) => r.user_id === state.user?.id);
@@ -124,7 +144,7 @@ function myStreak() {
 }
 function rankList(period) {
   const k = period === "month" ? "month" : "total";
-  return [...state.board].sort((a, b) => b[k] - a[k] || (a.name || "").localeCompare(b.name || ""));
+  return state.board.filter((r) => r.club !== false).sort((a, b) => b[k] - a[k] || (a.name || "").localeCompare(b.name || "")); // Members tab: Club members only
 }
 function myRank(period) {
   const list = rankList(period), i = list.findIndex((r) => r.user_id === state.user.id);
@@ -226,13 +246,16 @@ function greeting() {
 async function loadAll(tail = true) {
   const since = new Date(Date.now() - 35 * 864e5).toISOString();
   const [ses, ints, profs, roles] = await Promise.all([
-    sb.from("sessions").select("*").eq("cancelled", false).gte("starts_at", since).order("starts_at"),
+    sb.from("sessions").select(SESSION_COLS).eq("cancelled", false).gte("starts_at", since).order("starts_at"),
     sb.from("interests").select("session_id, user_id"),
-    sb.from("profiles").select("*"),
+    sb.from("profiles").select(PROFILE_COLS),
     sb.rpc("member_roles"),
-  ]);
+    sb.rpc("club_meet_urls"),
+    sb.rpc("club_discords"),
+  ]).then((r) => { const dc = r.pop(), mu = r.pop(); state.meet = new Map(mu.error ? [] : mu.data.map((x) => [x.id, x.meet_url])); state.discords = new Map(dc.error ? [] : dc.data.map((x) => [x.id, x.discord])); return r; });
   for (const r of [ses, ints, profs, roles]) if (r.error) throw r.error;
-  state.sessions = ses.data;
+  state.sessions = withMeet(ses.data);
+  for (const p of profs.data) p.discord = state.discords.get(p.id) || "";
 
   let stats;
   let stk, worn;
@@ -271,8 +294,8 @@ async function loadAll(tail = true) {
     ...att.data.filter((a) => a.user_id === state.user.id).map((a) => a.session_id)]);
   const missing = [...mine].filter((id) => !known.has(id));
   if (missing.length) {
-    const old = await sb.from("sessions").select("*").in("id", missing.slice(0, 300));
-    if (!old.error) state.sessions = [...old.data, ...state.sessions].sort((a, b) => a.starts_at.localeCompare(b.starts_at));
+    const old = await sb.from("sessions").select(SESSION_COLS).in("id", missing.slice(0, 300));
+    if (!old.error) state.sessions = [...withMeet(old.data), ...state.sessions].sort((a, b) => a.starts_at.localeCompare(b.starts_at));
   }
   state.interests = new Map();
   for (const i of ints.data) {
@@ -375,6 +398,9 @@ async function startSession(user) {
   const { data, error } = await sb.rpc("start_session");
   if (error) throw error;
   state.role = data?.role ?? null;
+  state.plan = data?.plan || null; state.manual = !!data?.manual;
+  state.trialEnds = data?.trial_ends || null; state.trialOver = !!data?.trial_over;
+  try { state.viewAs = state.role === "admin" ? sessionStorage.getItem("mz-viewas") || "" : ""; } catch { state.viewAs = ""; }
   if (!state.role) return render();
   const err = await all;
   if (err || !state.me) await loadAll(); // a brand-new member's profile is made by start_session: load again
@@ -486,6 +512,7 @@ const routeArg = () => decodeURIComponent((location.hash.replace(/^#\/?/, "").sp
 const hostLink = (s) => `#/host/${encodeURIComponent(s.id)}`;
 
 function nav() {
+  if (plansOn()) return plansNav();
   const r = route() === "host" ? "sessions" : route() === "member" ? "members" : route();
   const item = (id, label, icon) => `<a href="#/${id}" ${r === id ? 'aria-current="page"' : ""}>${icon}<span>${label}</span></a>`;
   return `<nav class="nav ${isBeta() ? "five" : ""}" aria-label="Main">
@@ -497,13 +524,14 @@ function nav() {
 
 function render() {
   if (!state.user) { app.innerHTML = loginView(); return; }
-  if (!state.role) { app.innerHTML = notMemberView(); return; }
+  if (!state.role) { app.innerHTML = state.trialOver ? trialOverView() : notMemberView(); return; }
   if (!state.loaded) return;
   const views = { home: homeView, sessions: mySessionsView, members: membersView, me: profileView, host: hostView, member: memberView, bootcamps: bootcampsView, unlocks: unlocksView, notes: notesView, settings: settingsView, admin: adminView, learn: learnView };
+  if (plansOn()) Object.assign(views, { home: learnView, sessions: clubSessionsView, notes: clubSessionsView, members: isClub() ? membersView : clubOnlyView, member: isClub() ? memberView : clubOnlyView, plans: plansView });
   const blocked = route() === "host" && !isHost();
-  const view = blocked ? homeView : (views[route()] || homeView);
+  const view = blocked ? views.home : (views[route()] || views.home);
   const tour = tourOn(); // the welcome tour comes first; other pop-ups wait until it's closed
-  app.innerHTML = `<div class="shell ${trad() ? "zh-trad" : ""}">${nav()}<main class="main" id="main">${view()}</main></div>${tour ? tourOverlay() : seasonalOverlay() || hongbaoOverlay()}`;
+  app.innerHTML = `<div class="shell ${trad() ? "zh-trad" : ""}">${nav()}<main class="main" id="main">${trialBanner()}${view()}</main></div>${tour ? tourOverlay() : seasonalOverlay() || hongbaoOverlay()}`;
   if (!tour && state.pushAsk && !app.querySelector(".hbover")) app.insertAdjacentHTML("beforeend", pushOverlay());
   if (state.scrollTo) { const t = document.getElementById(state.scrollTo); state.scrollTo = null; if (t) setTimeout(() => t.scrollIntoView({ block: "start", behavior: "smooth" }), 60); }
   if (state.idea?.open) app.insertAdjacentHTML("beforeend", ideaOverlay());
@@ -546,6 +574,7 @@ function whoList(s) {
 
 function inButton(s) {
   if (ended(s)) return "";
+  if (!isClub()) return `<a class="lockpill" href="#/plans" title="Live sessions are for Club members" aria-label="Club members only. See the plans">🔒</a>`;
   const on = iAmIn(s);
   return `<button type="button" class="toggle" data-act="toggle-in" data-id="${esc(s.id)}" aria-pressed="${on}"${on ? ' title="Tap to say you can\'t make it" aria-label="Going. Tap to say you can\'t make it"' : ""}>${on ? "Going ✓" : "I'm in"}</button>`;
 }
@@ -560,7 +589,7 @@ function details(s) {
   lines.push(`<div class="muted">${esc(dayName(a))} · ${fmtTime(a)}${b ? `–${fmtTime(b)}` : ""}</div>`);
   if (isHost()) lines.push(whoList(s));
   else if (going(s).size) lines.push(`<div class="row">${goingAvatars(s, 8)}<span class="small muted">${goingLine(s)}</span></div>`);
-  if (s.meet_url && !ended(s)) lines.push(`<a class="btn" href="${esc(s.meet_url)}" target="_blank" rel="noopener">${ICON.video}Join on Google Meet</a>`);
+  if (s.meet_url && !ended(s) && isClub()) lines.push(`<a class="btn" href="${esc(s.meet_url)}" target="_blank" rel="noopener">${ICON.video}Join on Google Meet</a>`);
   if (isHost() && Date.parse(s.starts_at) <= Date.now() + 30 * 60e3) lines.push(`<a class="btn ghost" href="${hostLink(s)}">Attendance &amp; notes</a>`);
   return `<div class="sdetail">${lines.join("")}</div>`;
 }
@@ -626,7 +655,7 @@ function featuredCard(s) {
     ${hostRow(s)}
     <div class="row">${goingAvatars(s)}<div class="small muted">${goingLine(s)}</div></div>
     <div class="row" style="flex-wrap:wrap;gap:8px">
-      ${s.meet_url ? `<a class="btn grow" href="${esc(s.meet_url)}" target="_blank" rel="noopener">${ICON.video}Join on Google Meet</a>` : ""}
+      ${s.meet_url && isClub() ? `<a class="btn grow" href="${esc(s.meet_url)}" target="_blank" rel="noopener">${ICON.video}Join on Google Meet</a>` : ""}
       ${iAmIn(s) ? (ended(s) ? "" : `<button type="button" class="btn ghost" data-act="toggle-in" data-id="${esc(s.id)}">Can't make it</button>`) : inButton(s)}
     </div>
     ${isHost() ? whoList(s) : ""}
@@ -661,6 +690,192 @@ function xpCard() {
       ${rank && myRow()?.month > 0 ? `<span class="pill">#${rank} this month</span>` : ""}
     </div>
   </a>`;
+}
+
+// ---------------------------------------------------------------------------
+// Plans (28 Nov 2026, admin beta + every Self-Study / trial user): Club member, Self-Study, 7-day free trial
+// ---------------------------------------------------------------------------
+const planChip = (t = tier()) => t === "club" ? `<span class="planchip club">★ Club member</span>`
+  : t === "self" ? `<span class="planchip self">📚 Self-Study</span>` : `<span class="planchip trial">🌱 Free trial</span>`;
+function trialDaysLeft() {
+  const end = state.viewAs === "trial" ? Date.now() + 4.5 * 864e5 : Date.parse(state.trialEnds || "");
+  return Number.isFinite(end) ? Math.max(0, Math.ceil((end - Date.now()) / 864e5)) : 0;
+}
+function trialBanner() {
+  if (tier() !== "trial") return "";
+  const n = trialDaysLeft();
+  return `<a class="trialbar" href="#/plans"><span aria-hidden="true">🌱</span><span class="grow"><b>Free trial</b> · ${n ? `${n} day${n === 1 ? "" : "s"} left` : "ends today"}</span><span class="trialgo">See plans ›</span></a>`;
+}
+async function billingCall(body) {
+  const { data: { session } } = await sb.auth.getSession();
+  return fetch(`${SUPABASE_URL}/functions/v1/billing`, {
+    method: "POST", headers: { Authorization: `Bearer ${session?.access_token}`, apikey: SUPABASE_KEY, "Content-Type": "application/json" }, body: JSON.stringify(body),
+  }).then((r) => r.json()).catch(() => ({ error: "No connection. Check your internet and try again." }));
+}
+// The plans' payment links and prices, read from Stripe by the billing function.
+async function loadPlans() {
+  if (state.plans || state.plansLoading) return;
+  state.plansLoading = true;
+  const r = await billingCall({ action: "links" });
+  state.plansLoading = false;
+  state.plans = r && !r.error ? r : "error";
+  render();
+}
+const planPrice = (k) => { const p = state.plans?.[k]; return p?.amount ? `${money(p.amount, p.currency)}<span>/${p.interval === "year" ? "year" : "month"}</span>` : ""; };
+const planUrl = (k) => { const u = state.plans?.[k]?.url || PLAN_LINKS[k]; return u ? `${u}?prefilled_email=${encodeURIComponent(state.user?.email || "")}` : CLUB_PAGE; };
+async function openPortal(btn) {
+  if (btn) { btn.disabled = true; btn.textContent = "Opening…"; }
+  const r = await billingCall({ action: "portal" });
+  if (r.url) { location.href = r.url; return; }
+  if (btn) { btn.disabled = false; btn.textContent = "Change plan"; }
+  toast(r.error === "no_subscription" ? "We couldn't find a Stripe subscription for your email. Write to us and we'll help." : r.error || "Couldn't open your plan settings. Please try again.");
+}
+
+function plansNav() {
+  const r = { home: "learn", notes: "sessions", host: "sessions", member: "members", plans: "me" }[route()] || route();
+  const club = isClub();
+  const item = (id, label, icon, cls = "") => `<a href="#/${id}"${cls ? ` class="${cls}"` : ""} ${r === id ? 'aria-current="page"' : ""}>${icon}<span>${label}</span></a>`;
+  return `<nav class="nav ${club ? "five" : ""}" aria-label="Main">
+    <div class="brand"><img src="icons/logo.png" alt=""><span>MANDARIN ZEST CLUB</span></div>
+    ${item("learn", "Zest Town", ICON.tree)}${item("sessions", "Club Sessions", ICON.cal)}${club ? item("members", "Members", ICON.people) : ""}${item("bootcamps", "Bootcamps", ICON.seedling)}${item("me", "Me", ICON.me)}${item("settings", "Settings", ICON.gear, "deskonly")}${isAdmin() ? item("admin", "Admin", ICON.shield, "deskonly") : ""}
+    ${club ? `<a class="navchat" href="${DISCORD_CHAT}" target="_blank" rel="noopener">${ICON.chat}<span>Chat on Discord</span></a>` : ""}
+  </nav>`;
+}
+
+// Club Sessions: All sessions / My sessions / My notes (the old Home list, My sessions and My notes in one place).
+function clubSessionsView() {
+  const tab = route() === "notes" ? "notes" : (state.csTab || "all");
+  const head = `<header><div class="eyebrow">Mandarin Zest Club</div><h1>Club Sessions <span class="zhsub">${trad() ? "課程" : "课程"}</span></h1></header>`;
+  const f = featured(), filtered = !!(state.lvFilter || state.catFilters.length);
+  const all = () => `${featuredCard(f)}${sessionsList(filtered, upcoming().filter((s) => s !== f && matchesFilter(s)).slice(0, 14))}`;
+  if (!isClub()) return `${head}
+    <a class="lockcard" href="#/plans"><span class="lockstar" aria-hidden="true">★</span><span class="grow"><b>Live sessions are for Club members</b><br><span class="small muted">Join the Club to take part, get your host's notes after each session and chat with everyone on Discord.</span></span></a>
+    <a class="btn block" href="#/plans">Become a Club member</a>
+    ${all()}`;
+  const tabs = `<div class="seg cstabs" role="group" aria-label="Show">${[["all", "All sessions"], ["my", "My sessions"], ["notes", "My notes"]]
+    .map(([k, l]) => `<button type="button" data-pl="cs-tab" data-v="${k}" aria-pressed="${tab === k}">${l}</button>`).join("")}</div>`;
+  return `${head}${tabs}${tab === "all" ? all() : tab === "my" ? mySessionsView() : notesView()}`;
+}
+// Members (and member profiles) for Self-Study and trial users: the Club's community, behind the Club.
+function clubOnlyView() {
+  return `<header><div class="eyebrow">Mandarin Zest Club</div><h1>Members</h1></header>
+    <a class="lockcard" href="#/plans"><span class="lockstar" aria-hidden="true">★</span><span class="grow"><b>The members' directory is for Club members</b><br><span class="small muted">Meet the others in Zest Town: the Magical Forest and the Post Office are open to everyone.</span></span></a>
+    <a class="btn block" href="#/plans">See the plans</a>`;
+}
+
+// The plans: in the app (#/plans) and on the "free trial is over" screen.
+function planCards(where) {
+  if (!state.plans) loadPlans();
+  const t = where === "over" ? "over" : tier(), sub = t === "self" || (t === "club" && state.plan?.stripe);
+  const btn = (k, label, cls = "") => sub
+    ? `<button type="button" class="btn block ${cls}" data-pl="portal">${t === "club" ? "Change plan" : "Upgrade in your plan settings"}</button>`
+    : `<a class="btn block ${cls}" href="${esc(planUrl(k))}" target="_blank" rel="noopener">${label}</a>`;
+  const self = `<div class="plancard self ${t === "self" ? "mine" : ""}">
+      <div class="row between" style="align-items:baseline;gap:8px"><b class="planname">📚 Self-Study</b><span class="planprice">${planPrice("self") || "Monthly"}</span></div>
+      <ul class="planlist"><li>All of Zest Town, no limits: flashcards, the HSK Temple, the Calligraphy School and writing sheets</li><li>The Library: every book to buy (${money(SELF_BOOK_CENTS, "usd")} each), the Arcade, courses</li><li>The Magical Forest and the Post Office: write to learners all over the world</li><li>Bootcamps at the regular price</li></ul>
+      ${t === "self" ? `<div class="planmine">✓ Your plan</div>` : t === "club" ? "" : btn("self", "Start Self-Study", "ghost")}</div>`;
+  const club = `<div class="plancard club ${t === "club" ? "mine" : ""}">
+      <div class="row between" style="align-items:baseline;gap:8px"><b class="planname">★ Club member</b><span class="planprice">${planPrice("clubMonthly") || "Monthly or yearly"}</span></div>
+      ${state.plans?.clubYearly?.amount ? `<div class="small" style="margin-top:-4px">or ${planPrice("clubYearly")}</div>` : ""}
+      <ul class="planlist"><li><b>Everything in Self-Study</b></li><li><b>Live sessions with our hosts</b>, and their notes after each session</li><li>The Members directory, the notice board and the Club Discord</li><li>Hongbaos, session XP and streaks</li><li>Club prices on bootcamps, books at the Club price + one book free</li></ul>
+      ${t === "club" ? `<div class="planmine">✓ Your plan</div>` : t === "self" ? btn("", "") : `<div class="row" style="gap:8px">${btn("clubMonthly", "Join monthly")}${state.plans?.clubYearly ? btn("clubYearly", "Join yearly", "ghost") : ""}</div>`}</div>`;
+  const note = state.plans === "error" ? `<p class="small muted" style="margin:0">Couldn't load the prices right now. <a href="${CLUB_PAGE}" target="_blank" rel="noopener">See them on the website ↗</a></p>` : "";
+  const after = sub ? `<p class="small muted" style="margin:0">Changes go through Stripe: moving up starts right away (you only pay the difference), moving down or stopping takes effect at the end of the period you paid for.</p>`
+    : `<p class="small muted" style="margin:0">Pay with <b>${esc(state.user?.email || "the email you log in with")}</b> so the app finds your plan. Afterwards, come back here and tap “I've paid”.</p>`;
+  return `<div class="plangrid">${self}${club}</div>${note}${after}`;
+}
+function plansView() {
+  if (state.viewAs === "over") return `<header><div class="eyebrow">Preview · what an ended trial sees</div></header>${trialOverBody()}`;
+  const t = tier();
+  return `<header><a class="ztback" href="#/me">‹ Me</a><div class="eyebrow">Mandarin Zest Club</div><h1>Plans <span class="zhsub">${trad() ? "方案" : "方案"}</span></h1>
+    <p class="muted" style="margin:6px 0 0;line-height:1.5">${t === "trial" ? `You're on the <b>free trial</b> of Self-Study (${trialDaysLeft()} day${trialDaysLeft() === 1 ? "" : "s"} left). Pick a plan to keep going.` : t === "self" ? "You're on <b>Self-Study</b>. Join the Club for live sessions with our hosts." : "You're a <b>Club member</b>. Thank you for being part of it!"}</p></header>
+    ${planCards()}${t === "trial" ? `<button type="button" class="btn ghost block" data-act="retry">I've paid · check again</button>` : ""}`;
+}
+function trialOverBody() {
+  return `<div class="hero" style="text-align:center">
+      <img class="mascot" src="icons/mascot.svg" alt="Mandarin Zest mascot" width="150" height="150">
+      <h1>Your free trial is over</h1>
+      <p class="muted">Thanks for trying Mandarin Zest! Your flashcards, streak and progress are saved. Pick a plan to pick up right where you left off.</p>
+    </div>${planCards("over")}`;
+}
+function trialOverView() {
+  return `<main class="login" style="max-width:720px">${trialOverBody()}
+    <button class="btn ghost block" data-act="retry">I've paid · check again</button>
+    <button class="linkbtn" data-act="logout">Log out</button></main>`;
+}
+
+// Me → "My plan" (Change plan opens Stripe's customer portal, set up by Antoine: up now, down at the period end).
+function myPlanCard() {
+  const t = tier();
+  if (t === "club" && (isHost() && !state.viewAs)) return "";
+  const P = state.viewAs ? { tier: t, plan: "monthly", stripe: true, until: new Date(Date.now() + 18 * 864e5).toISOString() } : state.plan;
+  const date = (d) => new Date(d).toLocaleDateString([], { day: "numeric", month: "long", year: "numeric" });
+  let line, act = "";
+  if (t === "trial") { const n = trialDaysLeft(); line = `${n ? `${n} day${n === 1 ? "" : "s"} left` : "Ends today"} · free, no card needed`; act = `<a class="btn" href="#/plans">See plans</a>`; }
+  else if (state.manual && !state.viewAs) line = "Your membership is managed by the Mandarin Zest team. Questions? Write to us.";
+  else if (P?.stripe) { line = `${P.plan === "yearly" ? "Yearly" : "Monthly"}${P.until ? ` · paid until ${date(P.until)}` : ""}`; act = `<button type="button" class="btn ghost" data-pl="portal">Change plan</button>${t === "self" ? `<a class="btn" href="#/plans">See what the Club adds</a>` : ""}`; }
+  else line = P?.until ? `Paid until ${date(P.until)}` : "Thank you for being part of the Club!";
+  return `<section class="card myplan"><div class="row between" style="align-items:center;gap:10px;flex-wrap:wrap"><h2 style="margin:0">My plan</h2>${planChip(t)}</div>
+    <p class="small muted" style="margin:0">${line}</p>${act ? `<div class="row" style="gap:8px;flex-wrap:wrap">${act}</div>` : ""}</section>`;
+}
+// Admins only (beta): see the app as each plan sees it. Server rules don't change, so a few things may still work.
+function viewAsCard() {
+  if (!isAdmin()) return "";
+  const v = state.viewAs || "";
+  const opts = [["", "Admin"], ["member", "Club member"], ["self", "Self-Study"], ["trial", "Free trial"], ["over", "Trial over"]];
+  return `<section class="card viewas"><b>View the app as <span class="ltag">Beta</span></b>
+    <div class="catfilter" role="group" aria-label="View the app as">${opts.map(([k, l]) => `<button type="button" data-pl="viewas" data-v="${k}" aria-pressed="${v === k}">${l}</button>`).join("")}</div>
+    <span class="tiny muted">Only changes what you see on this device until you close the app. Your admin access stays.</span></section>`;
+}
+
+// The fruit card in the Magical Forest (plans layout): flag + sticker, name, Club badge, streak, level, bio, hongbao.
+function fruitCard(m) {
+  const prof = state.profiles.get(m.user_id) || {}, me = m.user_id === state.user.id;
+  const p = { ...prof, id: m.user_id, fruit: m.fruit, bg: m.bg, country: m.country, sticker: state.worn?.get(m.user_id) || prof.sticker };
+  const b = state.board.find((x) => x.user_id === m.user_id), st = ztStage(m.streak), pr = b ? progress(b.total) : null;
+  const club = me ? state.role === "member" && isClub() : m.club;
+  const msg = state.lu.forest.msgs?.get(m.user_id), first = (m.name || "them").split(" ")[0];
+  return `<div class="card ztmcard fruitcard">
+    <button type="button" class="ztx" data-zt="mem" data-id="" aria-label="Close">×</button>
+    <div class="row" style="gap:14px;align-items:center">${avatar(p, 80)}
+      <div class="grow" style="min-width:0"><div style="font-size:21px;font-weight:800">${esc(m.name || "Member")}${me ? " (you)" : ""}</div>
+        ${club ? `<div style="margin:4px 0">${planChip("club")}</div>` : ""}
+        <div class="small"><span class="ztleafn">${ZT_LEAF}</span> Streak tree · <b>day ${m.streak}</b> <span class="muted">(${esc(stageName(st))})</span></div></div></div>
+    ${pr ? `<div><div class="row between small"><b>Level ${pr.level}</b><span class="muted">${b.total.toLocaleString()} XP</span></div><div class="xpbar"><span style="width:${Math.max(3, pr.pct)}%"></span></div></div>` : ""}
+    ${prof.bio ? `<div class="fruitbio lzh">${esc(prof.bio)}</div>` : ""}
+    ${msg ? `<div class="ztmcardmsg"><span class="ztmq lzh">${esc(msg.body)}</span><span class="tiny muted">${esc(ago(msg.updated_at))}${isAdmin() && !me ? ` · <button type="button" class="linkbtn" data-zt="msgdel" data-id="${m.user_id}">Remove message</button>` : ""}</span></div>` : ""}
+    ${me ? "" : hongbaoGiveBlock(m.user_id) || (club && isClub() ? "" : `<a class="btn ghost" href="#/learn/post/write?to=${m.user_id}">✉️ Write ${esc(first)} a letter</a>`)}
+  </div>`;
+}
+
+document.addEventListener("click", (e) => {
+  const el = e.target.closest("[data-pl]"); if (!el) return;
+  const a = el.dataset.pl, v = el.dataset.v;
+  if (a === "cs-tab") { state.csTab = v; if (route() !== "sessions") location.hash = "#/sessions"; else render(); }
+  else if (a === "portal") openPortal(el);
+  else if (a === "viewas") { state.viewAs = v; try { sessionStorage.setItem("mz-viewas", v); } catch { /* fine */ } if (v === "over") location.hash = "#/plans"; render(); }
+  else if (a === "boot-buy") bootBuy(el);
+  else if (a === "cust-cancel") { state.draft = null; render(); }
+});
+
+// Bootcamps at the regular price for Self-Study and trial users (Stripe Checkout through the billing function).
+async function bootBuy(el) {
+  el.disabled = true; el.textContent = "Opening…";
+  const r = await billingCall({ action: "bootcamp", url: el.dataset.k, embedded: false });
+  if (r.url) { location.href = r.url; return; }
+  if (r.paid) { await bootVerify(); return; }
+  el.disabled = false; el.textContent = "Buy now";
+  toast(r.error || "Couldn't open the checkout. Please try again.");
+}
+async function bootVerify(sessionId) {
+  if (state.bootVerifying) return;
+  state.bootVerifying = true;
+  const r = await billingCall({ action: "bootcamp-verify", session_id: sessionId });
+  state.bootVerifying = false;
+  const before = state.bootPaid?.size || 0;
+  state.bootPaid = new Set(r.paid || []);
+  if (sessionId) { toast(state.bootPaid.size > before ? "🎉 You're in! The team will email you the details soon." : "Payment received? It can take a minute. Your spot shows here as soon as Stripe confirms."); location.hash = "#/bootcamps"; }
+  render();
 }
 
 // ---------- Bootcamps (from the website feed) ----------
@@ -778,24 +993,36 @@ function bootCard(b, st) {
       <h2>${esc(b.title)}</h2>
       ${b.summary ? `<p class="muted" style="margin:0;line-height:1.5;font-size:14.5px">${esc(b.summary)}</p>` : ""}
       <div class="bootfacts">${facts.map(([k, v]) => `<div><span>${esc(k)}</span>${esc(v)}</div>`).join("")}</div>
-      ${b.club ? `<div class="bootprice"><div class="grow"><span>Your Club price</span><b>${esc(b.club)}</b></div>
+      ${!isClub() ? bootBuyBlock(b, st, today) : b.club ? `<div class="bootprice"><div class="grow"><span>Your Club price</span><b>${esc(b.club)}</b></div>
         <div class="small" style="text-align:right;line-height:1.5">${b.price ? `Standard <s>${esc(b.price)}</s>` : ""}${early ? `<br>${early}` : ""}</div></div>`
         : `<div class="bootprice pending small">Club price announced soon.</div>`}
       ${rewardBlock(b)}
-      ${bootRequest(b, st)}
+      ${isClub() ? bootRequest(b, st) : ""}
     </div>
   </article>`;
 }
 
+// Self-Study and trial: the regular price (early bird until its date), "Buy now", and the Club price next to it.
+function bootBuyBlock(b, st, today) {
+  const early = b.early && b.earlyEnds && today <= b.earlyEnds, now = early ? b.early : b.price, k = esc(bootKey(b));
+  const more = b.url ? `<a class="btn ghost" href="${esc(b.url)}" target="_blank" rel="noopener">More info ↗</a>` : "";
+  if (state.bootPaid?.has(bootKey(b))) return `<div class="bootreq done" role="status"><b>You're in! ✓</b> The team will email you the details soon.</div>${more ? `<div class="row">${more}</div>` : ""}`;
+  if (!now) return `<div class="bootprice pending small">Price announced soon.</div>${more ? `<div class="row">${more}</div>` : ""}`;
+  return `<div class="bootprice"><div class="grow"><span>${early ? `Early bird until ${esc(new Date(b.earlyEnds + "T12:00:00").toLocaleDateString([], { day: "numeric", month: "short" }))}` : "Price"}</span><b>${esc(now)}</b></div>
+      <div class="small" style="text-align:right;line-height:1.5">${early && b.price ? `<s>${esc(b.price)}</s>` : ""}</div></div>
+    <div class="row" style="gap:10px;flex-wrap:wrap">${st.open ? `<button type="button" class="btn green grow" data-pl="boot-buy" data-k="${k}">Buy now</button>` : `<span class="small muted grow">${esc(st.label)}</span>`}${more}</div>
+    ${b.club ? `<a class="lockcard slim" href="#/plans"><span class="lockstar" aria-hidden="true">★</span><span class="grow small"><b>Club members pay ${esc(b.club)}.</b> <u>See the plans</u></span></a>` : ""}`;
+}
 function bootcampsView() {
   if (state.bootcamps === null) loadBootcamps();
+  if (!isClub()) { const paid = routeArg().match(/^paid\/(cs_[A-Za-z0-9_]+)/); if (paid && !state.bootVerified) { state.bootVerified = true; bootVerify(paid[1]); } else if (!state.bootPaid && !state.bootVerifying) bootVerify(); }
   const list = Array.isArray(state.bootcamps)
     ? state.bootcamps.map((b) => ({ b, st: bootStatus(b) })).filter((x) => x.st).sort((x, y) => bootSortKey(x.b).localeCompare(bootSortKey(y.b)))
     : [];
   return `
-  <a class="ztback mobonly" href="#/home">‹ Home</a>
+  ${plansOn() ? "" : `<a class="ztback mobonly" href="#/home">‹ Home</a>`}
   <header><div class="eyebrow">Mandarin Zest Club</div><h1>Bootcamps</h1>
-    <p class="muted" style="margin:6px 0 0;line-height:1.5;max-width:640px">Short, intensive courses run by our teachers. As a Club member you pay the Club price. To join, tap “Request to join” and a host will email you to sign you up.</p></header>
+    <p class="muted" style="margin:6px 0 0;line-height:1.5;max-width:640px">${isClub() ? "Short, intensive courses run by our teachers. As a Club member you pay the Club price. To join, tap “Request to join” and a host will email you to sign you up." : "Short, intensive courses run by our teachers. Buy your spot here and the team emails you the details. Club members pay the Club price."}</p></header>
   ${state.bootcamps === null ? `<p class="muted small">Loading bootcamps…</p>`
     : state.bootcamps === "error" ? `<div class="card"><p class="small" style="margin:0">Couldn't load the bootcamps right now. <a href="${BOOTCAMPS_PAGE}" target="_blank" rel="noopener">See them on the website ↗</a></p></div>`
     : list.length ? `<div class="bootgrid">${list.map(({ b, st }) => bootCard(b, st)).join("")}</div>`
@@ -904,6 +1131,11 @@ function homeView() {
   ${featuredCard(f)}
   <a class="bootsquare" href="#/bootcamps">${ICON.seedling}<span class="grow"><b>Explore our bootcamps</b><br><span class="small">Short, intensive courses at the Club price</span></span><span aria-hidden="true" style="font-size:22px">›</span></a>
   ${installHint()}
+  ${sessionsList(filtered, rest)}`;
+}
+// The "Coming up" list with its filters (Home, and the "All sessions" tab of Club Sessions).
+function sessionsList(filtered, rest) {
+  return `
   <div class="row between" style="align-items:center;flex-wrap:wrap;gap:8px">
     <h2>${state.view === "cal" ? "Calendar" : "Coming up"}</h2>
     <div class="row" style="gap:10px">
@@ -1019,11 +1251,11 @@ async function loadNoteSessions() {
   const missing = want.filter((id) => !have.has(id));
   state.extraSessions = [];
   for (let i = 0; i < missing.length; i += 100) {
-    const { data } = await sb.from("sessions").select("*").in("id", missing.slice(i, i + 100));
+    const { data } = await sb.from("sessions").select(SESSION_COLS).in("id", missing.slice(i, i + 100));
     if (data) state.extraSessions.push(...data);
   }
   state.notesLoading = false; state.notesLoaded = true;
-  if (route() === "notes") render();
+  if (route() === "notes" || route() === "sessions") render();
 }
 function noteSearchText(s) {
   const n = state.notes.get(s.id);
@@ -1032,7 +1264,8 @@ function noteSearchText(s) {
     .join(" ").toLowerCase();
 }
 function notesView() {
-  if (!state.notesLoaded) { loadNoteSessions(); return `<header><div class="eyebrow">Mandarin Zest Club</div><h1>My notes</h1></header><p class="muted small">Loading your sessions…</p>`; }
+  const head = (t) => plansOn() ? (t ? `<p class="muted" style="margin:0">${t}</p>` : "") : `<header><div class="eyebrow">Mandarin Zest Club</div><h1>My notes</h1>${t ? `<p class="muted" style="margin:6px 0 0">${t}</p>` : ""}</header>`;
+  if (!state.notesLoaded) { loadNoteSessions(); return `${head("")}<p class="muted small">Loading your sessions…</p>`; }
   const all = [...state.sessions, ...(state.extraSessions || [])];
   const seen = new Set();
   const list = all.filter((s) => !seen.has(s.id) && seen.add(s.id))
@@ -1054,8 +1287,7 @@ function notesView() {
     </article>`;
   };
   return `
-  <header><div class="eyebrow">Mandarin Zest Club</div><h1>My notes</h1>
-    <p class="muted" style="margin:6px 0 0">${isHost() ? "Every session with notes, most recent first." : "Every session you attended, most recent first."} ${withNotes} with notes.</p></header>
+  ${head(`${isHost() ? "Every session with notes, most recent first." : "Every session you attended, most recent first."} ${withNotes} with notes.`)}
   ${list.length ? `<label class="field" style="max-width:520px">Search your notes
       <input class="input" type="search" id="notesearch" placeholder="A word, a character, a session…" autocomplete="off"></label>
     <div class="notelist" id="notelist">${list.map(item).join("")}</div>
@@ -1105,7 +1337,7 @@ function mySessionsView() {
       <span class="toggle" style="display:inline-flex;align-items:center">Open</span></div></a>`;
   };
   return `
-  <header><div class="eyebrow">Mandarin Zest Club</div><h1>My sessions</h1></header>
+  ${plansOn() ? "" : `<header><div class="eyebrow">Mandarin Zest Club</div><h1>My sessions</h1></header>`}
   ${isHost() ? `<div class="row between" style="align-items:baseline;flex-wrap:wrap;gap:8px"><h2>Hosting: attendance &amp; notes</h2>
     ${isAdmin() ? `<div class="seg" role="group" aria-label="Sessions shown" style="max-width:260px">
       <button type="button" data-act="host-all" data-v="" aria-pressed="${!showAll}">Mine</button>
@@ -1290,7 +1522,7 @@ function leaderboard() {
 }
 
 function directory() {
-  const all = [...state.profiles.values()].filter((p) => state.roles.has(p.id));
+  const all = [...state.profiles.values()].filter((p) => ["member", "host", "admin"].includes(state.roles.get(p.id))); // Club only (not Self-Study or trial)
   const byName = (a, b) => (a.display_name || "").localeCompare(b.display_name || "");
   const hosts = all.filter((p) => ["host", "admin"].includes(state.roles.get(p.id))).sort(byName);
   const members = all.filter((p) => !["host", "admin"].includes(state.roles.get(p.id))).sort(byName);
@@ -1317,7 +1549,7 @@ const nameOf = (id) => state.profiles.get(id)?.display_name || state.board.find(
 const ENVELOPE = `<svg viewBox="0 0 64 64" aria-hidden="true"><rect x="12" y="6" width="40" height="54" rx="6" fill="#d8352a"/><path d="M12 12 a6 6 0 0 1 6 -6 h28 a6 6 0 0 1 6 6 v6 q-20 14 -40 0z" fill="#b8281f"/><circle cx="32" cy="24" r="8" fill="#f2b631"/><text x="32" y="28.5" text-anchor="middle" font-family="'Noto Sans SC',sans-serif" font-size="11" font-weight="700" fill="#b8281f">福</text></svg>`;
 
 function hongbaoGiveBlock(id) {
-  if (state.role !== "member" || id === state.user.id || state.roles.get(id) !== "member") return "";
+  if (state.role !== "member" || !isClub() || id === state.user.id || state.roles.get(id) !== "member") return "";
   const given = hbThisMonth();
   const month = new Date().toLocaleDateString([], { month: "long" });
   if (given) return `<div class="hbcard done"><span class="hbenv">${ENVELOPE}</span><div class="grow">
@@ -1399,7 +1631,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=162"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=163"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -1792,6 +2024,7 @@ function galleryView() {
   return `${ztHeader(ztStreak(), `Sticker Gallery <span class='zhsub'>${trad() ? "貼紙館" : "贴纸馆"}</span>`)}
     <div class="row galhead" style="gap:12px;align-items:center"><span class="ztplaceart">${ztImg("gallery")}</span>
       <span class="grow"><b style="font-size:17px">Your sticker collection</b><br><span class="small muted">Stickers can't be bought: you earn them in bootcamps, Club life, achievements, special events and by reading.</span></span></div>
+    ${plansOn() ? `<a class="card galwear" href="#/me"><span class="ltag">New</span><span class="grow small"><b>Wear your stickers.</b> Any sticker you collect can go on your avatar (Me → Avatar customization), so people see it next to your name and in the Magical Forest.</span><b class="dgo">›</b></a>` : ""}
     <div class="galbook">${stickerBookBody()}</div>`;
 }
 function stickerBook() { // Me page: nothing while Zest Town is on (the full book only when Zest Town is off)
@@ -1863,12 +2096,13 @@ function profileView() {
   <header class="row" style="gap:16px">
     ${avatar(d, 96)}
     <div class="grow">
-      <div class="eyebrow">${state.role === "admin" ? "Admin · all fruits" : state.role === "host" ? "Host · all fruits" : `Level ${level} · ${myXp().toLocaleString()} XP`}</div>
+      <div class="eyebrow">${state.role === "admin" ? "Admin · all fruits" : state.role === "host" ? "Host · all fruits" : plansOn() ? "Mandarin Zest Club" : `Level ${level} · ${myXp().toLocaleString()} XP`}</div>
       <h1>${esc(d.display_name || "Me")}</h1>
-      <div style="font-size:15px;font-weight:700;color:var(--orange-ink);margin-top:4px">${zh(info.zh)} <span class="pron">${esc(py(info.py[idx]))}</span></div>
+      ${plansOn() && !(isHost() && !state.viewAs) ? meLevel() : `<div style="font-size:15px;font-weight:700;color:var(--orange-ink);margin-top:4px">${zh(info.zh)} <span class="pron">${esc(py(info.py[idx]))}</span></div>`}
     </div>
     <button type="button" class="ideabtn" data-act="idea-open" aria-haspopup="dialog"><span>${BULB}</span>Idea box</button>
   </header>
+  ${plansOn() ? `${myPlanCard()}${viewAsCard()}` : ""}
 
   <form class="stack" data-form="profile" style="gap:16px">
     <label class="field">Name others see
@@ -1888,7 +2122,7 @@ function profileView() {
     <details class="custom"${state.custOpen ? " open" : ""}>
     <summary><span class="custicon" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M6 14 h36 l-3 -8 h-30z" fill="#f37a48"/><path d="M6 14 q4.5 5 9 0 q4.5 5 9 0 q4.5 5 9 0 q4.5 5 9 0" fill="#fff" stroke="#f37a48" stroke-width="2"/><path d="M15 6 l-2 8 M24 6 v8 M33 6 l2 8" stroke="#fff" stroke-width="2"/><rect x="9" y="18" width="2.4" height="22" fill="#8a5a2b"/><rect x="36.6" y="18" width="2.4" height="22" fill="#8a5a2b"/><rect x="6" y="32" width="36" height="9" rx="2" fill="#c98d5a"/><circle cx="15" cy="29" r="4" fill="#f7941d"/><circle cx="23" cy="29.5" r="3.6" fill="#e5484d"/><circle cx="31" cy="29" r="4" fill="#9ccc3c"/><circle cx="19" cy="25.5" r="3.4" fill="#f5d442"/><circle cx="27.5" cy="25.5" r="3.4" fill="#f9a8a0"/><path d="M15 25 v-2 M31 25 v-2" stroke="#1b6f1b" stroke-width="1.6" stroke-linecap="round"/></svg></span><span class="grow"><b>Avatar customization</b><span class="small muted">${isHost() ? "Character or fruit" : "Fruit"}, ${stickerKeys.length ? "sticker, " : ""}background colour</span></span><span class="chev" aria-hidden="true">›</span></summary>
     <div class="custbody">
-    <a class="unlocklink" href="#/unlocks">${ICON.unlock}<span class="grow"><b>How to unlock avatars &amp; stickers</b><br><span class="small muted">Levels, bootcamps, special sessions and more</span></span><span aria-hidden="true">›</span></a>
+    ${plansOn() ? "" : `<a class="unlocklink" href="#/unlocks">${ICON.unlock}<span class="grow"><b>How to unlock avatars &amp; stickers</b><br><span class="small muted">Levels, bootcamps, special sessions and more</span></span><span aria-hidden="true">›</span></a>`}
     ${isHost() ? `<div>
       <div class="row between" style="align-items:baseline;margin-bottom:8px"><h2>Host characters</h2><span class="small muted">Only hosts can use these</span></div>
       <div class="fruits">${HOST_AVATARS.map((h) => `<button type="button" class="fruitbtn" data-act="fruit" data-key="${h.key}" aria-pressed="${h.key === d.fruit}" aria-label="${esc(h.en)} ${esc(zh(h.zh))}">
@@ -1902,7 +2136,7 @@ function profileView() {
           <span class="cap">${esc(zh(x.zh))}</span></button>` : ""; }).join("")}</div>
     </div>` : ""; })()}
     <div>
-      <div class="row between" style="align-items:baseline;margin-bottom:8px"><h2>${isHost() ? "Or a fruit" : "Your fruit"}</h2><span class="small muted">${isHost() ? "Hosts have them all" : level >= 18 ? "All unlocked!" : "Join sessions to unlock more"}</span></div>
+      <div class="row between" style="align-items:baseline;margin-bottom:8px"><h2>${isHost() ? "Or a fruit" : "Your fruit"}</h2><span class="small muted">${isHost() ? "Hosts have them all" : level >= 18 ? "All unlocked!" : isClub() ? "Join sessions to unlock more" : "Earn XP in Zest Town to unlock more"}</span></div>
       <div class="fruits">${FRUITS.map((f) => {
         const locked = f.level > level, on = f.key === d.fruit;
         return `<button type="button" class="fruitbtn" data-act="fruit" data-key="${f.key}" ${locked ? "disabled" : ""} aria-pressed="${on}" aria-label="${esc(f.en)} ${esc(zh(f.zh))}${locked ? `, unlocks at level ${f.level}` : ""}">
@@ -1926,6 +2160,7 @@ function profileView() {
       <div class="swatches">${BACKGROUNDS.map(([hex, name]) =>
         `<button type="button" class="swatch" style="background:${hex}" data-act="bg" data-hex="${hex}" aria-label="${name}" aria-pressed="${hex === d.bg}"></button>`).join("")}</div>
     </div>
+    ${plansOn() ? `<div class="row custsave" style="gap:8px"><button class="btn grow" ${changed ? "" : "disabled"}>${changed ? "Save" : "Saved"}</button>${changed ? `<button type="button" class="btn ghost" data-pl="cust-cancel">Cancel</button>` : ""}</div>` : ""}
     </div>
     </details>
 
@@ -1943,9 +2178,9 @@ function profileView() {
       </label>
     </div>
 
-    <label class="field">Discord name
+    ${isClub() ? `<label class="field">Discord name
       <input class="input" name="discord" maxlength="40" value="${esc(d.discord)}" placeholder="so members can find you" autocapitalize="off" autocomplete="off">
-    </label>
+    </label>` : ""}
 
     <div>
       <h2 style="margin-bottom:8px">Chinese characters</h2>
@@ -1964,7 +2199,7 @@ function profileView() {
       <p class="tiny muted" style="margin:6px 0 0">Pinyin <span lang="zh-Latn">nǐ hǎo</span> or zhuyin (bopomofo) <span lang="zh">ㄋㄧˇ ㄏㄠˇ</span>, shown everywhere in the app: notes, flashcards, the HSK Temple, the Library, the Calligraphy School…</p>
     </div>
 
-    ${state.role === "member" ? `<div>
+    ${state.role === "member" && isClub() ? `<div>
       <h2 style="margin-bottom:8px">Notice board</h2>
       <div class="seg" role="group" aria-label="Show my milestones on the notice board">
         <button type="button" data-act="milestones" data-v="1" aria-pressed="${d.show_milestones !== false}">Show my wins</button>
@@ -1976,16 +2211,16 @@ function profileView() {
     <button class="btn block" ${changed ? "" : "disabled"}>${changed ? "Save changes" : "Saved"}</button>
   </form>
 
-  ${hongbaoMeCard()}
+  ${isClub() ? hongbaoMeCard() : ""}
   ${stickerBook()}
-  <section class="stack" style="gap:8px" aria-label="My personal discount code">
+  ${isClub() ? `<section class="stack" style="gap:8px" aria-label="My personal discount code">
     <h2>My personal discount code</h2>
     <div class="row" style="gap:10px;flex-wrap:wrap;align-items:center">
       <button type="button" class="codechip" data-act="copy-code" aria-label="Copy discount code ${MEMBER_CODE}"><code>${MEMBER_CODE}</code><span aria-hidden="true">⧉</span></button>
       <a href="${SHOP_URL}" target="_blank" rel="noopener" style="font-weight:700;font-size:14.5px">Mandarin Zest shop ↗</a>
     </div>
     <span class="small muted">70% off all Mandarin Zest materials. Enter the code at checkout.</span>
-  </section>
+  </section>` : ""}
   <div class="mobonly" style="display:contents">${notificationsCard()}<p class="small muted privnote">Privacy: the Club team can see when you last opened the app and your Club activity (sessions, XP, stickers), only to keep the Club running well. It’s never shared.</p><p class="small muted privnote">App version ${APP_BUILD.slice(2)} · <button type="button" class="linkbtn" data-act="app-reload">Check for updates</button></p></div>
   ${installHint(true)}
   <button type="button" class="btn ghost block" data-tour-start>Take the app tour</button>
@@ -1995,10 +2230,19 @@ function profileView() {
   </div>`;
 }
 
+// Me (plans layout): level, total XP and the bar to the next fruit.
+function meLevel() {
+  const xp = myXp(), p = progress(xp), idx = trad() ? 1 : 0;
+  return `<div class="row" style="gap:6px;margin:4px 0 6px;flex-wrap:wrap">${planChip()}</div>
+    <div class="row between small"><b>Level ${p.level}</b><span class="muted">${xp.toLocaleString()} XP</span></div>
+    <div class="xpbar me" role="progressbar" aria-label="Progress to the next level" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${p.pct}"><span style="width:${Math.max(3, p.pct)}%"></span></div>
+    <div class="tiny muted" style="margin-top:3px">${p.max ? "Every fruit unlocked!" : `${p.toNext.toLocaleString()} XP to level ${p.level + 1} · ${esc(zh(p.next.zh))} <span class="pron">${esc(py(p.next.py[idx]))}</span>`}</div>`;
+}
 async function saveProfile() {
   const d = draft();
   const patch = {};
   for (const k of ["display_name", "fruit", "bg", "country", "chinese_level", "discord", "script", "phonetic", "bio", "sticker"]) patch[k] = d[k] ?? null;
+  if (!isClub()) delete patch.discord; // Discord is for Club members
   if (state.role === "member" && typeof d.show_milestones === "boolean") patch.show_milestones = d.show_milestones;
   patch.display_name = String(patch.display_name || "").trim().slice(0, 40);
   patch.discord = String(patch.discord || "").trim().replace(/^@/, "").slice(0, 40);
@@ -2011,8 +2255,9 @@ async function saveProfile() {
     const sh = await sb.rpc("session_hosts");
     if (!sh.error) state.sessionHost = new Map(sh.data.map((x) => [x.session_id, x.host_id]));
   }
-  const { data, error } = await sb.from("profiles").update(patch).eq("id", state.user.id).select().single();
+  const { data, error } = await sb.from("profiles").update(patch).eq("id", state.user.id).select(PROFILE_COLS).single();
   if (error) { toast("Couldn't save. Please try again."); return; }
+  data.discord = patch.discord ?? state.me?.discord ?? "";
   state.me = data; state.profiles.set(data.id, data); state.draft = null;
   toast("Saved");
   render();
@@ -2026,7 +2271,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=162");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=163");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2937,7 +3182,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=162").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=163").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -3096,7 +3341,7 @@ state.lu = {
   sheet: null, review: null, perDay: +(lsGet("mz-zt-new") || 10),
 };
 // Learning (Zest Town) is live for everyone; is_beta() on the server can switch it off again.
-const isBeta = () => isAdmin() || state.beta !== false;
+const isBeta = () => isAdmin() || !isClub() || state.beta !== false;
 const ztPad = (n) => String(n).padStart(2, "0");
 const dkey = (d) => `${d.getFullYear()}-${ztPad(d.getMonth() + 1)}-${ztPad(d.getDate())}`;
 const dayBack = (n) => { const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() - n); return dkey(d); };
@@ -3351,7 +3596,7 @@ function learnView() {
   if (sub === "cards") return L.review ? reviewView() : cardsView();
   if (sub === "temple") return templeView();
   if (sub === "forest") return forestView();
-  if (sub === "forest/board") return nbView();
+  if (sub === "forest/board") return isClub() ? nbView() : forestView();
   if (sub === "gallery") return galleryView();
   if (sub === "post" || sub.startsWith("post/") || sub.startsWith("post?")) {
     const [path, qs] = sub.split("?");
@@ -4233,7 +4478,7 @@ function forestWithMe(list) { // you always see yourself in the forest (hosts ar
   if (!list) return [];
   if (list.some((m) => m.user_id === state.user.id)) return list;
   const me = state.me || {}, st = ztStreak();
-  return [{ user_id: state.user.id, name: me.display_name, fruit: me.fruit, bg: me.bg, country: me.country, last_seen: new Date().toISOString(), streak: st.wilted ? 0 : st.n }, ...list];
+  return [{ user_id: state.user.id, name: me.display_name, fruit: me.fruit, bg: me.bg, country: me.country, last_seen: new Date().toISOString(), streak: st.wilted ? 0 : st.n, club: state.role === "member" && isClub() }, ...list];
 }
 const forestMember = (id) => forestWithMe(state.lu.forest.list).find((m) => m.user_id === id);
 function forestMap(list) {
@@ -4245,18 +4490,21 @@ function forestMap(list) {
     const [x, y] = forestSpot(k, m.user_id), me = m.user_id === state.user.id, f = ZT_FRUITS.has(m.fruit) ? m.fruit : "orange";
     const msg = F.msgs?.get(m.user_id), since = (Date.now() - (F.enterAt || 0)) / 1000, delay = (bub++) * 0.8 - since;
     const bubble = msg && delay > -6 ? `<span class="ztmsg" style="animation-delay:${delay.toFixed(2)}s" aria-hidden="true">${esc(msg.body)}</span>` : "";
-    return `<button type="button" class="ztmem ${F.sel === m.user_id ? "sel" : ""} ${me ? "me" : ""}" data-zt="mem" data-id="${m.user_id}" data-k="${k}" style="${at(x, y)};width:${pct(16, M.w)}" aria-label="${esc(m.name || "Member")}${msg ? `: ${esc(msg.body)}` : ""}">${bubble}${ztImg("fruit-" + f)}<span class="ztmname">${esc((m.name || "Member").split(" ")[0])}${me ? " (you)" : ""}</span></button>`;
+    const club = plansOn() && (me ? state.role === "member" && isClub() : m.club);
+    const spark = club ? `<span class="ztspark" aria-hidden="true"><i>✦</i><i>✦</i><i>✦</i><i>✦</i></span>` : "";
+    return `<button type="button" class="ztmem ${F.sel === m.user_id ? "sel" : ""} ${me ? "me" : ""} ${club ? "club" : ""}" data-zt="mem" data-id="${m.user_id}" data-k="${k}" style="${at(x, y)};width:${pct(16, M.w)}" aria-label="${esc(m.name || "Member")}${club ? ", Club member" : ""}${msg ? `: ${esc(msg.body)}` : ""}">${bubble}${spark}${ztImg("fruit-" + f)}<span class="ztmname">${esc((m.name || "Member").split(" ")[0])}${me ? " (you)" : ""}${club ? " ★" : ""}</span></button>`;
   }).join("");
   const [sx, sy] = M.sign;
   return `<div class="ztmap forest ${k}" style="aspect-ratio:${M.w}/${M.h}">
     ${ztImg(szArt(`forest4-${k}`), "ztbg")}${season() === "winter" ? "" : fish}${szFx()}
-    ${nbForestSprite(k, M)}
+    ${isClub() ? nbForestSprite(k, M) : ""}
     <a class="ztforestsign" href="#/learn" style="${at(sx + 4, sy - 1)};width:${pct(23, M.w)};height:${pct(9, M.h)};font-size:${((k === "wide" ? 2.35 : 1.85) / M.w) * 100}cqw" aria-label="Back to Zest Town">ZEST TOWN</a>
     ${members}
-    ${list.some((m) => m.user_id !== state.user.id) ? "" : `<div class="ztempty">Nobody else has been here in the last 24 hours. Come back later!</div>`}
+    ${list.some((m) => m.user_id !== state.user.id) ? "" : `<div class="ztempty">Nobody else has been here in the last hour. Come back later!</div>`}
   </div>`;
 }
 function forestCard(m) {
+  if (plansOn()) return fruitCard(m);
   const p = { ...(state.profiles.get(m.user_id) || {}), id: m.user_id, fruit: m.fruit, bg: m.bg, country: m.country };
   const b = state.board.find((x) => x.user_id === m.user_id), st = ztStage(m.streak), n = state.stats.get(m.user_id) || 0;
   const me = m.user_id === state.user.id;
@@ -4278,21 +4526,21 @@ function forestRows(list) {
     <span class="ztleafn">${ZT_LEAF}${m.streak}</span></button>`).join("");
 }
 // Magical Forest → Club Discord (same link as "Chat on Discord").
-const forestDiscord = () => `<a class="chatcard thin" style="display:flex" href="${DISCORD_CHAT}" target="_blank" rel="noopener">${ICON.chat}<b class="grow">Talk to the community on Discord</b><span aria-hidden="true">↗</span></a>`;
+const forestDiscord = () => !isClub() ? "" : `<a class="chatcard thin" style="display:flex" href="${DISCORD_CHAT}" target="_blank" rel="noopener">${ICON.chat}<b class="grow">Talk to the community on Discord</b><span aria-hidden="true">↗</span></a>`;
 function forestView() {
   const F = state.lu.forest, st = ztStreak();
   forestLoad();
   const list = forestWithMe(F.list);
   const head = `${ztHeader(st, "Magical Forest <span class='zhsub'>魔法森林</span>")}
-    <p class="muted small" style="margin:-6px 0 0">${F.list ? `${list.length} member${list.length === 1 ? "" : "s"} opened the app in the last 24 hours.` : "Looking around the forest…"} ${list.length ? (wide() ? "Click one to see their streak or send a hongbao." : "Tap one to say hi.") : ""}</p>`;
+    <p class="muted small" style="margin:-6px 0 0">${F.list ? `${list.length} ${list.length === 1 ? "person" : "people"} here in the last hour.${plansOn() ? " ✦ = Club member." : ""}` : "Looking around the forest…"} ${list.length ? (wide() ? "Click one to see their streak or send a hongbao." : "Tap one to say hi.") : ""}</p>`;
   if (!F.inForest) { F.inForest = true; F.enterAt = Date.now(); if (state.nb) state.nb.open = false; }
   const sel = F.sel && forestMember(F.sel);
   const toggle = `<div class="seg ztseg" role="group" aria-label="Show the forest as"><button type="button" data-zt="fview" data-v="forest" aria-pressed="${F.view !== "list"}">Forest</button><button type="button" data-zt="fview" data-v="list" aria-pressed="${F.view === "list"}">List</button></div>`;
   setTimeout(forestHop, 60);
-  if (F.view === "list") return `${head}${toggle}${wide() && state.nb?.open ? nbSheet() : ""}${nbCard()}${forestMsgBox()}${forestDiscord()}<div class="card" style="gap:0;padding:4px 14px">${forestRows(list) || `<p class="small muted">Nobody yet today.</p>`}</div>${sel ? (wide() ? `<div style="max-width:420px">${forestCard(sel)}</div>` : `<div class="ztover" data-zt="mem" data-id=""><div class="ztsheet" data-stop>${forestCard(sel)}</div></div>`) : ""}`;
-  if (wide()) return `${head}${toggle}<div class="ztwide">${forestMap(list)}<div class="ztside">${nbCard()}${forestDiscord()}${sel ? forestCard(sel) : `<div class="card"><p class="small muted" style="margin:0">Click a fruit to see their streak tree and send them a hongbao.</p></div>`}${forestMsgBox()}
-    ${list.length ? `<div class="card" style="gap:0;padding:6px 14px"><b style="padding:6px 0">Here today · ${list.length}</b>${forestRows(list)}</div>` : ""}</div></div>${state.nb?.open ? nbSheet() : ""}`;
-  return `${head}${toggle}${forestMap(list)}${nbCard()}${forestMsgBox()}${forestDiscord()}${sel ? `<div class="ztover" data-zt="mem" data-id=""><div class="ztsheet" data-stop>${forestCard(sel)}</div></div>` : ""}`;
+  if (F.view === "list") return `${head}${toggle}${wide() && state.nb?.open && isClub() ? nbSheet() : ""}${isClub() ? nbCard() : ""}${forestMsgBox()}${forestDiscord()}<div class="card" style="gap:0;padding:4px 14px">${forestRows(list) || `<p class="small muted">Nobody in the last hour.</p>`}</div>${sel ? (wide() ? `<div style="max-width:420px">${forestCard(sel)}</div>` : `<div class="ztover" data-zt="mem" data-id=""><div class="ztsheet" data-stop>${forestCard(sel)}</div></div>`) : ""}`;
+  if (wide()) return `${head}${toggle}<div class="ztwide">${forestMap(list)}<div class="ztside">${isClub() ? nbCard() : ""}${forestDiscord()}${sel ? forestCard(sel) : `<div class="card"><p class="small muted" style="margin:0">Click a fruit to see their streak tree and send them a hongbao.</p></div>`}${forestMsgBox()}
+    ${list.length ? `<div class="card" style="gap:0;padding:6px 14px"><b style="padding:6px 0">Here in the last hour · ${list.length}</b>${forestRows(list)}</div>` : ""}</div></div>${state.nb?.open && isClub() ? nbSheet() : ""}`;
+  return `${head}${toggle}${forestMap(list)}${isClub() ? nbCard() : ""}${forestMsgBox()}${forestDiscord()}${sel ? `<div class="ztover" data-zt="mem" data-id=""><div class="ztsheet" data-stop>${forestCard(sel)}</div></div>` : ""}`;
 }
 // Your message in the forest: Chinese only (traditional or simplified), up to 30 characters. Shown over your fruit when people arrive.
 const FOREST_MSG_OK = /^[\u3400-\u4dbf\u4e00-\u9fff\u3000-\u303f\uff01\uff08\uff09\uff0c\uff1a\uff1b\uff1f\uff5e\u2026\u2014\u00b7\u201c\u201d\u2018\u2019 ]+$/;
@@ -4432,6 +4680,7 @@ setInterval(checkForUpdate, 30 * 60e3);
 // Routes: #/learn/library · #/learn/library/<book> · #/learn/library/<book>/<ch|culture|grammar|ex|words>/<n>
 // ---------------------------------------------------------------------------
 const LIB_LEVELS = ["1", "2", "3", "4", "5", "6", "7-9"];
+const SELF_BOOK_CENTS = 800; // a book for Self-Study and trial users (Club members pay the book's own price); same as library-checkout
 const libOpen = () => true; // live for everyone with Zest Town since 21 Nov 2026 (was admins only)
 function libState() {
   if (!state.lib) state.lib = { books: null, owned: new Set(), content: new Map(), progress: new Map(), tab: "shelf", lv: lsGet("mz-lib-lv") || "", py: lsGet("mz-lib-py") === "on" ? "on" : "off" };
@@ -4600,11 +4849,12 @@ function libCounter() {
 function libShopView() {
   const S = libState(), lv = S.lv, forSale = S.books.filter((b) => !S.owned.has(b.id)), books = forSale.filter((b) => !lv || libLvIn(b, lv)); // books you own are on your shelf, not in the shop
   const chips = `<div class="lchips" role="group" aria-label="Filter by HSK level"><button type="button" data-lib="lv" data-v="" aria-pressed="${!lv}">All</button>${LIB_LEVELS.map((l) => `<button type="button" data-lib="lv" data-v="${l}" aria-pressed="${lv === l}" ${forSale.some((b) => libLvIn(b, l)) ? "" : "class=\"empty\""}>HSK ${l}</button>`).join("")}</div>`;
-  const canClaim = !S.claimed && forSale.some((b) => b.price_cents > 0);
+  const canClaim = isClub() && !S.claimed && forSale.some((b) => b.price_cents > 0);
+  const priceOf = (b) => isClub() ? money(b.price_cents, b.currency) : money(SELF_BOOK_CENTS, "usd"); // Self-Study and trial: US$8
   const card = (b) => {
     const bought = S.owned.has(b.id);
     const btn = bought ? `<a class="btn ghost" href="#/learn/library/${encodeURIComponent(b.id)}">${b.price_cents ? "Owned" : "Free"} · Read</a>`
-      : `${canClaim ? `<button type="button" class="btn lclaim" data-lib="claim" data-id="${esc(b.id)}" ${S.claiming ? "disabled" : ""}>${S.claiming === b.id ? "Claiming…" : S.claimAsk === b.id ? "Tap again to confirm" : "🎁 Claim for free"}</button>` : ""}<button type="button" class="btn${canClaim ? " ghost" : ""}" data-lib="buy" data-id="${esc(b.id)}" ${S.buying ? "disabled" : ""}>${S.buying === b.id ? "Opening…" : `Buy · ${money(b.price_cents, b.currency)}`}</button>${isAdmin() ? `<a class="small" href="#/learn/library/${encodeURIComponent(b.id)}">Read (admin access)</a>` : ""}`;
+      : `${canClaim ? `<button type="button" class="btn lclaim" data-lib="claim" data-id="${esc(b.id)}" ${S.claiming ? "disabled" : ""}>${S.claiming === b.id ? "Claiming…" : S.claimAsk === b.id ? "Tap again to confirm" : "🎁 Claim for free"}</button>` : ""}<button type="button" class="btn${canClaim ? " ghost" : ""}" data-lib="buy" data-id="${esc(b.id)}" ${S.buying ? "disabled" : ""}>${S.buying === b.id ? "Opening…" : `Buy · ${priceOf(b)}`}</button>${isAdmin() ? `<a class="small" href="#/learn/library/${encodeURIComponent(b.id)}">Read (admin access)</a>` : ""}`;
     return `<div class="card lshop">${libCover(b, "sm")}<div class="grow" style="display:flex;flex-direction:column;gap:6px;min-width:0">
       <div><span class="ltag hsk">${libLv(b)}</span>${b.published ? "" : ` <span class="ltag">Beta</span>`}</div>
       <b class="lshopt">${esc(b.title_zh || "")} <span>${esc(b.title)}</span></b>
@@ -4613,7 +4863,9 @@ function libShopView() {
       <div class="row" style="gap:10px;align-items:center;flex-wrap:wrap;margin-top:4px">${btn}</div></div></div>`;
   };
   const gift = canClaim ? `<div class="card lgift"><span class="lgiftic" aria-hidden="true">🎁</span><span><b>One book free for Club members</b><br><span class="small">Pick any book you like and tap “Claim for free”. It's yours to keep, on all your devices. You can claim one book.</span></span></div>` : "";
-  return `${chips}${gift}<p class="small muted" style="margin:0">Buy once, keep it forever. Each book opens in the app right after payment, on all your devices.</p>
+  const clubDeal = !isClub() && forSale.some((b) => b.price_cents > 0) ? (() => { const c = forSale.find((b) => b.price_cents > 0);
+    return `<a class="lockcard" href="#/plans"><span class="lockstar" aria-hidden="true">★</span><span class="grow small"><b>Club members pay ${money(c.price_cents, c.currency)} a book, and get one book free.</b> <u>See the plans</u></span></a>`; })() : "";
+  return `${chips}${gift}${clubDeal}<p class="small muted" style="margin:0">Buy once, keep it forever. Each book opens in the app right after payment, on all your devices.</p>
     <div class="lshoplist">${books.map(card).join("") || (forSale.length ? `<p class="small muted">No more books for HSK ${esc(lv)} yet. More are coming.</p>` : `<p class="small muted">You have every book in the shop. More are coming.</p>`)}</div>`;
 }
 function libHead(meta, back, crumb) {
@@ -5165,8 +5417,8 @@ async function postStickerCheck() {
   state.stickerAwards = data; rewardCheck();
 }
 const postUnread = () => { const P = postState(); return P.loaded ? P.letters.filter((l) => l.recipient === state.user.id && !l.read_at).length : 0; };
-const postPerson = (id) => id === state.user.id ? { id, name: state.me?.display_name || "Me", fruit: state.me?.fruit, role: state.role } : (postState().people?.get(id) || { id, name: "A club member" });
-const postName = (p) => `${esc(p.name)}${p.role === "host" ? ` <span class="muted small">(host)</span>` : ""}`;
+const postPerson = (id) => id === state.user.id ? { id, name: state.me?.display_name || "Me", fruit: state.me?.fruit, role: state.role } : (postState().people?.get(id) || (state.profiles.get(id) ? { id, name: state.profiles.get(id).display_name || "A club member", fruit: state.profiles.get(id).fruit, role: state.roles.get(id) } : { id, name: "A club member" }));
+const postName = (p) => `${esc(p.name)}${p.role === "host" ? ` <span class="muted small">(host)</span>` : ""}${plansOn() && p.club ? ` <span class="planchip club mini" title="Club member">★</span>` : ""}`;
 const postAv = (p, s = 40) => `<span class="postav" style="width:${s}px;height:${s}px">${ztImg("fruit-" + (ZT_FRUITS.has(p.fruit) ? p.fruit : "orange"))}</span>`;
 const postWhen = (d) => { const t = new Date(d), h = (Date.now() - t) / 36e5; return h < 20 ? ago(d) : t.toLocaleString([], { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); };
 const postHead = (back, href) => `<header class="zthead"><a class="ztback" href="${href}">‹ ${back}</a></header>`;
@@ -5209,10 +5461,18 @@ function postWriteView(qs) {
   const reply = qs.reply && P.letters.find((l) => l.id === qs.reply);
   const head = postHead(reply ? "Back to the letter" : "Post Office", reply ? `#/learn/post/${reply.id}` : "#/learn/post");
   if (!to) {
-    const q = P.q.trim().toLowerCase(), people = postPeople().filter((p) => !q || p.name.toLowerCase().includes(q));
+    const q = P.q.trim().toLowerCase(), all = postPeople();
+    const people = all.filter((p) => (!q || p.name.toLowerCase().includes(q)) && (!P.cty || p.country === P.cty) && (!P.lvf || p.level === P.lvf));
+    const ctys = [...new Set(all.map((p) => p.country).filter(Boolean))].sort((a, b) => countryName(a).localeCompare(countryName(b)));
+    const lvs = LEVEL_OPTIONS.filter((l) => l).filter((l) => all.some((p) => p.level === l));
+    const filters = plansOn() ? `<div class="postfilters">
+        <label class="small"><span class="muted">Country</span> <select data-post-cty aria-label="Country"><option value="">Any</option>${ctys.map((c) => `<option value="${esc(c)}" ${P.cty === c ? "selected" : ""}>${esc(countryName(c) || c)}</option>`).join("")}</select></label>
+        ${lvs.length ? `<div class="catfilter" role="group" aria-label="Chinese level"><button type="button" data-post="lvf" data-v="" aria-pressed="${!P.lvf}">Any level</button>${lvs.map((l) => `<button type="button" data-post="lvf" data-v="${esc(l)}" aria-pressed="${P.lvf === l}">${esc(l)}</button>`).join("")}</div>` : ""}</div>` : "";
+    const meta = (p) => plansOn() ? [p.level, countryName(p.country)].filter(Boolean).map(esc).join(" · ") : "";
     return `${head}<h1 style="margin:0">Write a letter</h1><p class="muted small" style="margin:0">Who is it for?</p>
+      ${filters}
       <input class="postfind" type="search" placeholder="Search a name" value="${esc(P.q)}" data-post-find aria-label="Search a name">
-      <div class="postlist">${people.map((p) => `<a class="card postrow" href="#/learn/post/write?to=${p.id}">${postAv(p, 36)}<span class="grow"><b>${postName(p)}</b></span><span class="small muted">Choose ›</span></a>`).join("") || `<p class="muted small">Nobody found.</p>`}</div>`;
+      <div class="postlist">${people.map((p) => `<a class="card postrow" href="#/learn/post/write?to=${p.id}">${postAv(p, 36)}<span class="grow"><b>${postName(p)}</b>${meta(p) ? `<br><span class="tiny muted">${meta(p)}</span>` : ""}</span><span class="small muted">Choose ›</span></a>`).join("") || `<p class="muted small">Nobody found.</p>`}</div>`;
   }
   const n = [...P.draft].length;
   return `${head}<h1 style="margin:0">${reply ? "Write back" : "Write a letter"}</h1>
@@ -5299,6 +5559,9 @@ function postReportedView() {
       <p class="cgzh" style="font-size:18px;margin:6px 0 0;white-space:pre-wrap">${esc(r.body)}</p></div>`).join("") : `<div class="card"><p class="muted small" style="margin:0">Nothing reported. 🎉</p></div>`}`;
 }
 
+document.addEventListener("change", (e) => {
+  if (e.target.matches("[data-post-cty]") && state.post) { state.post.cty = e.target.value; render(); }
+});
 document.addEventListener("input", (e) => {
   const P = state.post; if (!P) return;
   if (e.target.matches("[data-post-find]")) { P.q = e.target.value; keepForm(() => render()); const f = document.querySelector("[data-post-find]"); if (f) { f.focus(); f.setSelectionRange(f.value.length, f.value.length); } return; }
@@ -5313,6 +5576,7 @@ document.addEventListener("click", async (e) => {
   const el = e.target.closest("[data-post]"); if (!el) return;
   const P = postState(), a = el.dataset.post;
   if (a === "tab") { P.tab = el.dataset.v; render(); }
+  else if (a === "lvf") { P.lvf = el.dataset.v; render(); }
   else if (a === "word") { const i = +el.dataset.i; P.sel = i < 0 || (P.sel?.id === el.dataset.id && P.sel.i === i) ? null : { id: el.dataset.id, i }; keepForm(() => render()); }
   else if (a === "send") {
     const body = P.draft.trim(); if (!postValid(body)) return;
@@ -5380,7 +5644,7 @@ async function cgRemember(t) {
   if (data?.length) await sb.from("char_recent").delete().eq("user_id", state.user.id).in("text", data.map((r) => r.text));
 }
 let cgHW = null;
-const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=162")).default);
+const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=163")).default);
 const cgStrokes = async (c) => {
   const S = cgState(); if (S.data.has(c)) return S.data.get(c);
   const HW = await cgLib(); const d = await HW.loadCharacterData(c).catch(() => null);
@@ -6003,7 +6267,7 @@ async function wsMake(mode, win) {
   W.busy = true; wsCount(); toast(`Making your ${list.length === 1 ? "sheet" : `${list.length} sheets`}…`);
   try {
     await wsInfo(list); try { await document.fonts.ready; } catch {}
-    const { jsPDF } = await import("./vendor/pdf.js?v=162");
+    const { jsPDF } = await import("./vendor/pdf.js?v=163");
     const pdf = new jsPDF({ unit: "mm", format: "a4", compress: true });
     const cv = document.createElement("canvas"); cv.width = WS_A4.w; cv.height = WS_A4.h; const ctx = cv.getContext("2d");
     for (let i = 0; i < list.length; i++) {
@@ -6646,7 +6910,8 @@ document.addEventListener("click", async (e) => {
 // everything else; Skip or "Let's go!" sets tour_seen. Me → "Take the app tour" shows it again.
 // Slide 5 uses the real settings (script, pronunciation, notifications), saved straight away.
 // ---------------------------------------------------------------------------
-const TOUR_N = 5;
+const TOUR_BASE = 5;
+const tourN = () => TOUR_BASE + (plansOn() ? 1 : 0); // plans layout: a last slide on the plans
 const tourOn = () => !!state.tour || (state.loaded && state.me && !state.me.tour_seen && !state.tourClosed);
 function tourArt(k) {
   const card = "tcard";
@@ -6670,6 +6935,13 @@ function tourArt(k) {
       <div class="txp"><span></span></div>
       <div class="row" style="gap:8px;flex-wrap:wrap;justify-content:center"><span class="tchip w">+20 XP · each session</span><span class="tchip w">+1 XP · a day in Zest Town</span><span class="tchip r"><span class="cgzh">${trad() ? "紅包" : "红包"}</span> one hongbao a month</span><span class="tchip y">Stickers to collect</span></div></div>`;
   }
+  if (k === 5) {
+    const t = tier(), row = (cls, name, txt, mine) => `<div class="${card} ttier ${cls}${mine ? " mine" : ""}"><b>${name}${mine ? ` <span class="tchip w">You</span>` : ""}</b><span class="small">${txt}</span></div>`;
+    return `<div class="tart" style="gap:8px">
+      ${row("trial", "🌱 Free trial · 7 days", "Everything in Self-Study, free for a week, no card needed", t === "trial")}
+      ${row("self", `📚 Self-Study${state.plans?.self?.amount ? ` · ${money(state.plans.self.amount, state.plans.self.currency)}/month` : ""}`, "All of Zest Town: flashcards, the HSK Temple, Calligraphy, the Library, the Arcade, the Forest and the Post Office", t === "self")}
+      ${row("club", `★ Club member${state.plans?.clubMonthly?.amount ? ` · ${money(state.plans.clubMonthly.amount, state.plans.clubMonthly.currency)}/month` : ""}`, "All of Self-Study <b>+ live sessions with hosts</b>, notes after class, Members, Discord, hongbaos and Club prices", t === "club")}</div>`;
+  }
   const seg = (act, cur, opts) => `<div class="seg tseg" role="group">${opts.map(([v, l]) => `<button type="button" data-tour="${act}" data-v="${v}" aria-pressed="${cur === v}">${l}</button>`).join("")}</div>`;
   const pushOk = state.push?.supported, on = state.push?.subscribed;
   return `<div class="tart"><div class="${card}" style="gap:12px;width:100%">
@@ -6683,20 +6955,24 @@ function tourOverlay() {
   const T = (state.tour ??= { i: 0 }), k = T.i, name = String(state.me?.display_name || "").trim().split(/\s+/)[0];
   const S = [
     ["WELCOME 欢迎", name ? `Hi ${esc(name)}, welcome to the Club!` : "Welcome to the Club!", "This app is your home for Mandarin Zest Club: live sessions with our hosts, your class notes, and fun ways to practise in between."],
-    ["SESSIONS · HOME", "Join live sessions", "Tap “I'm in” on any session and we remind you an hour before. After class, your host's notes show up in My sessions."],
+    !plansOn() ? ["SESSIONS · HOME", "Join live sessions", "Tap “I'm in” on any session and we remind you an hour before. After class, your host's notes show up in My sessions."]
+      : isClub() ? ["CLUB SESSIONS", "Join live sessions", "Tap “I'm in” on any session in Club Sessions and we remind you an hour before. After class, your host's notes show up under My notes."]
+      : ["CLUB SESSIONS", "Live sessions with our hosts", "Club members join live sessions with our hosts every week. See what's coming up in Club Sessions, and join the Club whenever you like."],
     ["LEARNING · ZEST TOWN", "Practise in Zest Town", "Flashcards, every HSK word, books to read and a calligraphy school. Do a little each day and watch your streak tree grow."],
     ["XP · FRUITS · STICKERS", "Grow your fruit", "Earn XP to level up and unlock new fruit avatars. Collect stickers, send a hongbao to another member each month, and climb the monthly leaderboard."],
     ["YOUR SETTINGS", "Make it yours", `Pick simplified or traditional characters, pinyin or zhuyin, and turn on notifications. You can change all of this later in ${wide() ? "Settings and Me" : "Me"}.`],
+    ["PLANS · 方案", "Two plans, and a free week", tier() === "club" ? "You're a Club member, so you have everything. Your plan and how to change it are in Me." : tier() === "self" ? "You're on Self-Study. Join the Club any time for live sessions with our hosts: Me → My plan." : "You're on the free trial of Self-Study. Before it ends, pick the plan that suits you in Me → My plan."],
   ][k];
-  const dots = [...Array(TOUR_N)].map((_, i) => `<span class="${i === k ? "on" : ""}"></span>`).join("");
+  if (k === 5 && !state.plans) loadPlans();
+  const dots = [...Array(tourN())].map((_, i) => `<span class="${i === k ? "on" : ""}"></span>`).join("");
   return `<div class="tourover ${T.shown ? "still" : ""}" role="dialog" aria-modal="true" aria-labelledby="tourtitle">
     <div class="tourbox">
       <div class="tourart">${tourArt(k)}</div>
       <div class="tourtext">
-        <div class="row between"><span class="tourstep">${k + 1} / ${TOUR_N}</span>${k < TOUR_N - 1 ? `<button type="button" class="linkbtn tourskip" data-tour="skip">Skip</button>` : ""}</div>
+        <div class="row between"><span class="tourstep">${k + 1} / ${tourN()}</span>${k < tourN() - 1 ? `<button type="button" class="linkbtn tourskip" data-tour="skip">Skip</button>` : ""}</div>
         <div class="tourcopy"><div class="toureye">${S[0]}</div><h2 id="tourtitle">${S[1]}</h2><p>${S[2]}</p></div>
         <div class="tournav"><div class="tourdots" aria-hidden="true">${dots}</div>
-          <button type="button" class="btn block" data-tour="${k === TOUR_N - 1 ? "done" : "next"}">${k === 0 ? "Show me around" : k === TOUR_N - 1 ? "Let's go!" : "Next"}</button>
+          <button type="button" class="btn block" data-tour="${k === tourN() - 1 ? "done" : "next"}">${k === 0 ? "Show me around" : k === tourN() - 1 ? "Let's go!" : "Next"}</button>
           ${k ? `<button type="button" class="linkbtn" data-tour="back">‹ Back</button>` : `<span style="height:22px"></span>`}</div>
       </div></div></div>`;
 }
@@ -6706,17 +6982,17 @@ async function tourClose() {
     state.me.tour_seen = new Date().toISOString();
     await sb.from("profiles").update({ tour_seen: state.me.tour_seen }).eq("id", state.user.id);
   }
-  if (!replay) location.hash = "#/home";
+  if (!replay) location.hash = plansOn() ? "#/learn" : "#/home";
   render();
 }
 document.addEventListener("click", async (e) => {
   const el = e.target.closest("[data-tour]"); if (!el) return;
   const a = el.dataset.tour, T = (state.tour ??= { i: 0 });
   T.shown = true;
-  if (a === "next") { T.i = Math.min(TOUR_N - 1, T.i + 1); render(); }
+  if (a === "next") { T.i = Math.min(tourN() - 1, T.i + 1); render(); }
   else if (a === "back") { T.i = Math.max(0, T.i - 1); render(); }
   else if (a === "skip" || a === "done") {
-    if (a === "done" || T.i === TOUR_N - 1) state.pushAsk = false; // they saw the notifications switch
+    if (a === "done" || T.i === tourN() - 1) state.pushAsk = false; // they saw the notifications switch
     await tourClose();
   }
   else if (a === "script" || a === "phonetic") {
