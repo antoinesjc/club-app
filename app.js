@@ -1,12 +1,12 @@
-import { createClient } from "./vendor/supabase.js?v=169";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=169";
-import { COUNTRIES } from "./countries.js?v=169";
-import { toZhuyin } from "./zhuyin.js?v=169";
-import { ORACLE, ORACLE_T } from "./course-oracle.js?v=169";
+import { createClient } from "./vendor/supabase.js?v=170";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=170";
+import { COUNTRIES } from "./countries.js?v=170";
+import { toZhuyin } from "./zhuyin.js?v=170";
+import { ORACLE, ORACLE_T } from "./course-oracle.js?v=170";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=169";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=170";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -41,7 +41,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=169"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=170"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -801,7 +801,7 @@ function planCards(where) {
   const club = `<div class="plancard club ${t === "club" ? "mine" : ""}">
       <div class="row between" style="align-items:baseline;gap:8px"><b class="planname">★ Club member</b><span class="planprice">${planPrice("clubMonthly") || "Monthly or yearly"}</span></div>
       ${state.plans?.clubYearly?.amount ? `<div class="small" style="margin-top:-4px">or ${planPrice("clubYearly")}</div>` : ""}
-      <ul class="planlist"><li><b>Everything in Self-Study</b></li><li><b>Live sessions with our hosts</b>, and their notes after each session</li><li>The Members directory, the notice board and the Club Discord</li><li>Hongbaos, session XP and streaks</li><li>Club prices on bootcamps, books at the Club price + one book free</li></ul>
+      <ul class="planlist"><li><b>Everything in Self-Study</b></li><li><b>Live sessions with our hosts</b>, and their notes after each session</li><li>The Members directory and the Club Discord, and your wins on the notice board</li><li>Hongbaos, session XP and streaks</li><li>Club prices on bootcamps, books at the Club price + one book free</li></ul>
       ${t === "club" ? `<div class="planmine">✓ Your plan</div>` : t === "self" ? btn("", "") : `<div class="row" style="gap:8px">${btn("clubMonthly", "Join monthly")}${state.plans?.clubYearly ? btn("clubYearly", "Join yearly", "ghost") : ""}</div>`}</div>`;
   const note = state.plans === "error" ? `<p class="small muted" style="margin:0">Couldn't load the prices right now. <a href="${CLUB_PAGE}" target="_blank" rel="noopener">See them on the website ↗</a></p>` : "";
   const after = sub ? `<p class="small muted" style="margin:0">Changes go through Stripe: moving up starts right away (you only pay the difference), moving down or stopping takes effect at the end of the period you paid for.</p>`
@@ -1705,7 +1705,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=169"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=170"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -2346,7 +2346,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=169");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=170");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -3257,7 +3257,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=169").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=170").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -3671,7 +3671,7 @@ function learnView() {
   if (sub === "cards") return L.review ? reviewView() : cardsView();
   if (sub === "temple") return templeView();
   if (sub === "forest") return forestView();
-  if (sub === "forest/board") return isClub() ? nbView() : forestView();
+  if (sub === "forest/board") return nbView();
   if (sub === "gallery") return galleryView();
   if (sub === "post" || sub.startsWith("post/") || sub.startsWith("post?")) {
     const [path, qs] = sub.split("?");
@@ -4579,7 +4579,7 @@ function forestMap(list) {
   const [sx, sy] = M.sign;
   return `<div class="ztmap forest ${k}" style="aspect-ratio:${M.w}/${M.h}">
     ${ztImg(szArt(`forest4-${k}`), "ztbg")}${season() === "winter" ? "" : fish}${szFx()}
-    ${isClub() ? nbForestSprite(k, M) : ""}
+    ${nbForestSprite(k, M)}
     <a class="ztforestsign" href="#/learn" style="${at(sx + 4, sy - 1)};width:${pct(23, M.w)};height:${pct(9, M.h)};font-size:${((k === "wide" ? 2.35 : 1.85) / M.w) * 100}cqw" aria-label="Back to Zest Town">ZEST TOWN</a>
     ${members}
     ${list.some((m) => m.user_id !== state.user.id) ? "" : `<div class="ztempty">Nobody else has been here in the last hour. Come back later!</div>`}
@@ -4614,15 +4614,15 @@ function forestView() {
   forestLoad();
   const list = forestWithMe(F.list);
   const head = `${ztHeader(st, "Magical Forest <span class='zhsub'>魔法森林</span>")}
-    <p class="muted small" style="margin:-6px 0 0">${F.list ? `${list.length} ${list.length === 1 ? "person" : "people"} here in the last hour.${plansOn() ? " ✦ = Club member." : ""}` : "Looking around the forest…"} ${list.length ? (wide() ? "Click one to see their streak or send a hongbao." : "Tap one to say hi.") : ""}</p>`;
+    <p class="muted small" style="margin:-6px 0 0">${F.list ? `${list.length} ${list.length === 1 ? "person" : "people"} here in the last hour.${plansOn() ? " ✦ = Club member." : ""}` : "Looking around the forest…"} ${list.length ? (wide() ? (isClub() ? "Click one to see their streak or send a hongbao." : "Click one to see their streak and level.") : "Tap one to say hi.") : ""}</p>`;
   if (!F.inForest) { F.inForest = true; F.enterAt = Date.now(); if (state.nb) state.nb.open = false; }
   const sel = F.sel && forestMember(F.sel);
   const toggle = `<div class="seg ztseg" role="group" aria-label="Show the forest as"><button type="button" data-zt="fview" data-v="forest" aria-pressed="${F.view !== "list"}">Forest</button><button type="button" data-zt="fview" data-v="list" aria-pressed="${F.view === "list"}">List</button></div>`;
   setTimeout(forestHop, 60);
-  if (F.view === "list") return `${head}${toggle}${wide() && state.nb?.open && isClub() ? nbSheet() : ""}${isClub() ? nbCard() : ""}${forestMsgBox()}${forestDiscord()}<div class="card" style="gap:0;padding:4px 14px">${forestRows(list) || `<p class="small muted">Nobody in the last hour.</p>`}</div>${sel ? (wide() ? `<div style="max-width:420px">${forestCard(sel)}</div>` : `<div class="ztover" data-zt="mem" data-id=""><div class="ztsheet" data-stop>${forestCard(sel)}</div></div>`) : ""}`;
-  if (wide()) return `${head}${toggle}<div class="ztwide">${forestMap(list)}<div class="ztside">${isClub() ? nbCard() : ""}${forestDiscord()}${sel ? forestCard(sel) : `<div class="card"><p class="small muted" style="margin:0">Click a fruit to see their streak tree and send them a hongbao.</p></div>`}${forestMsgBox()}
-    ${list.length ? `<div class="card" style="gap:0;padding:6px 14px"><b style="padding:6px 0">Here in the last hour · ${list.length}</b>${forestRows(list)}</div>` : ""}</div></div>${state.nb?.open && isClub() ? nbSheet() : ""}`;
-  return `${head}${toggle}${forestMap(list)}${isClub() ? nbCard() : ""}${forestMsgBox()}${forestDiscord()}${sel ? `<div class="ztover" data-zt="mem" data-id=""><div class="ztsheet" data-stop>${forestCard(sel)}</div></div>` : ""}`;
+  if (F.view === "list") return `${head}${toggle}${wide() && state.nb?.open ? nbSheet() : ""}${nbCard()}${forestMsgBox()}${forestDiscord()}<div class="card" style="gap:0;padding:4px 14px">${forestRows(list) || `<p class="small muted">Nobody in the last hour.</p>`}</div>${sel ? (wide() ? `<div style="max-width:420px">${forestCard(sel)}</div>` : `<div class="ztover" data-zt="mem" data-id=""><div class="ztsheet" data-stop>${forestCard(sel)}</div></div>`) : ""}`;
+  if (wide()) return `${head}${toggle}<div class="ztwide">${forestMap(list)}<div class="ztside">${nbCard()}${forestDiscord()}${sel ? forestCard(sel) : `<div class="card"><p class="small muted" style="margin:0">${isClub() ? "Click a fruit to see their streak tree and send them a hongbao." : "Click a fruit to see their streak tree and level."}</p></div>`}${forestMsgBox()}
+    ${list.length ? `<div class="card" style="gap:0;padding:6px 14px"><b style="padding:6px 0">Here in the last hour · ${list.length}</b>${forestRows(list)}</div>` : ""}</div></div>${state.nb?.open ? nbSheet() : ""}`;
+  return `${head}${toggle}${forestMap(list)}${nbCard()}${forestMsgBox()}${forestDiscord()}${sel ? `<div class="ztover" data-zt="mem" data-id=""><div class="ztsheet" data-stop>${forestCard(sel)}</div></div>` : ""}`;
 }
 // Your message in the forest: Chinese only (traditional or simplified), up to 30 characters. Shown over your fruit when people arrive.
 const FOREST_MSG_OK = /^[\u3400-\u4dbf\u4e00-\u9fff\u3000-\u303f\uff01\uff08\uff09\uff0c\uff1a\uff1b\uff1f\uff5e\u2026\u2014\u00b7\u201c\u201d\u2018\u2019 ]+$/;
@@ -5726,7 +5726,7 @@ async function cgRemember(t) {
   if (data?.length) await sb.from("char_recent").delete().eq("user_id", state.user.id).in("text", data.map((r) => r.text));
 }
 let cgHW = null;
-const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=169")).default);
+const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=170")).default);
 const cgStrokes = async (c) => {
   const S = cgState(); if (S.data.has(c)) return S.data.get(c);
   const HW = await cgLib(); const d = await HW.loadCharacterData(c).catch(() => null);
@@ -6349,7 +6349,7 @@ async function wsMake(mode, win) {
   W.busy = true; wsCount(); toast(`Making your ${list.length === 1 ? "sheet" : `${list.length} sheets`}…`);
   try {
     await wsInfo(list); try { await document.fonts.ready; } catch {}
-    const { jsPDF } = await import("./vendor/pdf.js?v=169");
+    const { jsPDF } = await import("./vendor/pdf.js?v=170");
     const pdf = new jsPDF({ unit: "mm", format: "a4", compress: true });
     const cv = document.createElement("canvas"); cv.width = WS_A4.w; cv.height = WS_A4.h; const ctx = cv.getContext("2d");
     for (let i = 0; i < list.length; i++) {
