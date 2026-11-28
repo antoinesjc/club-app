@@ -1,12 +1,12 @@
-import { createClient } from "./vendor/supabase.js?v=180";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=180";
-import { COUNTRIES } from "./countries.js?v=180";
-import { toZhuyin } from "./zhuyin.js?v=180";
-import { ORACLE, ORACLE_T } from "./course-oracle.js?v=180";
+import { createClient } from "./vendor/supabase.js?v=181";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=181";
+import { COUNTRIES } from "./countries.js?v=181";
+import { toZhuyin } from "./zhuyin.js?v=181";
+import { ORACLE, ORACLE_T } from "./course-oracle.js?v=181";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=180";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=181";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -41,7 +41,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=180"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=181"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -1705,7 +1705,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=180"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=181"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -2346,7 +2346,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=180");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=181");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2644,6 +2644,7 @@ function feedText(e) {
     case "town_letter": return `sent a letter to <b>${L}</b> at the Post Office`;
     case "town_writing_sheet": return `printed writing sheets in the Calligraphy School · <span class="lzh">${L}</span>`;
     case "town_arcade": return `played in the Arcade · <span class="lzh">${L}</span>`;
+    case "town_uni": return `finished a section at the Great Chinese University · ${L}`;
     case "town_qilin": return `claimed a qilin challenge 麒麟 · ${L}`;
     case "xp": { const [p, ...r] = String(e.label).split(" · "); return `got <b>${+p > 0 ? "+" : ""}${esc(p)} XP</b>${r.length ? " · " + esc(r.join(" · ")) : ""}`; }
     default: return L;
@@ -3257,7 +3258,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=180").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=181").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -3678,6 +3679,7 @@ function learnView() {
     const [path, qs] = sub.split("?");
     return postView(path.split("/").slice(1).filter(Boolean), Object.fromEntries(new URLSearchParams(qs || "")));
   }
+  if (sub === "uni" || sub.startsWith("uni/")) return uniOpen() ? uniView(sub.split("?")[0].split("/").slice(1).filter(Boolean)) : townView();
   if (sub === "arcade" || sub.startsWith("arcade/")) return arcadeOpen() ? arcadeView(sub.split("/").slice(1)) : townView();
   if (sub === "callig" || sub.startsWith("callig/")) return calligView(sub.split("?")[0].split("/").slice(1).filter(Boolean));
   if (sub === "library" || sub.startsWith("library/") || sub.startsWith("library?")) {
@@ -3742,7 +3744,8 @@ function townMap(st) {
     <div class="ztriver" style="top:${pct(M.river[0], M.h)};height:${pct(M.river[1], M.h)}" aria-hidden="true"><img class="px" src="icons/zt/${szArt(`river3-${k}`)}.png" alt="" draggable="false"></div>
     <img class="px ztbridge" src="icons/zt/${szArt(`bridge-${k}`)}.png" alt="" draggable="false" style="${at(M.bridge[0], M.bridge[1])};width:${pct(M.bridge[2], M.w)}">
     ${(() => { const [x, y, sz] = M.fsign, k = sz / 24; return `<a class="ztsignwrap" href="#/learn/forest" style="${at(x, y)};width:${pct(sz, M.w)}" aria-label="To the Magical Forest">${ztImg("sign-forest")}<span class="ztsigntext" style="width:${(16 / 24) * 100}%;height:${(11 / 18) * 100}%;font-size:${(k * 1.75 / M.w) * 100}cqw">MAGICAL<br>FOREST</span></a>`; })()}
-    ${M.trees.map(([x, y, big], i) => `<img class="px ztbush" src="icons/zt/${szArt(`tree4-${big ? "big" : "small"}`)}.png" alt="" draggable="false" style="${at(x, y)};width:${pct(big ? 24 : 17, M.w)};animation-delay:-${(i * 0.7) % 3}s">`).join("")}
+    ${uniOpen() ? uniSign(M, k, at, pct) : ""}
+    ${M.trees.filter((t) => !uniOpen() || !UNI_SIGN[k].hide.some((h) => h[0] === t[0] && h[1] === t[1])).map(([x, y, big], i) => `<img class="px ztbush" src="icons/zt/${szArt(`tree4-${big ? "big" : "small"}`)}.png" alt="" draggable="false" style="${at(x, y)};width:${pct(big ? 24 : 17, M.w)};animation-delay:-${(i * 0.7) % 3}s">`).join("")}
     <button type="button" class="zttreebtn" data-zt="sheet" style="${at(...M.tree)};width:${pct(42, M.w)}" aria-label="Your streak tree">${treeImg(st)}</button>
     ${[[3, 23], [40, 23]].map(([dx, dy], i) => `<span class="ztlantern" style="${at(M.tree[0] + dx, M.tree[1] + dy)};width:${pct(12, M.w)};animation-delay:-${i * 1.3}s" aria-hidden="true"></span>`).join("")}
     ${qlOpen() ? (() => { qlLoad(); const [qx, qy] = ztPosFor("qilin", k); return `<button type="button" class="ztqilin" data-ql="open" style="${at(qx, qy)};width:${pct(26, M.w)}" aria-label="The qilin: daily, weekly and monthly challenges">${qlBang() ? `<span class="qlbang" aria-hidden="true">!</span>` : ""}${ztImg("qilin-0", "q0")}${ztImg("qilin-1", "q1")}</button>`; })() : ""}
@@ -5789,7 +5792,7 @@ async function cgRemember(t) {
   if (data?.length) await sb.from("char_recent").delete().eq("user_id", state.user.id).in("text", data.map((r) => r.text));
 }
 let cgHW = null;
-const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=180")).default);
+const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=181")).default);
 const cgStrokes = async (c) => {
   const S = cgState(); if (S.data.has(c)) return S.data.get(c);
   const HW = await cgLib(); const d = await HW.loadCharacterData(c).catch(() => null);
@@ -6336,7 +6339,7 @@ const wdState = () => (state.wd ??= { data: null, map: null, loading: false, b: 
 async function wdLoad() {
   const S = wdState(); if (S.data || S.loading) return; S.loading = true;
   try {
-    const [d, m] = await Promise.all([import("./countries-zh.js?v=180"), import("./worldmap.js?v=180")]);
+    const [d, m] = await Promise.all([import("./countries-zh.js?v=181"), import("./worldmap.js?v=181")]);
     S.data = d.WORLD_ZH.map((r) => ({ c: r[0], en: r[1], cont: r[2], twT: r[3], twS: r[4], twPy: r[5], cnS: r[6], cnT: r[7], cnPy: r[8], x: r[9], y: r[10], onMap: !!r[11], also: r[12] || null }));
     S.map = m.WORLD.filter((w) => w[0]);
     S.zoom = new Map(S.map.map((w) => [w[0], w[2]]));
@@ -6693,7 +6696,7 @@ async function wsMake(mode, win) {
   W.busy = true; wsCount(); toast(`Making your ${list.length === 1 ? "sheet" : `${list.length} sheets`}…`);
   try {
     await wsInfo(list); try { await document.fonts.ready; } catch {}
-    const { jsPDF } = await import("./vendor/pdf.js?v=180");
+    const { jsPDF } = await import("./vendor/pdf.js?v=181");
     const pdf = new jsPDF({ unit: "mm", format: "a4", compress: true });
     const cv = document.createElement("canvas"); cv.width = WS_A4.w; cv.height = WS_A4.h; const ctx = cv.getContext("2d");
     for (let i = 0; i < list.length; i++) {
@@ -7430,3 +7433,315 @@ document.addEventListener("click", async (e) => {
   else if (a === "push") { if (state.push.subscribed) await disablePush(); else await enablePush(); render(); }
 });
 document.addEventListener("click", (e) => { if (e.target.closest("[data-tour-start]")) { state.tour = { i: 0, replay: true }; render(); } });
+
+// ---------------------------------------------------------------------------
+// Great Chinese University 中文大學 (28 Nov 2026, admin demo): a campus on its own map above Zest Town (sign at the top of
+// town), with textbook courses split into lessons. First course: the Pre-unit "Welcome to Chinese" (from the New HSK 1
+// textbook's Pre-unit; pinyin/zhuyin sounds, tips and recordings from the free pinyin and bopomofo tools).
+// Content: table uni_courses (data_s / data_t, admins only for now; never in this public repo). Progress: uni_progress.
+// Routes: #/learn/uni (campus) · /hall (courses) · /pre (course) · /pre/<section>/<part> (lesson pages; last = check).
+// Audio: audio/py (CNS11643 recordings), audio/tones (pitch changed from those recordings, see audio/README.md).
+// ---------------------------------------------------------------------------
+const uniOpen = () => isAdmin();
+const UNI_SIGN = { phone: { at: [46, 0], hide: [[42, -10]] }, wide: { at: [203, 4], hide: [[196, -6], [214, 2]] } };
+const UNI_MAP = {
+  phone: { w: 118, h: 230, hall: [10, 10, 98, 93], label: 104, gate: [31, 184, 56, 30], gl: 214 },
+  wide: { w: 235, h: 200, hall: [61, 2, 112, 106], label: 109, gate: [89, 154, 56, 30], gl: 186, pav: [49, 141] },
+};
+const UNI_ZH = () => (trad() ? "中文大學" : "中文大学");
+function uniSign(M, k, at, pct) {
+  const [x, y] = UNI_SIGN[k].at, fs = (2.05 / M.w) * 100;
+  return `<a class="ztsignwrap gusign" href="#/learn/uni" style="${at(x, y)};width:${pct(26, M.w)}" aria-label="To the Great Chinese University">${ztImg("sign-uni")}
+    <span class="ztsigntext" style="top:32%;width:100%;height:40%;font-size:${fs}cqw"><span><b class="gusignzh" style="font-size:${fs * 1.9}cqw">${trad() ? "大學" : "大学"}</b><br>UNIVERSITY</span></span></a>`;
+}
+const uniState = () => (state.uni ??= { courses: null, loading: false, prog: new Map(), q: null, sel: {}, ini: "b", game: null });
+async function uniLoad(force) {
+  const U = uniState();
+  if (U.loading || (U.courses && !force)) return;
+  U.loading = true;
+  const col = trad() ? "data_t" : "data_s";
+  const [c, p] = await Promise.all([
+    sb.from("uni_courses").select(`id, title, sort, price_cents, published, data:${col}`).order("sort"),
+    sb.from("uni_progress").select("course, done, parts"),
+  ]);
+  U.loading = false;
+  if (c.error) { console.error(c.error); U.courses = []; U.error = true; }
+  else U.courses = c.data;
+  U.script = trad();
+  for (const r of p.data || []) U.prog.set(r.course, { done: r.done || {}, parts: r.parts || {} });
+  render();
+}
+const uniCourse = (id) => uniState().courses?.find((c) => c.id === id)?.data;
+const uniProg = (id) => { const U = uniState(); if (!U.prog.has(id)) U.prog.set(id, { done: {}, parts: {} }); return U.prog.get(id); };
+async function uniSave(id) {
+  const P = uniProg(id);
+  const { error } = await sb.from("uni_progress").upsert({ user_id: state.user.id, course: id, done: P.done, parts: P.parts, updated_at: new Date().toISOString() });
+  if (error) { console.error(error); toast("Couldn't save your progress. Check your connection."); }
+}
+let uniAudio = null;
+function uniPlay(file) {
+  try { uniAudio?.pause(); } catch {}
+  const dir = file.startsWith("t-") ? "tones" : "py";
+  uniAudio = new Audio(`audio/${dir}/${file}.mp3`);
+  uniAudio.play().catch(() => toast("Couldn't play the sound. Check that your phone isn't on silent."));
+}
+const uniFile = (syl) => `y-${syl.replace(/ü/g, "v")}`;
+const uniSndFile = (set, it) => (set === "zhu" ? `l-${it.p.replace("ü", "v").replace("ê", "eh")}` : `s-${it.k.replace(/ü/g, "v")}`);
+// Tone mark on a syllable (a/e first, then o in "ou", otherwise the last vowel). Tone 5 = neutral (no mark).
+function uniMark(syl, t) {
+  if (t === 5 || t === 0) return syl;
+  const M = { a: "āáǎà", e: "ēéěè", i: "īíǐì", o: "ōóǒò", u: "ūúǔù", "ü": "ǖǘǚǜ" };
+  let i = syl.search(/[ae]/);
+  if (i < 0) i = syl.indexOf("ou");
+  if (i < 0) { for (let k = syl.length - 1; k >= 0; k--) if (M[syl[k]]) { i = k; break; } }
+  return i < 0 ? syl : syl.slice(0, i) + M[syl[i]][t - 1] + syl.slice(i + 1);
+}
+const uniHead = (back, backLabel, title, sub) => `<header class="zthead"><a class="ztback" href="${back}">‹ ${backLabel}</a>
+  <div class="row between" style="align-items:center;gap:10px"><h1>${title}</h1></div>${sub ? `<p class="muted small" style="margin:2px 0 0">${sub}</p>` : ""}</header>`;
+const UNI_TITLE = () => `Great Chinese University <span class='zhsub'>${UNI_ZH()}</span>`;
+
+function uniView(parts) {
+  const U = uniState();
+  if (U.courses && U.script !== trad()) { U.courses = null; U.script = trad(); }
+  if (!U.courses) { uniLoad(); return `${uniHead("#/learn", "Zest Town", UNI_TITLE())}<p class="muted small">Opening the University…</p>`; }
+  const [a, b, c] = parts;
+  if (!a) return uniCampus();
+  if (a === "hall") return uniHall();
+  const C = uniCourse(a);
+  if (!C) { location.hash = "#/learn/uni/hall"; return ""; }
+  if (!b) return uniCourseView(a, C);
+  const si = C.sections.findIndex((s) => s.id === b);
+  if (si < 0) { location.hash = `#/learn/uni/${a}`; return ""; }
+  return uniSectionView(a, C, si, c == null ? 0 : +c);
+}
+
+// ---- campus map + side panel ----
+function uniCampus() {
+  const k = wide() ? "wide" : "phone", M = UNI_MAP[k], pct = (x, w) => `${(x / w) * 100}%`;
+  const at = (x, y) => `left:${pct(x, M.w)};top:${pct(y, M.h)}`;
+  const box = ([x, y, w, h]) => `${at(x, y)};width:${pct(w, M.w)};height:${pct(h, M.h)}`;
+  const map = `<div class="ztmap gumap ${k}" style="aspect-ratio:${M.w}/${M.h}">${ztImg(`uni-campus-${k}`, "ztbg")}
+    <a class="zthit" href="#/learn/uni/hall" style="${box(M.hall)}" aria-label="Enter the Great Chinese University"></a>
+    <a class="zthit" href="#/learn" style="${box(M.gate)}" aria-label="Back to Zest Town"></a>
+    <a class="ztlabel gulabel" href="#/learn/uni/hall" style="${at(M.w / 2, M.label)}">GREAT CHINESE UNIVERSITY</a>
+    <a class="ztlabel" href="#/learn" style="${at(M.w / 2, M.gl)}">↓ ZEST TOWN</a>
+    ${M.pav ? `<span class="ztlabel soon" style="${at(...M.pav)}">STUDY HALL<em>SOON</em></span>` : ""}</div>`;
+  const side = `${uniNextCard()}${uniCourseCards()}`;
+  const head = `${uniHead("#/learn", "Zest Town", UNI_TITLE(), "Our textbooks, turned into courses you take one lesson at a time. <b>Admin preview</b>: members don't see the University yet.")}`;
+  if (wide()) return `${head}<div class="ztwide">${map}<div class="ztside">${side}</div></div>`;
+  return `${head}${map}${side}`;
+}
+function uniNextCard() {
+  const C = uniCourse("pre"); if (!C) return "";
+  const P = uniProg("pre"), next = C.sections.find((s) => !P.done[s.id]);
+  if (!next) return `<a class="card gunext done" href="#/learn/uni/pre"><b>✓ Pre-unit done</b><span class="small muted">HSK 1 · Unit 1 is the next course (coming soon). You can open the Pre-unit any time.</span></a>`;
+  const n = C.sections.indexOf(next) + 1;
+  return `<a class="card gunext" href="#/learn/uni/pre/${next.id}/${P.parts[next.id] || 0}"><span class="tiny muted">${Object.keys(P.done).length ? "Continue" : "Start here"}</span>
+    <b>Pre-unit · ${n}. ${esc(next.title)} <span class="lzh">${esc(next.zh)}</span></b>${dBar((Object.keys(P.done).length / C.sections.length) * 100, "#2e7d48")}</a>`;
+}
+function uniCourseCards() {
+  const C = uniCourse("pre"), P = uniProg("pre"), n = C ? Object.keys(P.done).length : 0;
+  const book = (col, top, lv) => `<span class="gubook" style="background:${col}"><b>${top}</b><i>${lv}</i></span>`;
+  const card = (href, bk, title, meta, chips, bar) => `<${href ? `a href="${href}"` : "div"} class="card gucourse ${href ? "" : "soon"}">${bk}<span class="grow"><b>${title}</b><br><span class="small muted">${meta}</span>${bar ?? ""}<span class="row" style="gap:6px;margin-top:4px;flex-wrap:wrap">${chips}</span></span></${href ? "a" : "div"}>`;
+  const price = `<span class="guchip price">US$15</span><span class="guchip club">Club US$5</span>`;
+  return `<div class="stack" style="gap:8px">
+    ${C ? card("#/learn/uni/pre", book("#c2410c", "PRE", "迎"), "Pre-unit · Welcome to Chinese", `${C.sections.length} sections · ${n ? `${n} done` : "start here"}`, `<span class="guchip free">Free for everyone</span>`, dBar((n / C.sections.length) * 100, "#2e7d48")) : ""}
+    ${card("", book("#2e7d48", "HSK", "1"), "HSK 1 · First steps", "10 units · coming next", `<span class="guchip free">Free for everyone</span><span class="guchip soonc">Soon</span>`)}
+    ${card("", book("#2f6fb3", "HSK", "2"), "HSK 2", "Coming later", price)}
+    ${card("", book("#7a3fa0", "HSK", "3"), "HSK 3", "Coming later", price)}
+    ${card("", book("#9b2c2c", "HSK", "4"), "HSK 4", "Coming later", price)}</div>`;
+}
+function uniHall() {
+  return `${uniHead("#/learn/uni", "Campus", `Lecture hall <span class='zhsub'>${trad() ? "講堂" : "讲堂"}</span>`)}
+    <div class="row guhallhero" style="gap:14px;align-items:center">${ztImg("uni-hall", "guhallimg")}<p class="small muted" style="margin:0">One course per textbook. Lessons open one after the other; your progress is saved on your account.</p></div>
+    ${uniNextCard()}${uniCourseCards()}`;
+}
+
+// ---- course page ----
+function uniCourseView(id, C) {
+  const P = uniProg(id), doneN = C.sections.filter((s) => P.done[s.id]).length, nextI = C.sections.findIndex((s) => !P.done[s.id]);
+  const node = (s, i) => {
+    const d = P.done[s.id], open = i === 0 || P.done[C.sections[i - 1].id] || d, cur = i === nextI;
+    const stars = d?.stars ? ` · ${"★".repeat(d.stars)}` : "";
+    return `<${open ? `a href="#/learn/uni/${id}/${s.id}/${d ? 0 : P.parts[s.id] || 0}"` : `button type="button" data-gu="locked"`} class="gunode ${d ? "done" : cur ? "cur" : open ? "" : "lock"}" style="--off:${[0, 34, 62, 34, 0][i % 5]}px">
+      <span class="gudot">${d ? "✓" : open ? i + 1 : "🔒"}</span><span class="gutxt"><b>${i + 1}. ${esc(s.title)} <span class="lzh">${esc(s.zh)}</span></b><span class="small muted">${esc(s.goal)}${stars}</span></span></${open ? "a" : "button"}>`;
+  };
+  return `${uniHead("#/learn/uni/hall", "Lecture hall", `${esc(C.title)}`)}
+    <section class="card guhero"><span class="gubook big" style="background:#c2410c"><b>PRE</b><i class="lzh">${esc(C.zh)}</i></span>
+      <div class="grow"><p style="margin:0">${esc(C.blurb)}</p><p class="small muted" style="margin:6px 0">${doneN} of ${C.sections.length} sections done</p>${dBar((doneN / C.sections.length) * 100, "#2e7d48")}</div></section>
+    ${nextI >= 0 ? `<a class="btn block" href="#/learn/uni/${id}/${C.sections[nextI].id}/${P.parts[C.sections[nextI].id] || 0}">${doneN ? "Continue" : "Start"} · ${nextI + 1}. ${esc(C.sections[nextI].title)}</a>` : `<div class="card gunext done"><b>✓ Pre-unit done</b><span class="small muted">Well done! HSK 1 · Unit 1 opens here next (coming soon).</span></div>`}
+    <div class="gupath">${C.sections.map(node).join("")}</div>`;
+}
+
+// ---- a section: its pages, then its check (quiz or listening game) ----
+function uniSectionView(id, C, si, n) {
+  const U = uniState(), S = C.sections[si], P = uniProg(id);
+  const pages = S.parts.length + (S.check ? 1 : 0);
+  const open = si === 0 || P.done[C.sections[si - 1].id] || P.done[S.id];
+  if (!open) { location.hash = `#/learn/uni/${id}`; return ""; }
+  if (!(n >= 0 && n < pages)) { location.hash = `#/learn/uni/${id}/${S.id}/0`; return ""; }
+  if ((P.parts[S.id] || 0) < n) { P.parts[S.id] = n; uniSave(id); }
+  const isCheck = n === S.parts.length, last = n === pages - 1;
+  const dots = `<div class="gudots" aria-label="Page ${n + 1} of ${pages}">${[...Array(pages).keys()].map((k) => `<a href="#/learn/uni/${id}/${S.id}/${k}" class="${k < n ? "ok" : k === n ? "cur" : ""} ${k === S.parts.length ? "chk" : ""}" aria-label="Page ${k + 1}"></a>`).join("")}</div>`;
+  const head = `${uniHead(`#/learn/uni/${id}`, "Pre-unit", `${si + 1}. ${esc(S.title)} <span class='zhsub'>${esc(S.zh)}</span>`)}${dots}`;
+  if (U.q?.key !== `${id}/${S.id}/${n}`) { U.q = { key: `${id}/${S.id}/${n}`, picks: {} }; U.game = null; }
+  let body, canNext = true;
+  if (isCheck) {
+    if (S.check.t === "quiz") { body = uniQuiz(S.check); canNext = S.check.qs.every((_, i) => U.q.picks[i]?.includes(S.check.qs[i].a)); }
+    else { body = uniGame(C, S.check); canNext = !!U.game?.over; }
+  } else body = `<section class="card guslide"><div class="tiny muted">Part ${n + 1} of ${S.parts.length}</div><h2>${esc(S.parts[n].title)}</h2>${S.parts[n].blocks.map((b) => uniBlock(C, b)).join("")}</section>`;
+  const nextLabel = last ? (si === C.sections.length - 1 ? "Finish the Pre-unit ✓" : "Finish this section ✓") : n === S.parts.length - 1 && S.check ? (S.check.t === "quiz" ? "Check yourself ›" : "Listening practice ›") : "Next ›";
+  const nav = `<div class="row gunav" style="gap:8px">${n ? `<a class="btn ghost" href="#/learn/uni/${id}/${S.id}/${n - 1}">‹ Back</a>` : ""}
+    ${last ? `<button type="button" class="btn grow" data-gu="finish" data-c="${id}" data-s="${S.id}" ${canNext ? "" : "disabled"}>${nextLabel}</button>` : `<a class="btn grow" href="#/learn/uni/${id}/${S.id}/${n + 1}">${nextLabel}</a>`}</div>
+    ${last && !canNext ? `<p class="tiny muted" style="text-align:center;margin:0">${S.check?.t === "quiz" ? "Find the right answer to every question to finish." : "Play the 10 questions to finish."}</p>` : ""}`;
+  return `<div class="guwrap">${head}${body}${nav}</div>`;
+}
+async function uniFinish(id, sid) {
+  const U = uniState(), C = uniCourse(id), S = C.sections.find((s) => s.id === sid), P = uniProg(id);
+  let stars = 0;
+  if (S.check?.t === "quiz") { const first = S.check.qs.filter((q, i) => U.q.picks[i]?.[0] === q.a).length, miss = S.check.qs.length - first; stars = miss === 0 ? 3 : miss === 1 ? 2 : 1; }
+  else if (S.check) { const sc = U.game?.score || 0; stars = sc >= 9 ? 3 : sc >= 6 ? 2 : 1; }
+  const old = P.done[sid];
+  P.done[sid] = { at: new Date().toISOString(), stars: Math.max(stars, old?.stars || 0) };
+  delete P.parts[sid];
+  await uniSave(id);
+  const counted = await ztCountDay();
+  tEvent("uni", `${C.title} · ${S.title}${stars ? " · " + "★".repeat(stars) : ""}`);
+  const all = C.sections.every((s) => P.done[s.id]);
+  toast(all ? "Pre-unit done! 太棒了！" : `Section done${stars ? " " + "★".repeat(stars) : ""}${counted ? ". Your streak tree grew today." : "."}`);
+  location.hash = `#/learn/uni/${id}`;
+}
+
+// ---- blocks ----
+function uniBlock(C, b) {
+  const U = uniState();
+  switch (b.t) {
+    case "p": return `<p>${b.x}</p>`;
+    case "h": return `<h3>${b.x}</h3>`;
+    case "tip": return `<div class="gutip ${b.k === "good" ? "good" : ""}">${b.k === "good" ? "✓" : "💡"}<span>${b.x}</span></div>`;
+    case "list": return `<${b.o ? "ol" : "ul"} class="gulist">${b.items.map((x) => `<li>${x}</li>`).join("")}</${b.o ? "ol" : "ul"}>`;
+    case "facts": return `<div class="gufacts">${b.rows.map(([k, v]) => `<div><b>${k}</b><span>${v}</span></div>`).join("")}</div>`;
+    case "table": return `<div class="gutablewrap"><table class="gutable"><thead><tr>${b.head.map((h) => `<th>${h}</th>`).join("")}</tr></thead><tbody>${b.rows.map((r) => `<tr>${r.map((c, i) => i ? `<td>${c}</td>` : `<th>${c}</th>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+    case "img": return `<figure class="guimg"><img src="${b.src}" alt="${esc(b.alt)}"><figcaption class="tiny muted">${esc(b.cap)}</figcaption></figure>`;
+    case "say": return `<div class="gusay">${b.items.map((s) => `<button type="button" class="gusnd" data-gu="play" data-f="${s.a}"><b>${esc(s.py)}</b> 🔊<span class="small">${esc(s.l)}</span></button>`).join("")}</div>`;
+    case "chars": return `<div class="guchars">${b.items.map((c) => `<a class="guchar" href="#/learn/callig/${encodeURIComponent(c.c.split(" · ")[0])}"><b class="lzh">${esc(c.c)}</b><span><b>${esc(c.py)}</b> · ${esc(c.en)}</span>${c.n ? `<span class="tiny muted">${esc(c.n)}</span>` : ""}</a>`).join("")}</div>`;
+    case "evo": return `<div class="guevo"><img src="icons/oracle/${b.glyph}.svg" alt="The oracle bone form of 馬 horse"><div class="guevosteps">${b.steps.map(([z, p, e], i) => `<span><b class="lzh">${z}</b> ${p}<br><span class="tiny muted">${i + 1}. ${e}</span></span>`).join("")}</div>
+      <div class="guevoend lzh">${b.end.map((c, i) => `<span><b>${c}</b><span class="tiny muted">${b.end.length > 1 ? (i ? "simplified" : "traditional") : "today"}</span></span>`).join("")}</div></div>`;
+    case "kinds": return `<div class="gukinds">${b.rows.map(([z, p, en, d, ex]) => `<div class="card"><span class="tiny muted"><span class="lzh">${z}</span> ${p}</span><b>${en}</b><span class="small">${d}</span><span class="lzh guex">${ex}</span></div>`).join("")}</div>`;
+    case "rules": return `<ol class="gurules">${b.items.map(([t, c], i) => `<li><b>${i + 1}</b><span>${t}</span><a class="gumini lzh" href="#/learn/callig/${encodeURIComponent(c)}" aria-label="Watch ${c} being written">${c}</a></li>`).join("")}</ol>`;
+    case "strokes": return `<div class="gustrokes">${b.items.map(([c, p, d]) => `<div><b class="lzh">${c}</b><span><b>${p}</b><br><span class="small muted">${d}</span></span></div>`).join("")}</div>`;
+    case "syl": return `<div class="gusyl"><b class="lzh">${b.c}</b><span class="gueq">=</span>${b.parts.map(([x, l]) => `<span class="gupart"><b>${x}</b><span class="tiny muted">${l}</span></span>`).join('<span class="gueq">+</span>')}<span class="gueq">→</span><button type="button" class="gusnd big" data-gu="play" data-f="t-ma1"><b>${b.py}</b> 🔊</button></div>`;
+    case "sounds": return uniSounds(C, b.set);
+    case "spell": return `<div class="guspell">${b.rows.map(([r, ex, n]) => `<div class="card"><span>${r}</span>${ex.length ? `<span class="row" style="gap:6px;flex-wrap:wrap">${ex.map((s) => `<button type="button" class="gusnd" data-gu="play" data-f="${uniFile(s)}"><b>${s}</b> 🔊</button>`).join("")}</span>` : ""}<span class="small muted">${n}</span></div>`).join("")}</div>`;
+    case "sytable": return uniSyTable(C);
+    case "tones": return uniTones(b);
+    case "tonegrid": return `<div class="gutgrid">${b.syls.map((s) => `<div class="gutrow"><span class="gutsyl">${s}</span>${[1, 2, 3, 4, 5].map((t) => `<button type="button" class="gusnd" data-gu="play" data-f="t-${s}${t}"><b>${uniMark(s, t)}</b></button>`).join("")}</div>`).join("")}</div>`;
+    case "rule": return `<div class="card gurule"><b>Rule ${b.n} · ${b.title}</b><span class="small">${b.x}</span>${b.ex.map(([z, w, s, e]) => `<div class="gurex"><b class="lzh">${z}</b><span>written <b>${w}</b></span><span>said <b class="gusaid">${s}</b></span><span class="small muted">${e}</span></div>`).join("")}</div>`;
+    case "steps": return `<ol class="gusteps">${b.items.map(([z, en, d]) => `<li><span class="lzh gustepzh">${z}</span><span><b>${en}</b><br><span class="small muted">${d}</span></span></li>`).join("")}</ol>`;
+    default: return "";
+  }
+}
+function uniSounds(C, set) {
+  const U = uniState(), groups = C.sounds[set], selK = U.sel[set];
+  const all = groups.flatMap((g) => g.items), sel = all.find((it) => it.k === selK);
+  const btn = (it) => `<button type="button" class="gusym ${set === "zhu" ? "zh" : ""} ${it.k === selK ? "on" : ""}" data-gu="snd" data-set="${set}" data-k="${esc(it.k)}" aria-label="${esc(it.k)}"><b>${esc(it.k)}</b><span>${esc(set === "zhu" ? it.p : it.z)}</span></button>`;
+  const panel = sel ? `<div class="card gusel" role="region" aria-live="polite"><div class="row" style="gap:12px;align-items:center"><button type="button" class="gubig ${set === "zhu" ? "zh" : ""}" data-gu="play" data-f="${uniSndFile(set, sel)}" aria-label="Play ${esc(sel.k)} again">${esc(sel.k)} 🔊</button>
+      <span class="grow small">${set === "zhu" ? `Pinyin: <b>${esc(sel.p)}</b>` : `Zhuyin: <b class="lzh">${esc(sel.z)}</b>`}${sel.o ? `<br>Comes from <b class="lzh">${esc(sel.o)}</b>` : ""}</span></div>
+      <p class="small" style="margin:8px 0 0">${sel.t}</p>
+      ${sel.x?.length ? `<p class="small muted" style="margin:8px 0 0">Often mixed up with: ${sel.x.map((x) => { const o = all.find((i) => i.k === x); return o ? `<button type="button" class="gusnd" data-gu="play" data-f="${uniSndFile(set, o)}"><b>${esc(x)}</b> 🔊</button>` : esc(x); }).join(" ")}</p>` : ""}</div>` : "";
+  return `<div class="gusounds">${groups.map((g) => {
+    const has = g.items.some((it) => it.k === selK);
+    return `<div class="gugrp"><span class="tiny muted"><b>${esc(g.g)}</b>${g.tip ? ` · ${esc(g.tip)}` : ""}</span><div class="gusyms">${g.items.map(btn).join("")}</div>${has ? panel : ""}</div>`;
+  }).join("")}</div>`;
+}
+function uniSyTable(C) {
+  const U = uniState(), rec = new Set(C.rec), rows = C.table, cur = rows.find((r) => r[0] === U.ini) || rows[1];
+  return `<div class="gusyt"><div class="gusyini" role="group" aria-label="Pick an initial">${rows.map(([i]) => `<button type="button" data-gu="ini" data-k="${i}" aria-pressed="${i === cur[0]}">${i === "∅" ? "none" : i}</button>`).join("")}</div>
+    <div class="gusylls">${cur[1].map((s) => rec.has(s.replace(/ü/g, "v")) || rec.has(s) ? `<button type="button" class="gusnd" data-gu="play" data-f="${uniFile(s)}"><b>${s}</b> 🔊</button>` : `<span class="gusnd off" title="No recording yet"><b>${s}</b></span>`).join("")}</div>
+    <p class="tiny muted" style="margin:6px 0 0">${cur[1].length} syllables start with ${cur[0] === "∅" ? "a vowel" : `<b>${cur[0]}</b>`}. Grey ones have no recording yet.</p></div>`;
+}
+function uniTones(b) {
+  const Y = (lv) => 46 - (lv - 1) * 10; // pitch 1 (low) to 5 (high)
+  const path = { 1: [[8, 5], [52, 5]], 2: [[8, 3], [52, 5]], 3: [[8, 2], [26, 1], [38, 1.3], [52, 4]], 4: [[8, 5], [52, 1]], 5: [[24, 3], [32, 2.8]] };
+  const svg = (t) => `<svg viewBox="0 0 60 52" aria-hidden="true">${[1, 2, 3, 4, 5].map((l) => `<line x1="2" x2="58" y1="${Y(l)}" y2="${Y(l)}" class="gul"/>`).join("")}<polyline points="${path[t].map(([x, l]) => `${x},${Y(l)}`).join(" ")}" class="gup t${t}"/></svg>`;
+  return `<div class="gutones">${b.items.map(([c, p, e], i) => `<button type="button" class="gutone" data-gu="play" data-f="t-${b.syl}${i + 1}">${svg(i + 1)}<b class="lzh">${c}</b><b>${p} 🔊</b><span class="tiny muted">${i < 4 ? ["1st", "2nd", "3rd", "4th"][i] : "neutral"} · ${e}</span></button>`).join("")}</div>`;
+}
+
+// ---- checks: quiz, listening games ----
+function uniQuiz(chk) {
+  const U = uniState();
+  return `<section class="card guslide"><div class="tiny muted">Check yourself</div><h2>${chk.qs.length} quick questions</h2>
+    ${chk.qs.map((q, i) => {
+      const picks = U.q.picks[i] || [], right = picks.includes(q.a);
+      const order = ((U.q.order ??= {})[i] ??= q.o.map((_, j) => j).sort(() => Math.random() - 0.5)); // answers in a random order
+      return `<div class="guq"><b>${i + 1}. ${esc(q.q)}</b><div class="guopts">${order.map((j) => [q.o[j], j]).map(([o, j]) => `<button type="button" class="guopt ${picks.includes(j) ? (j === q.a ? "right" : "wrong") : ""}" data-gu="pick" data-i="${i}" data-j="${j}" ${right ? "disabled" : ""}>${esc(o)}</button>`).join("")}</div>
+        ${right ? `<p class="small gufb ok">✓ ${esc(q.why)}</p>` : picks.length ? `<p class="small gufb no">Not quite. Try again.</p>` : ""}</div>`;
+    }).join("")}</section>`;
+}
+const UNI_INITS = ["zh", "ch", "sh", "b", "p", "m", "f", "d", "t", "n", "l", "g", "k", "h", "j", "q", "x", "r", "z", "c", "s"];
+const uniSplit = (s) => { const i = UNI_INITS.find((x) => s.startsWith(x)) || ""; return [i, s.slice(i.length)]; };
+function uniEarQuestion(C) {
+  const rec = C.rec.filter((s) => !s.includes("v")), all = new Set(C.table.flatMap((r) => r[1]));
+  const mix = {}; for (const g of [...C.sounds.ini, ...C.sounds.fin]) for (const it of g.items) mix[it.k] = it.x || [];
+  const s = rec[Math.floor(Math.random() * rec.length)], [i, f] = uniSplit(s);
+  const cand = new Set();
+  for (const x of mix[i] || []) if (all.has(x + f)) cand.add(x + f);
+  for (const x of mix[f] || []) if (all.has(i + x)) cand.add(i + x);
+  const near = [...all].filter((y) => y !== s && (uniSplit(y)[1] === f || uniSplit(y)[0] === i));
+  while (cand.size < 3 && near.length) cand.add(near.splice(Math.floor(Math.random() * near.length), 1)[0]);
+  cand.delete(s);
+  const opts = [s, ...[...cand].sort(() => Math.random() - 0.5).slice(0, 3)].sort(() => Math.random() - 0.5);
+  return { ans: s, opts, file: uniFile(s), label: (o) => o };
+}
+function uniToneQuestion(C) {
+  const s = C.tones[Math.floor(Math.random() * C.tones.length)], t = 1 + Math.floor(Math.random() * 4);
+  return { ans: uniMark(s, t), opts: [1, 2, 3, 4].map((k) => uniMark(s, k)), file: `t-${s}${t}`, tone: t };
+}
+function uniGame(C, chk) {
+  const U = uniState();
+  if (!U.game) U.game = { kind: chk.kind, n: chk.n, i: 0, score: 0, q: null, picked: null, over: false, started: false, missed: [] };
+  const G = U.game;
+  if (!G.started) return `<section class="card guslide guplay"><div class="tiny muted">${G.kind === "tone" ? "Tones" : "Listening"} practice</div><h2>${G.kind === "tone" ? "Which tone is it?" : "Test your ear"}</h2>
+    <p>${esc(chk.intro)}</p><p class="small muted">Turn your sound on. You can replay each question as often as you like.</p><button type="button" class="btn block" data-gu="gstart">Start ▶</button></section>`;
+  if (G.over) {
+    const stars = G.score >= 9 ? 3 : G.score >= 6 ? 2 : 1;
+    return `<section class="card guslide guplay"><h2>${G.score} / ${G.n} ${"★".repeat(stars)}</h2>
+      <p class="small">${G.score === G.n ? "Perfect ear! 太棒了！" : G.score >= 6 ? "Well done. Keep listening, it gets easier every day." : "Good start. Listen to the sounds again and have another go when you like."}</p>
+      ${G.missed.length ? `<p class="small muted">Tap to hear the ones you missed:</p><div class="gusay">${G.missed.map((m) => `<button type="button" class="gusnd" data-gu="play" data-f="${m.file}"><b>${esc(m.ans)}</b> 🔊</button>`).join("")}</div>` : ""}
+      <button type="button" class="btn ghost block" data-gu="gagain">Play again</button></section>`;
+  }
+  const q = G.q;
+  return `<section class="card guslide guplay"><div class="row between"><span class="tiny muted">Question ${G.i + 1} of ${G.n}</span><span class="tiny"><b>${G.score}</b> right</span></div>${dBar((G.i / G.n) * 100, "#f37a48")}
+    <button type="button" class="gubig play" data-gu="play" data-f="${q.file}" aria-label="Play the sound again">🔊</button>
+    <p class="small muted" style="text-align:center;margin:0">${G.kind === "tone" ? "Which tone did you hear?" : "How is it written?"}</p>
+    <div class="guopts two">${q.opts.map((o) => `<button type="button" class="guopt big ${G.picked != null ? (o === q.ans ? "right" : o === G.picked ? "wrong" : "") : ""}" data-gu="gpick" data-v="${esc(o)}" ${G.picked != null ? "disabled" : ""}>${esc(o)}</button>`).join("")}</div>
+    ${G.picked != null ? `<button type="button" class="btn block" data-gu="gnext">${G.i + 1 === G.n ? "See my score" : "Next ›"}</button>` : ""}</section>`;
+}
+function uniGameNext() {
+  const U = uniState(), G = U.game, C = uniCourse(U.q.key.split("/")[0]);
+  G.q = G.kind === "tone" ? uniToneQuestion(C) : uniEarQuestion(C); G.picked = null;
+  render(); setTimeout(() => uniPlay(G.q.file), 150);
+}
+
+document.addEventListener("click", (e) => {
+  const el = e.target.closest("[data-gu]"); if (!el) return;
+  const U = uniState(), a = el.dataset.gu;
+  if (a === "play") uniPlay(el.dataset.f);
+  else if (a === "snd") {
+    const set = el.dataset.set, k = el.dataset.k, C = uniCourse(U.q?.key.split("/")[0] || "pre");
+    const it = C.sounds[set].flatMap((g) => g.items).find((i) => i.k === k);
+    U.sel[set] = k; uniPlay(uniSndFile(set, it)); render();
+  }
+  else if (a === "ini") { U.ini = el.dataset.k; render(); }
+  else if (a === "locked") toast("Finish the section before it first.");
+  else if (a === "pick") { const i = +el.dataset.i, j = +el.dataset.j; (U.q.picks[i] ??= []).push(j); render(); }
+  else if (a === "gstart" || a === "gagain") { U.game = { ...U.game, i: 0, score: 0, picked: null, over: false, started: true, missed: [] }; uniGameNext(); }
+  else if (a === "gpick") {
+    const G = U.game; if (G.picked != null) return;
+    G.picked = el.dataset.v;
+    if (G.picked === G.q.ans) G.score++; else G.missed.push({ ans: G.q.ans, file: G.q.file });
+    render();
+  }
+  else if (a === "gnext") { const G = U.game; G.i++; if (G.i >= G.n) { G.over = true; render(); } else uniGameNext(); }
+  else if (a === "finish") { el.disabled = true; uniFinish(el.dataset.c, el.dataset.s); }
+});

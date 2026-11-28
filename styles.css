@@ -1858,3 +1858,145 @@ button.wdstamp:hover { background: #fff; }
 .dhskin:hover { color: inherit; }
 .dhsksel { position: absolute; top: 6px; right: 8px; }
 .dhsksel select { font: inherit; font-size: 12px; font-weight: 700; color: #2e7d48; background: #eef7ea; border: 1px solid #cfe6c6; border-radius: 999px; padding: 2px 6px; cursor: pointer; max-width: 9.5em; }
+
+/* Great Chinese University 中文大學 (28 Nov 2026, admin demo) */
+.gusign .ztsigntext { display: grid; place-items: center; text-align: center; color: #3a1d08; }
+.gusignzh { font-family: "Noto Sans TC", "Noto Sans SC", sans-serif; font-weight: 900; line-height: 1; }
+.gumap { border-color: #6b1d12; background: #8fcf5a; }
+.ztlabel.gulabel { background: #9b2c2c; }
+.gunext { display: flex; flex-direction: column; gap: 6px; text-decoration: none; color: var(--ink); background: #fff7f5; border-color: #f0c4bb; }
+.gunext:hover { color: var(--ink); border-color: #e0a090; }
+.gunext.done { background: #eef7ea; border-color: #cfe6c6; }
+.gucourse { display: flex; flex-direction: row; text-align: left; gap: 12px; align-items: center; text-decoration: none; color: var(--ink); padding: 12px; }
+.gucourse:hover { color: var(--ink); border-color: #e0a090; }
+.gucourse.soon { opacity: .8; }
+.gubook { width: 46px; height: 62px; border-radius: 5px 9px 9px 5px; flex: none; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #fff; box-shadow: inset 5px 0 0 rgba(0,0,0,.18), 0 3px 6px rgba(0,0,0,.15); }
+.gubook b { font-size: 10px; letter-spacing: .06em; }
+.gubook i { font-style: normal; font-weight: 800; font-size: 18px; line-height: 1.1; }
+.gubook.big { width: 64px; height: 86px; }
+.gubook.big i { font-size: 22px; }
+.guchip { display: inline-block; border-radius: 999px; padding: 2px 9px; font-size: 11.5px; font-weight: 800; }
+.guchip.free { background: #e0f4e0; color: #1b6f1b; }
+.guchip.price { background: #fff4e6; color: #9a4a12; }
+.guchip.club { background: #fde3df; color: #9b2c2c; }
+.guchip.soonc { background: #f1ece6; color: #7a6a60; }
+.guhallimg { width: 96px; flex: none; }
+.guhero { display: flex; flex-direction: row; text-align: left; gap: 14px; align-items: center; }
+.gupath { display: flex; flex-direction: column; gap: 10px; padding: 4px 0 10px; }
+.gunode { display: flex; align-items: center; gap: 12px; margin-left: var(--off); text-decoration: none; color: var(--ink); background: none; border: 0; padding: 0; text-align: left; font: inherit; cursor: pointer; }
+.gunode:hover { color: var(--ink); }
+.gudot { width: 54px; height: 54px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 18px; flex: none; background: #fff; box-shadow: 0 0 0 2px var(--line), 0 4px 0 rgba(0,0,0,.12); }
+.gunode.done .gudot { background: #2e7d48; color: #fff; box-shadow: 0 4px 0 #1d5a32; }
+.gunode.cur .gudot { background: #f37a48; box-shadow: 0 0 0 4px #ffd7c2, 0 4px 0 #c45a2c; }
+.gunode.lock .gudot { background: #efe7df; color: #b3a69c; box-shadow: none; }
+.gunode.lock .gutxt { opacity: .6; }
+.gutxt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.guwrap { max-width: 780px; display: flex; flex-direction: column; gap: 12px; }
+.gudots { display: flex; gap: 6px; }
+.gudots a { flex: 1; height: 6px; border-radius: 9px; background: #efe5da; }
+.gudots a.ok { background: #2e7d48; }
+.gudots a.cur { background: #f37a48; }
+.gudots a.chk:not(.ok):not(.cur) { background: #ffe2cf; }
+.guslide { display: flex; flex-direction: column; gap: 10px; }
+.guslide h2 { margin: 0; font-size: 21px; }
+.guslide h3 { margin: 6px 0 0; font-size: 16px; color: var(--green); }
+.guslide p { margin: 0; line-height: 1.55; }
+.gunav .btn[disabled] { opacity: .5; }
+.gutip { display: flex; gap: 10px; align-items: flex-start; background: #fff7e6; border-radius: 14px; padding: 10px 12px; font-size: 14.5px; line-height: 1.5; box-shadow: inset 0 0 0 1.5px #f6dca0; }
+.gutip.good { background: #eef7ea; box-shadow: inset 0 0 0 1.5px #cfe6c6; }
+.gulist { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 4px; line-height: 1.5; }
+.gufacts { display: flex; flex-direction: column; gap: 0; border-radius: 14px; overflow: hidden; box-shadow: 0 0 0 1px var(--line); }
+.gufacts div { display: grid; grid-template-columns: 120px 1fr; gap: 10px; padding: 9px 12px; font-size: 14.5px; line-height: 1.5; }
+.gufacts div:nth-child(odd) { background: #fbf6f1; }
+@media (max-width: 520px) { .gufacts div { grid-template-columns: 1fr; gap: 2px; } }
+.gutablewrap { overflow-x: auto; }
+.gutable { width: 100%; border-collapse: collapse; font-size: 14px; }
+.gutable th, .gutable td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.gutable thead th { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--faint); }
+.guimg { margin: 0; }
+.guimg img { width: 100%; max-height: 260px; object-fit: cover; border-radius: 14px; display: block; }
+.gusay { display: flex; flex-wrap: wrap; gap: 8px; }
+.gusnd { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; border: 0; border-radius: 12px; padding: 8px 12px; background: #eef5ff; color: #1f3f6b; box-shadow: inset 0 0 0 1.5px #c9dcf5; font: inherit; cursor: pointer; text-align: left; }
+.gusnd:hover { background: #e2eeff; }
+.gusnd span { width: 100%; color: #4a5f7c; }
+.gusnd.off { background: #f4f1ee; color: #a99c92; box-shadow: none; cursor: default; }
+.gusnd.big { font-size: 20px; }
+.guchars { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.guchar { display: flex; flex-direction: column; gap: 3px; background: #fff; border-radius: 14px; padding: 10px 12px; box-shadow: 0 0 0 1px var(--line); text-decoration: none; color: var(--ink); }
+.guchar:hover { color: var(--ink); box-shadow: 0 0 0 2px #e0a090; }
+.guchar > b { font-size: 30px; line-height: 1.1; }
+.guevo { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; background: #fbf3e6; border-radius: 16px; padding: 12px; }
+.guevo img { width: 86px; height: 86px; object-fit: contain; background: #f3e3c3; border-radius: 12px; padding: 6px; }
+.guevosteps { display: flex; flex-direction: column; gap: 4px; font-size: 13.5px; flex: 1; min-width: 180px; }
+.guevoend { display: flex; gap: 12px; }
+.guevoend > span { display: flex; flex-direction: column; align-items: center; }
+.guevoend b { font-size: 44px; line-height: 1; }
+.gukinds { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+.gukinds .card { gap: 3px; padding: 10px 12px; }
+.guex { font-size: 15px; color: var(--green-ink); }
+.gurules { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.gurules li { display: flex; align-items: center; gap: 10px; line-height: 1.35; }
+.gurules li > b { width: 22px; height: 22px; border-radius: 50%; background: #f1e6da; display: grid; place-items: center; font-size: 12px; flex: none; }
+.gurules li > span { flex: 1; }
+.gumini { display: inline-grid; place-items: center; width: 34px; height: 34px; flex: none; border-radius: 9px; background: #fbf3e6; box-shadow: inset 0 0 0 1.5px #ecd9b6; text-decoration: none; color: var(--ink); font-size: 20px; vertical-align: middle; }
+.gustrokes { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; }
+.gustrokes > div { display: flex; gap: 10px; align-items: center; background: #fbf6f1; border-radius: 12px; padding: 8px 10px; }
+.gustrokes > div > b { font-size: 28px; width: 36px; text-align: center; color: #9b2c2c; }
+.gusyl { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; background: #fbf6f1; border-radius: 16px; padding: 12px; }
+.gusyl > b { font-size: 44px; }
+.gueq { font-weight: 800; color: var(--faint); }
+.gupart { display: flex; flex-direction: column; align-items: center; background: #fff; border-radius: 10px; padding: 4px 10px; box-shadow: 0 0 0 1px var(--line); }
+.gupart b { font-size: 22px; }
+.gusounds { display: flex; flex-direction: column; gap: 10px; }
+.gugrp { display: flex; flex-direction: column; gap: 6px; }
+.gusyms { display: flex; flex-wrap: wrap; gap: 6px; }
+.gusym { min-width: 52px; display: flex; flex-direction: column; align-items: center; gap: 1px; border: 0; border-radius: 12px; padding: 7px 8px; background: #fff; box-shadow: 0 0 0 1.5px var(--line), 0 3px 0 #eadfd6; font: inherit; cursor: pointer; }
+.gusym b { font-size: 19px; }
+.gusym span { font-size: 11.5px; color: var(--faint); font-family: "Noto Sans TC", sans-serif; }
+.gusym.zh b { font-family: "Noto Sans TC", sans-serif; font-size: 21px; }
+.gusym.zh span { font-family: inherit; }
+.gusym.on { background: #f37a48; box-shadow: 0 0 0 1.5px #c45a2c, 0 3px 0 #c45a2c; }
+.gusym.on span { color: #3a1d08; }
+.gusel { gap: 0; background: #fffaf2; border-color: #f6dca0; }
+.gubig { min-width: 70px; height: 58px; padding: 0 12px; border: 0; border-radius: 14px; background: #f37a48; font-family: inherit; font-weight: 800; font-size: 24px; line-height: 1; cursor: pointer; box-shadow: 0 4px 0 #c45a2c; }
+.gubig.zh { font-family: "Noto Sans TC", sans-serif; }
+.gubig.play { align-self: center; width: 96px; height: 96px; border-radius: 50%; font-size: 38px; margin: 6px 0; }
+.guspell { display: flex; flex-direction: column; gap: 8px; }
+.guspell .card { gap: 6px; padding: 10px 12px; }
+.gusyt { display: flex; flex-direction: column; gap: 8px; }
+.gusyini { display: flex; flex-wrap: wrap; gap: 5px; }
+.gusyini button { min-width: 38px; border: 0; border-radius: 9px; padding: 6px 8px; background: #fff; box-shadow: 0 0 0 1.5px var(--line); font-family: inherit; font-weight: 700; font-size: 14px; cursor: pointer; }
+.gusyini button[aria-pressed="true"] { background: #2e7d48; color: #fff; box-shadow: none; }
+.gusylls { display: flex; flex-wrap: wrap; gap: 6px; }
+.gusylls .gusnd { padding: 6px 10px; }
+.gutones { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+@media (max-width: 520px) { .gutones { grid-template-columns: repeat(3, 1fr); } }
+.gutone { display: flex; flex-direction: column; align-items: center; gap: 2px; border: 0; border-radius: 14px; padding: 8px 4px; background: #fff; box-shadow: 0 0 0 1.5px var(--line), 0 3px 0 #eadfd6; font: inherit; cursor: pointer; text-align: center; }
+.gutone svg { width: 100%; max-width: 80px; }
+.gutone .gul { stroke: #eee3d8; stroke-width: 1; }
+.gutone .gup { fill: none; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
+.gup.t1 { stroke: #2f6fb3; } .gup.t2 { stroke: #2e7d48; } .gup.t3 { stroke: #c2410c; } .gup.t4 { stroke: #9b2c2c; } .gup.t5 { stroke: #8a7a70; }
+.gutone > b.lzh { font-size: 26px; line-height: 1.1; }
+.gutgrid { display: flex; flex-direction: column; gap: 6px; }
+.gutrow { display: grid; grid-template-columns: 34px repeat(5, 1fr); gap: 5px; align-items: center; }
+.gutsyl { font-weight: 800; color: var(--faint); font-size: 13px; }
+.gutrow .gusnd { min-width: 0; justify-content: center; font-size: 15px; padding: 8px 2px; }
+.gurule { gap: 6px; }
+.gurex { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: baseline; background: #fbf6f1; border-radius: 10px; padding: 6px 10px; }
+.gurex .lzh { font-size: 20px; }
+.gusaid { color: #c2410c; }
+.gusteps { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.gusteps li { display: flex; gap: 12px; align-items: center; background: #fbf6f1; border-radius: 12px; padding: 8px 12px; }
+.gustepzh { font-size: 20px; font-weight: 800; color: #9b2c2c; width: 46px; flex: none; }
+.guq { display: flex; flex-direction: column; gap: 8px; padding: 8px 0; border-top: 1px solid var(--line); }
+.guopts { display: grid; grid-template-columns: 1fr; gap: 6px; }
+.guopts.two { grid-template-columns: 1fr 1fr; }
+.guopt { border: 0; border-radius: 12px; padding: 10px 12px; background: #fff; box-shadow: 0 0 0 1.5px var(--line); font: inherit; text-align: left; cursor: pointer; }
+.guopt.big { text-align: center; font-size: 24px; font-weight: 700; padding: 14px; }
+.guopt.right { background: #d8f1d0; box-shadow: 0 0 0 2.5px #2e7d48; }
+.guopt.wrong { background: #fde3df; box-shadow: 0 0 0 1.5px #e8b4ab; opacity: .75; }
+.guopt[disabled] { cursor: default; }
+.gufb { margin: 0; }
+.gufb.ok { color: #1b6f1b; }
+.gufb.no { color: #9b2c2c; }
+.guplay { align-items: stretch; }
