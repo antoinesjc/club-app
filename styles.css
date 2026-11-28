@@ -1831,3 +1831,5 @@ button.wdstamp:hover { background: #fff; }
 .wdcard .wdflag { width: 120px; height: 90px; }
 .wdcard .wdbig { font-size: 40px; font-weight: 800; line-height: 1.1; }
 .wdcard .ztx { position: absolute; right: 10px; top: 8px; }
+.dcart { image-rendering: pixelated; }
+.dtile.dspan { grid-column: 1 / -1; }
