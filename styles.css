@@ -2000,3 +2000,67 @@ button.wdstamp:hover { background: #fff; }
 .gufb.ok { color: #1b6f1b; }
 .gufb.no { color: #9b2c2c; }
 .guplay { align-items: stretch; }
+/* University interactive blocks (29 Nov 2026) */
+.guask { display: flex; flex-direction: column; gap: 8px; background: #fbf6f1; border-radius: 16px; padding: 12px; }
+.guglyph { width: 96px; height: 96px; object-fit: contain; align-self: center; background: #f3e3c3; border-radius: 14px; padding: 8px; }
+.gubigtxt { align-self: center; font-size: 30px; font-weight: 800; letter-spacing: .02em; }
+.guopt.lzhopt { font-size: 16px; }
+.guopt.on { background: #fff4e6; box-shadow: 0 0 0 2.5px #f37a48; }
+.gumulti { display: flex; flex-wrap: wrap; gap: 6px; }
+.gumulti .guopt { width: auto; min-width: 56px; text-align: center; }
+.gutf { display: flex; flex-direction: column; gap: 8px; }
+.gutfrow { display: flex; flex-direction: column; gap: 8px; background: #fbf6f1; border-radius: 14px; padding: 10px 12px; }
+.gutfrow.ok { background: #eef7ea; } .gutfrow.no { background: #fdf0ed; }
+.gutfb { border: 0; border-radius: 999px; padding: 6px 16px; font: inherit; font-weight: 800; background: #fff; box-shadow: 0 0 0 1.5px var(--line); cursor: pointer; }
+.gutfb.on { background: #2a2420; color: #fff; }
+.gutfb[disabled] { cursor: default; }
+.guflips { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+.guflip { position: relative; min-height: 110px; border: 0; border-radius: 16px; padding: 14px; font: inherit; text-align: left; cursor: pointer; background: #2f6fb3; color: #fff; box-shadow: 0 4px 0 #1f4f86; }
+.guflip .gufront { display: flex; flex-direction: column; gap: 6px; font-weight: 800; font-size: 16px; }
+.guflip .gufront i { font-style: normal; font-weight: 600; font-size: 12px; opacity: .8; }
+.guflip .guback { display: none; font-size: 14px; line-height: 1.45; }
+.guflip.open { background: #fff; color: var(--ink); box-shadow: 0 0 0 2px #c9dcf5, 0 4px 0 #c9dcf5; }
+.guflip.open .gufront { display: none; }
+.guflip.open .guback { display: block; }
+.gumatch { display: flex; flex-direction: column; gap: 8px; background: #fbf6f1; border-radius: 16px; padding: 12px; }
+.gumhead { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 12px; font-weight: 800; color: var(--faint); text-transform: uppercase; letter-spacing: .05em; }
+.gumcols { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.gumcols > div { display: flex; flex-direction: column; gap: 6px; }
+.gumi { border: 0; border-radius: 12px; padding: 10px; font: inherit; font-size: 18px; font-weight: 700; background: #fff; box-shadow: 0 0 0 1.5px var(--line); cursor: pointer; }
+.gumi.sel { box-shadow: 0 0 0 3px #f37a48; background: #fff4e6; }
+.gumi.ok { background: #d8f1d0; box-shadow: none; color: #1b6f1b; cursor: default; }
+.gumi.bad { background: #fde3df; box-shadow: 0 0 0 2px #e8b4ab; animation: gushake .3s; }
+@keyframes gushake { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+.gulrow { display: flex; gap: 10px; align-items: center; }
+.gubig.small { min-width: 48px; height: 48px; font-size: 20px; border-radius: 50%; padding: 0; }
+.guopt.big2 { font-size: 18px; font-weight: 700; padding: 8px 14px; text-align: center; }
+.guwrite { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+.guwcard { gap: 6px; padding: 12px; }
+.guwbox { width: 100%; max-width: 220px; aspect-ratio: 1; align-self: center; background: #fffdf8; border-radius: 12px; box-shadow: inset 0 0 0 2px #e8c7c0; background-image: linear-gradient(#f1d9d4 1px, transparent 1px), linear-gradient(90deg, #f1d9d4 1px, transparent 1px); background-size: 50% 50%; background-position: center; touch-action: none; }
+.gurec { display: flex; flex-direction: column; gap: 8px; background: #f3effb; border-radius: 14px; padding: 10px 12px; }
+.gupairs { display: flex; flex-wrap: wrap; gap: 8px; }
+.gupair { display: flex; flex-direction: column; align-items: center; gap: 2px; border: 0; border-radius: 14px; padding: 10px 16px; background: #fff; box-shadow: 0 0 0 1.5px var(--line), 0 3px 0 #eadfd6; font: inherit; cursor: pointer; }
+.gupair b { font-size: 24px; }
+.gutrack { gap: 8px; background: #eef5ff; border-color: #c9dcf5; }
+.gutracks { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.gutrackc { gap: 6px; align-items: flex-start; text-align: left; font: inherit; cursor: pointer; }
+.gutrackc:hover, .gutrackc.on { border-color: #f37a48; box-shadow: 0 0 0 2px #f37a48; }
+.gutrackbig { font-size: 30px; font-weight: 800; color: #2f6fb3; letter-spacing: .1em; }
+.gulevels { display: flex; flex-direction: column; gap: 6px; }
+.gugh { margin: 10px 0 2px; font-size: 15px; color: var(--green); }
+.gulvgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 8px; }
+.gulv { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 72px; border: 0; border-radius: 16px; background: #fff; box-shadow: 0 0 0 1.5px var(--line), 0 4px 0 #eadfd6; text-decoration: none; color: var(--ink); font: inherit; cursor: pointer; }
+.gulv b { font-size: 22px; line-height: 1.1; }
+.gulv span { font-size: 11px; color: var(--faint); }
+.gulv.done { background: #eef7ea; box-shadow: 0 0 0 1.5px #cfe6c6, 0 4px 0 #b9d9ad; }
+.gulv.done span { color: #c98a00; font-size: 12px; }
+.gulv.cur { background: #f37a48; box-shadow: 0 0 0 3px #ffd7c2, 0 4px 0 #c45a2c; }
+.gulv.cur span { color: #3a1d08; }
+.gulv.lock { opacity: .45; }
+.gulv.check { background: #fff4e6; }
+.gulv.check b { color: #c98a00; }
+.gulv.check.done { background: #fff4e6; }
+.gumeet { align-items: stretch; }
+.gubig.huge { align-self: center; min-width: 130px; height: 120px; font-size: 54px; border-radius: 26px; }
+.gustars { font-size: 34px; color: #f2a516; letter-spacing: 4px; }
+.gustars span { color: #e8ddd2; }

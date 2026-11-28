@@ -1,12 +1,12 @@
-import { createClient } from "./vendor/supabase.js?v=182";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=182";
-import { COUNTRIES } from "./countries.js?v=182";
-import { toZhuyin } from "./zhuyin.js?v=182";
-import { ORACLE, ORACLE_T } from "./course-oracle.js?v=182";
+import { createClient } from "./vendor/supabase.js?v=183";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=183";
+import { COUNTRIES } from "./countries.js?v=183";
+import { toZhuyin } from "./zhuyin.js?v=183";
+import { ORACLE, ORACLE_T } from "./course-oracle.js?v=183";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=182";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=183";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -41,7 +41,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=182"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=183"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -559,6 +559,7 @@ function render() {
   else if (!tour && state.rewardQueue?.length && !app.querySelector(".hbover")) app.insertAdjacentHTML("beforeend", rewardOverlay());
   wireMap();
   cgAfterRender();
+  uniAfterRender();
   tmapAfterRender();
 }
 
@@ -1705,7 +1706,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=182"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=183"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -2346,7 +2347,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=182");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=183");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -3258,7 +3259,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=182").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=183").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -5792,7 +5793,7 @@ async function cgRemember(t) {
   if (data?.length) await sb.from("char_recent").delete().eq("user_id", state.user.id).in("text", data.map((r) => r.text));
 }
 let cgHW = null;
-const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=182")).default);
+const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=183")).default);
 const cgStrokes = async (c) => {
   const S = cgState(); if (S.data.has(c)) return S.data.get(c);
   const HW = await cgLib(); const d = await HW.loadCharacterData(c).catch(() => null);
@@ -6339,7 +6340,7 @@ const wdState = () => (state.wd ??= { data: null, map: null, loading: false, b: 
 async function wdLoad() {
   const S = wdState(); if (S.data || S.loading) return; S.loading = true;
   try {
-    const [d, m] = await Promise.all([import("./countries-zh.js?v=182"), import("./worldmap.js?v=182")]);
+    const [d, m] = await Promise.all([import("./countries-zh.js?v=183"), import("./worldmap.js?v=183")]);
     S.data = d.WORLD_ZH.map((r) => ({ c: r[0], en: r[1], cont: r[2], twT: r[3], twS: r[4], twPy: r[5], cnS: r[6], cnT: r[7], cnPy: r[8], x: r[9], y: r[10], onMap: !!r[11], also: r[12] || null }));
     S.map = m.WORLD.filter((w) => w[0]);
     S.zoom = new Map(S.map.map((w) => [w[0], w[2]]));
@@ -6696,7 +6697,7 @@ async function wsMake(mode, win) {
   W.busy = true; wsCount(); toast(`Making your ${list.length === 1 ? "sheet" : `${list.length} sheets`}…`);
   try {
     await wsInfo(list); try { await document.fonts.ready; } catch {}
-    const { jsPDF } = await import("./vendor/pdf.js?v=182");
+    const { jsPDF } = await import("./vendor/pdf.js?v=183");
     const pdf = new jsPDF({ unit: "mm", format: "a4", compress: true });
     const cv = document.createElement("canvas"); cv.width = WS_A4.w; cv.height = WS_A4.h; const ctx = cv.getContext("2d");
     for (let i = 0; i < list.length; i++) {
@@ -7507,6 +7508,7 @@ function uniView(parts) {
   const [a, b, c] = parts;
   if (!a) return uniCampus();
   if (a === "hall") return uniHall();
+  if (a === "sounds") return uniSoundsView(b, c);
   const C = uniCourse(a);
   if (!C) { location.hash = "#/learn/uni/hall"; return ""; }
   if (!b) return uniCourseView(a, C);
@@ -7546,8 +7548,10 @@ function uniCourseCards() {
   const price = `<span class="guchip price">US$15</span><span class="guchip club">Club US$5</span>`;
   return `<div class="stack" style="gap:8px">
     ${C ? card("#/learn/uni/pre", book("#c2410c", "PRE", "迎"), "Pre-unit · Welcome to Chinese", `${C.sections.length} sections · ${n ? `${n} done` : "start here"}`, `<span class="guchip free">Free for everyone</span>`, dBar((n / C.sections.length) * 100, "#2e7d48")) : ""}
+    ${(() => { const S = uniCourse("sounds"); if (!S) return ""; const SP = uniProg("sounds"), tr = SP.parts.track, L = tr ? uniLevels(S, tr) : [], d = L.filter((_, i) => SP.done[`${tr}:${i}`]).length;
+      return card("#/learn/uni/sounds", book("#2f6fb3", tr === "zh" ? "注音" : "PINYIN", tr === "zh" ? "ㄅ" : "b"), "Sounds · Pinyin or Zhuyin", tr ? `${tr === "zh" ? "Zhuyin" : "Pinyin"} track · ${d} of ${L.length} levels` : "Choose pinyin or zhuyin · one new sound per level", `<span class="guchip free">Free for everyone</span>`, tr ? dBar((d / L.length) * 100, "#2e7d48") : ""); })()}
     ${card("", book("#2e7d48", "HSK", "1"), "HSK 1 · First steps", "10 units · coming next", `<span class="guchip free">Free for everyone</span><span class="guchip soonc">Soon</span>`)}
-    ${card("", book("#2f6fb3", "HSK", "2"), "HSK 2", "Coming later", price)}
+    ${card("", book("#1f6f8b", "HSK", "2"), "HSK 2", "Coming later", price)}
     ${card("", book("#7a3fa0", "HSK", "3"), "HSK 3", "Coming later", price)}
     ${card("", book("#9b2c2c", "HSK", "4"), "HSK 4", "Coming later", price)}</div>`;
 }
@@ -7589,7 +7593,7 @@ function uniSectionView(id, C, si, n) {
   if (isCheck) {
     if (S.check.t === "quiz") { body = uniQuiz(S.check); canNext = S.check.qs.every((_, i) => U.q.picks[i]?.includes(S.check.qs[i].a)); }
     else { body = uniGame(C, S.check); canNext = !!U.game?.over; }
-  } else body = `<section class="card guslide"><div class="tiny muted">Part ${n + 1} of ${S.parts.length}</div><h2>${esc(S.parts[n].title)}</h2>${S.parts[n].blocks.map((b) => uniBlock(C, b)).join("")}</section>`;
+  } else body = `<section class="card guslide"><div class="tiny muted">Part ${n + 1} of ${S.parts.length}</div><h2>${esc(S.parts[n].title)}</h2>${S.parts[n].blocks.map((b, bi) => uniBlock(C, b, bi)).join("")}</section>`;
   const nextLabel = last ? (si === C.sections.length - 1 ? "Finish the Pre-unit ✓" : "Finish this section ✓") : n === S.parts.length - 1 && S.check ? (S.check.t === "quiz" ? "Check yourself ›" : "Listening practice ›") : "Next ›";
   const nav = `<div class="row gunav" style="gap:8px">${n ? `<a class="btn ghost" href="#/learn/uni/${id}/${S.id}/${n - 1}">‹ Back</a>` : ""}
     ${last ? `<button type="button" class="btn grow" data-gu="finish" data-c="${id}" data-s="${S.id}" ${canNext ? "" : "disabled"}>${nextLabel}</button>` : `<a class="btn grow" href="#/learn/uni/${id}/${S.id}/${n + 1}">${nextLabel}</a>`}</div>
@@ -7613,7 +7617,7 @@ async function uniFinish(id, sid) {
 }
 
 // ---- blocks ----
-function uniBlock(C, b) {
+function uniBlock(C, b, bi) {
   const U = uniState();
   switch (b.t) {
     case "p": return `<p>${b.x}</p>`;
@@ -7637,6 +7641,7 @@ function uniBlock(C, b) {
     case "tones": return uniTones(b);
     case "tonegrid": return `<div class="gutgrid">${b.syls.map((s) => `<div class="gutrow"><span class="gutsyl">${s}</span>${[1, 2, 3, 4, 5].map((t) => `<button type="button" class="gusnd" data-gu="play" data-f="t-${s}${t}"><b>${uniMark(s, t)}</b></button>`).join("")}</div>`).join("")}</div>`;
     case "rule": return `<div class="card gurule"><b>Rule ${b.n} · ${b.title}</b><span class="small">${b.x}</span>${b.ex.map(([z, w, s, e]) => `<div class="gurex"><b class="lzh">${z}</b><span>written <b>${w}</b></span><span>said <b class="gusaid">${s}</b></span><span class="small muted">${e}</span></div>`).join("")}</div>`;
+    case "guess": case "tf": case "flip": case "match": case "multi": case "listen": case "write": case "rec": case "pair": case "track": return uniBlockI(C, b, bi);
     case "steps": return `<ol class="gusteps">${b.items.map(([z, en, d]) => `<li><span class="lzh gustepzh">${z}</span><span><b>${en}</b><br><span class="small muted">${d}</span></span></li>`).join("")}</ol>`;
     default: return "";
   }
@@ -7723,12 +7728,233 @@ function uniGameNext() {
   render(); setTimeout(() => uniPlay(G.q.file), 150);
 }
 
+// ---- interactive blocks (29 Nov 2026): guess, true/false, flip cards, match, multi-select, listen, write, record ----
+const uniSt = (k) => ((uniState().q.b ??= {})[k] ??= {});
+const uniShuffle = (k, n) => (uniSt(`o${k}`).o ??= [...Array(n).keys()].sort(() => Math.random() - 0.5));
+function uniBlockI(C, b, bi) {
+  const U = uniState();
+  switch (b.t) {
+    case "guess": {
+      const s = uniSt(bi), picks = s.picks || [], right = picks.includes(b.a), order = uniShuffle(bi, b.o.length);
+      return `<div class="guask">${b.img ? `<img class="guglyph" src="${b.img}" alt="An oracle bone drawing">` : ""}${b.big ? `<div class="gubigtxt lzh">${b.big}</div>` : ""}<b>${b.q}</b>
+        <div class="guopts two">${order.map((j) => `<button type="button" class="guopt lzhopt ${picks.includes(j) ? (j === b.a ? "right" : "wrong") : ""}" data-gu="g" data-k="${bi}" data-j="${j}" ${right ? "disabled" : ""}>${b.o[j]}</button>`).join("")}</div>
+        ${right ? `<p class="small gufb ok">✓ ${b.why}</p>` : picks.length ? `<p class="small gufb no">Not this one. Try again!</p>` : ""}</div>`;
+    }
+    case "tf": return `<div class="gutf">${b.items.map(([x, v, why], i) => {
+      const s = uniSt(`${bi}.${i}`), done = s.v != null, ok = s.v === v;
+      return `<div class="gutfrow ${done ? (ok ? "ok" : "no") : ""}"><span>${x}</span><span class="row" style="gap:6px">${[true, false].map((t) => `<button type="button" class="gutfb ${done && s.v === t ? "on" : ""}" data-gu="tf" data-k="${bi}.${i}" data-v="${t}" ${done ? "disabled" : ""}>${t ? "True" : "False"}</button>`).join("")}</span>
+        ${done ? `<p class="small gufb ${ok ? "ok" : "no"}">${ok ? "✓ Right. " : "✗ "}${why}</p>` : ""}</div>`;
+    }).join("")}</div>`;
+    case "flip": return `<div class="guflips">${b.items.map(([f, bk], i) => { const s = uniSt(`${bi}.${i}`); return `<button type="button" class="guflip ${s.open ? "open" : ""}" data-gu="flip" data-k="${bi}.${i}"><span class="gufront">${f}<i>Tap to see</i></span><span class="guback">${bk}</span></button>`; }).join("")}</div>`;
+    case "match": {
+      const s = uniSt(bi), done = s.done || [], rOrder = uniShuffle(`${bi}r`, b.pairs.length), lOrder = uniShuffle(`${bi}l`, b.pairs.length);
+      const all = done.length === b.pairs.length;
+      return `<div class="gumatch"><div class="gumhead"><span>${b.l}</span><span>${b.r}</span></div><div class="gumcols"><div>${lOrder.map((i) => `<button type="button" class="gumi lzh ${done.includes(i) ? "ok" : s.l === i ? "sel" : ""}" data-gu="ml" data-k="${bi}" data-i="${i}" ${done.includes(i) ? "disabled" : ""}>${b.pairs[i][0]}</button>`).join("")}</div>
+        <div>${rOrder.map((i) => `<button type="button" class="gumi lzh ${done.includes(i) ? "ok" : s.bad === i ? "bad" : ""}" data-gu="mr" data-k="${bi}" data-i="${i}" ${done.includes(i) ? "disabled" : ""}>${b.pairs[i][1]}</button>`).join("")}</div></div>
+        <p class="small ${all ? "gufb ok" : "muted"}" style="margin:0">${all ? "✓ All matched!" : s.l == null ? "Tap one on the left, then its match on the right." : "Now tap its match on the right."}</p></div>`;
+    }
+    case "multi": {
+      const s = uniSt(bi), sel = s.sel || [], chk = s.checked, good = chk && b.items.every(([, v], i) => v === sel.includes(i));
+      return `<div class="guask"><b>${b.q}</b><div class="gumulti">${b.items.map(([x, v], i) => `<button type="button" class="guopt lzhopt ${sel.includes(i) ? "on" : ""} ${chk ? (v ? "right" : sel.includes(i) ? "wrong" : "") : ""}" data-gu="mx" data-k="${bi}" data-i="${i}" ${chk ? "disabled" : ""}>${x}</button>`).join("")}</div>
+        ${chk ? `<p class="small gufb ${good ? "ok" : "no"}">${good ? "✓ " : "Almost! The green ones were right. "}${b.why}</p>${good ? "" : `<button type="button" class="linkbtn" data-gu="mxagain" data-k="${bi}">Try again</button>`}` : `<button type="button" class="btn small" data-gu="mxcheck" data-k="${bi}" ${sel.length ? "" : "disabled"}>Check</button>`}</div>`;
+    }
+    case "listen": return `<div class="guask"><b>${b.q}</b>${b.items.map((it, i) => {
+      const s = uniSt(`${bi}.${i}`), picks = s.picks || [], right = picks.includes(it.a);
+      return `<div class="gulrow"><button type="button" class="gubig small" data-gu="play" data-f="${it.f}" aria-label="Play">🔊</button><span class="row" style="gap:6px;flex-wrap:wrap">${it.o.map((o) => `<button type="button" class="guopt big2 ${picks.includes(o) ? (o === it.a ? "right" : "wrong") : ""}" data-gu="lp" data-k="${bi}.${i}" data-v="${esc(o)}" data-a="${esc(it.a)}" ${right ? "disabled" : ""}>${esc(o)}</button>`).join("")}</span></div>`;
+    }).join("")}</div>`;
+    case "write": return `<div class="guwrite">${b.items.map(([c, p, en, tip], i) => { const s = uniSt(`${bi}.${i}`);
+      return `<div class="card guwcard"><div class="row between"><span><b class="lzh" style="font-size:22px">${c}</b> <b>${p}</b> · ${en}</span>${s.done ? `<span class="guchip free">✓ ${s.miss ? `${s.miss} mistake${s.miss === 1 ? "" : "s"}` : "perfect"}</span>` : ""}</div>
+        <div class="guwbox" id="guw-${bi}-${i}" data-ch="${c}" data-k="${bi}.${i}" data-n="${s.n || 0}"></div><span class="tiny muted">${tip}</span>${s.done ? `<button type="button" class="linkbtn" data-gu="wagain" data-k="${bi}.${i}">Write it again</button>` : ""}</div>`; }).join("")}</div>`;
+    case "rec": return uniRecBlock(b.x);
+    case "pair": return `<div class="gupairs">${b.items.map(([z, p]) => `<button type="button" class="gupair" data-gu="play" data-f="${uniFile(p)}"><b class="lzh">${z}</b><span>${p} 🔊</span></button>`).join("")}</div>`;
+    case "track": { const tr = uniProg("sounds").parts.track; return `<div class="card gutrack"><b>Your next step: the Sounds course</b><span class="small muted">Learn every sound one level at a time: a new sound each level, then listening practice. Choose how you want to read the sounds:</span>
+      <div class="row" style="gap:8px;flex-wrap:wrap">${["py", "zh"].map((t) => `<button type="button" class="btn ${tr === t ? "" : "ghost"}" data-gu="track" data-v="${t}">${tr === t ? "✓ " : ""}${t === "py" ? "Pinyin track <span class='lzh'>拼音</span>" : "Zhuyin track <span class='lzh'>注音</span>"}</button>`).join("")}</div>
+      <span class="tiny muted">${tr ? `Saved. The Sounds course is in the lecture hall, next to the Pre-unit. You can switch any time.` : "You can switch later. The Pre-unit goes on with the tones either way."}</span></div>`; }
+    default: return "";
+  }
+}
+// Record yourself (no upload: the recording stays on this device until the page changes).
+let uniRecState = { on: false, url: null, rec: null };
+function uniRecBlock(x) {
+  const R = uniRecState, ok = !!navigator.mediaDevices?.getUserMedia && typeof MediaRecorder !== "undefined";
+  if (!ok) return "";
+  return `<div class="gurec"><span class="small">${x || "Record yourself, then listen back and compare."}</span><span class="row" style="gap:8px;flex-wrap:wrap">
+    <button type="button" class="btn small ${R.on ? "" : "ghost"}" data-gu="rec">${R.on ? "■ Stop" : "🎙 Record"}</button>${R.url && !R.on ? `<button type="button" class="btn small ghost" data-gu="recplay">▶ Listen to me</button>` : ""}</span></div>`;
+}
+async function uniRecToggle() {
+  const R = uniRecState;
+  if (R.on) { R.rec?.stop(); return; }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const chunks = [], rec = new MediaRecorder(stream);
+    rec.ondataavailable = (e) => chunks.push(e.data);
+    rec.onstop = () => { stream.getTracks().forEach((t) => t.stop()); if (R.url) URL.revokeObjectURL(R.url); R.url = URL.createObjectURL(new Blob(chunks, { type: rec.mimeType })); R.on = false; render(); new Audio(R.url).play().catch(() => {}); };
+    R.rec = rec; R.on = true; rec.start(); render();
+    setTimeout(() => { if (R.rec === rec && R.on) rec.stop(); }, 6000);
+  } catch { toast("Allow the microphone to record yourself."); }
+}
+// Writing blocks: mount a Hanzi Writer quiz in each empty box after a render.
+async function uniAfterRender() {
+  if (route() !== "learn") return;
+  for (const el of document.querySelectorAll(".guwbox:not([data-on])")) {
+    el.dataset.on = "1";
+    const ch = el.dataset.ch, k = el.dataset.k, d = await cgStrokes(ch), HW = await cgLib();
+    if (!d || !el.isConnected) continue;
+    const size = Math.min(220, Math.round(el.getBoundingClientRect().width) || 200);
+    const w = HW.create(el, ch, { width: size, height: size, padding: 6, showCharacter: false, showOutline: true, showHintAfterMisses: 2, strokeColor: CG_INK, drawingColor: "#3b5ba5", drawingWidth: Math.max(14, size / 16), highlightColor: CG_CUR, outlineColor: CG_FAINT, charDataLoader: (c, ok) => ok(d) });
+    w.quiz({ onComplete: (x) => { const s = uniSt(k); s.done = true; s.miss = x.totalMistakes; ztCountDay(); setTimeout(() => { if (route() === "learn") render(); }, 900); } });
+  }
+}
+
+// ---- Sounds course: pinyin or zhuyin track, one new sound per level, a checkpoint after each group ----
+function uniLevels(S, track) {
+  const out = [];
+  for (const [g, keys] of S.tracks[track].groups) { for (const k of keys) out.push({ t: "new", k, g }); out.push({ t: "check", g, keys }); }
+  return out;
+}
+const uniSnd = (S, track, k) => (track === "zh" ? S.sounds.zhu : [...S.sounds.ini, ...S.sounds.fin]).flatMap((g) => g.items).find((i) => i.k === k);
+const uniSndF = (track, it) => uniSndFile(track === "zh" ? "zhu" : "ini", it);
+const uniZy = (s) => toZhuyin(s).replace(/˙/g, "");
+function uniPyParts(s) {
+  const i = UNI_INITS.find((x) => s.startsWith(x)) || "";
+  let f = s.slice(i.length);
+  if (["j", "q", "x"].includes(i) && f.startsWith("u")) f = "ü" + f.slice(1);
+  return [i, f];
+}
+// Is this syllable made only of sounds the learner knows? (and does it contain the target sound?)
+function uniSylOk(track, s, known, target) {
+  if (track === "zh") { const z = [...uniZy(s)]; return z.every((c) => known.has(c)) && (!target || z.includes(target)); }
+  const [i, f] = uniPyParts(s);
+  if (!f || (i && !known.has(i)) || !known.has(f)) return false;
+  return !target || i === target || f === target;
+}
+const uniSylLabel = (track, s) => (track === "zh" ? uniZy(s) : s);
+function uniSoundsView(b, c) {
+  const U = uniState(), S = uniCourse("sounds"), P = uniProg("sounds");
+  if (!S) { location.hash = "#/learn/uni/hall"; return ""; }
+  const track = P.parts.track;
+  if (b === "chart") return uniChartView(S, track || "py");
+  if (!track || b === "choose") return uniTrackChooser(S, track);
+  if (b === track && c != null) return uniLevelView(S, track, +c);
+  const L = uniLevels(S, track), done = (i) => P.done[`${track}:${i}`];
+  const next = L.findIndex((_, i) => !done(i)), nDone = L.filter((_, i) => done(i)).length;
+  let gi = -1;
+  const tiles = L.map((lv, i) => {
+    const d = done(i), open = i === 0 || done(i - 1) || d, cur = i === next;
+    const head = lv.t === "new" && lv.k === S.tracks[track].groups.find((g) => g[0] === lv.g)[1][0] ? `<h3 class="gugh">${++gi + 1}. ${esc(lv.g)}</h3>` : "";
+    const inner = lv.t === "check" ? `<b>★</b><span>Review</span>` : `<b class="${track === "zh" ? "lzh" : ""}">${esc(lv.k)}</b><span>${d ? "★".repeat(d.stars || 1) : `Level ${i + 1}`}</span>`;
+    return `${head}<${open ? `a href="#/learn/uni/sounds/${track}/${i}"` : `button type="button" data-gu="locked"`} class="gulv ${lv.t} ${d ? "done" : cur ? "cur" : open ? "" : "lock"}">${inner}</${open ? "a" : "button"}>`;
+  });
+  // group headings break the grid: render groups as separate grids
+  const html = tiles.join("").split(/(?=<h3 class="gugh">)/).map((g) => g.replace(/^(<h3[^]*?<\/h3>)/, "$1<div class=\"gulvgrid\">") + "</div>").join("");
+  const T = S.tracks[track];
+  return `${uniHead("#/learn/uni/hall", "Lecture hall", `Sounds <span class='zhsub'>${T.zh}</span>`, `${T.name} track · ${nDone} of ${L.length} levels done · <button type="button" class="linkbtn" data-gu="trackswitch">Switch to ${track === "py" ? "zhuyin" : "pinyin"}</button> · <a href="#/learn/uni/sounds/chart">Sound chart</a>`)}
+    ${next >= 0 ? `<a class="btn block" href="#/learn/uni/sounds/${track}/${next}">${nDone ? "Continue" : "Start"} · Level ${next + 1}${L[next].t === "new" ? `: ${esc(L[next].k)}` : " · Review"}</a>` : `<div class="card gunext done"><b>✓ Every sound learned!</b><span class="small muted">You know all the ${T.name.toLowerCase()} sounds. 太棒了！</span></div>`}
+    <div class="gulevels">${html}</div>`;
+}
+function uniTrackChooser(S, cur) {
+  const T = S.tracks;
+  return `${uniHead("#/learn/uni/hall", "Lecture hall", "Sounds <span class='zhsub'>發音</span>", "Choose how you want to learn the sounds of Chinese. One new sound per level, then listening practice.")}
+    <div class="gutracks">${["py", "zh"].map((t) => `<button type="button" class="card gutrackc ${cur === t ? "on" : ""}" data-gu="track" data-v="${t}">
+      <span class="gutrackbig lzh">${t === "py" ? "b p m f" : "ㄅㄆㄇㄈ"}</span><b>${T[t].name} track <span class="lzh">${T[t].zh}</span></b>
+      <span class="small muted">${t === "py" ? "Latin letters, used everywhere and in the HSK. The best choice for most learners." : "The 37 symbols Taiwan uses. Choose this if you're learning Chinese for Taiwan."}</span>
+      <span class="small"><b>${uniLevels(S, t).length} levels</b></span></button>`).join("")}</div>`;
+}
+function uniChartView(S, track) {
+  return `${uniHead("#/learn/uni/sounds", "Sounds", "Sound chart", "Every sound with its recording. Tap to listen.")}<section class="card guslide">
+    ${track === "zh" ? uniSounds(S, "zhu") : `<h3>Initials</h3>${uniSounds(S, "ini")}<h3>Finals</h3>${uniSounds(S, "fin")}`}
+    <h3>All the syllables</h3>${uniSyTable(S)}</section>`;
+}
+function uniLevelView(S, track, idx) {
+  const U = uniState(), P = uniProg("sounds"), L = uniLevels(S, track), lv = L[idx];
+  if (!lv) { location.hash = "#/learn/uni/sounds"; return ""; }
+  if (idx > 0 && !P.done[`${track}:${idx - 1}`] && !P.done[`${track}:${idx}`]) { location.hash = "#/learn/uni/sounds"; return ""; }
+  const key = `sounds/${track}/${idx}`;
+  if (U.lv?.key !== key) U.lv = { key, phase: lv.t === "new" ? "meet" : "intro", i: 0, score: 0, qs: null, picked: null, missed: [] };
+  const V = U.lv, known = new Set(L.slice(0, idx + 1).filter((l) => l.t === "new").map((l) => l.k));
+  const head = `${uniHead("#/learn/uni/sounds", "Sounds", lv.t === "new" ? `Level ${idx + 1} · <span class="${track === "zh" ? "lzh" : ""}">${esc(lv.k)}</span>` : `Level ${idx + 1} · Review`, esc(lv.g))}`;
+  if (V.phase === "meet") {
+    const it = uniSnd(S, track, lv.k), f = uniSndF(track, it);
+    const syl = S.rec.filter((s) => uniSylOk(track, s, known, lv.k));
+    const ex = (syl.length ? syl : S.rec.filter((s) => uniSylOk(track, s, new Set([...known, ...S.sounds[track === "zh" ? "zhu" : "fin"].flatMap((g) => g.items.map((x) => x.k)), ...S.sounds.ini.flatMap((g) => g.items.map((x) => x.k))]), lv.k))).slice(0, 8);
+    const mix = (it.x || []).map((x) => uniSnd(S, track, x)).filter(Boolean);
+    return `<div class="guwrap">${head}<section class="card guslide gumeet">
+      <div class="tiny muted">New sound</div>
+      <button type="button" class="gubig huge ${track === "zh" ? "zh" : ""}" data-gu="play" data-f="${f}" aria-label="Play ${esc(lv.k)}">${esc(lv.k)}</button>
+      <p class="small muted" style="text-align:center;margin:0">${track === "zh" ? `Pinyin <b>${esc(it.p)}</b>${it.o ? ` · comes from <b class="lzh">${esc(it.o)}</b>` : ""}` : `Zhuyin <b class="lzh">${esc(it.z)}</b>`} · tap to hear it again</p>
+      <p style="margin:0">${it.t}</p>
+      ${ex.length ? `<h3>Hear it in syllables</h3><div class="gusay">${ex.map((s) => `<button type="button" class="gusnd" data-gu="play" data-f="${uniFile(s)}"><b class="${track === "zh" ? "lzh" : ""}">${esc(uniSylLabel(track, s))}</b> 🔊</button>`).join("")}</div>` : ""}
+      ${mix.length ? `<h3>Don't mix it up with</h3><div class="gusay">${mix.map((m) => `<button type="button" class="gusnd" data-gu="play" data-f="${uniSndF(track, m)}"><b class="${track === "zh" ? "lzh" : ""}">${esc(m.k)}</b> 🔊</button>`).join("")}</div>` : ""}
+      ${uniRecBlock(`Say <b>${esc(lv.k)}</b> out loud: record yourself, then compare with the recording.`)}</section>
+      <button type="button" class="btn block" data-gu="lvplay">Practice: 8 questions ›</button></div>`;
+  }
+  if (V.phase === "intro") return `<div class="guwrap">${head}<section class="card guslide"><div class="tiny muted">Checkpoint</div><h2>Review: ${esc(lv.g)}</h2>
+    <div class="gusay">${lv.keys.map((k) => `<button type="button" class="gusnd" data-gu="play" data-f="${uniSndF(track, uniSnd(S, track, k))}"><b class="${track === "zh" ? "lzh" : ""}">${esc(k)}</b> 🔊</button>`).join("")}</div>
+    <p class="small muted" style="margin:0">Listen to them once more, then 10 questions mixing them up.</p></section><button type="button" class="btn block" data-gu="lvplay">Start the review ›</button></div>`;
+  if (V.phase === "end") {
+    const n = V.qs.length, stars = V.score >= n - 1 ? 3 : V.score >= Math.ceil(n * 0.6) ? 2 : 1;
+    return `<div class="guwrap">${head}<section class="card guslide" style="text-align:center"><h2>${V.score} / ${n}</h2><div class="gustars">${"★".repeat(stars)}<span>${"★".repeat(3 - stars)}</span></div>
+      <p class="small">${stars === 3 ? "Excellent ear! 太棒了！" : stars === 2 ? "Well done. Keep listening and it gets easier." : "Good start. Listen to the sound again and have another go."}</p>
+      ${V.missed.length ? `<p class="small muted" style="margin:0">Hear the ones you missed:</p><div class="gusay" style="justify-content:center">${V.missed.map((m) => `<button type="button" class="gusnd" data-gu="play" data-f="${m.f}"><b class="${track === "zh" ? "lzh" : ""}">${esc(m.label)}</b> 🔊</button>`).join("")}</div>` : ""}</section>
+      ${idx + 1 < L.length ? `<a class="btn block" href="#/learn/uni/sounds/${track}/${idx + 1}">Next level ›</a>` : ""}<button type="button" class="btn ghost block" data-gu="lvagain">Practice again</button><a class="btn ghost block" href="#/learn/uni/sounds">All levels</a></div>`;
+  }
+  const q = V.qs[V.i];
+  return `<div class="guwrap">${head}<section class="card guslide guplay"><div class="row between"><span class="tiny muted">Question ${V.i + 1} of ${V.qs.length}</span><span class="tiny"><b>${V.score}</b> right</span></div>${dBar((V.i / V.qs.length) * 100, "#f37a48")}
+    <button type="button" class="gubig play" data-gu="play" data-f="${q.f}" aria-label="Play again">🔊</button>
+    <p class="small muted" style="text-align:center;margin:0">${q.type === "syl" ? "Which syllable did you hear?" : "Which sound did you hear?"}</p>
+    <div class="guopts two">${q.o.map((o) => `<button type="button" class="guopt big ${track === "zh" ? "lzh" : ""} ${V.picked != null ? (o === q.a ? "right" : o === V.picked ? "wrong" : "") : ""}" data-gu="lvpick" data-v="${esc(o)}" ${V.picked != null ? "disabled" : ""}>${esc(o)}</button>`).join("")}</div>
+    ${V.picked != null ? `<button type="button" class="btn block" data-gu="lvnext">${V.i + 1 === V.qs.length ? "See my score" : "Next ›"}</button>` : ""}</section></div>`;
+}
+function uniLevelQuestions(S, track, idx) {
+  const L = uniLevels(S, track), lv = L[idx], n = lv.t === "check" ? 10 : 8;
+  const known = new Set(L.slice(0, idx + 1).filter((l) => l.t === "new").map((l) => l.k));
+  const focus = lv.t === "check" ? lv.keys : [lv.k];
+  const allKeys = (track === "zh" ? S.sounds.zhu : [...S.sounds.ini, ...S.sounds.fin]).flatMap((g) => g.items.map((i) => i.k));
+  const groupOf = (k) => S.tracks[track].groups.find((g) => g[1].includes(k))?.[1] || [];
+  const rnd = (a) => a[Math.floor(Math.random() * a.length)];
+  const qs = [];
+  const soundQ = (t) => {
+    const it = uniSnd(S, track, t), pool = new Set();
+    for (const x of it.x || []) pool.add(x);
+    for (const x of [...groupOf(t), ...known].sort(() => Math.random() - 0.5)) if (pool.size < 3) pool.add(x);
+    for (const x of allKeys.sort(() => Math.random() - 0.5)) if (pool.size < 3) pool.add(x);
+    pool.delete(t);
+    return { type: "snd", a: t, f: uniSndF(track, it), label: t, o: [t, ...[...pool].slice(0, 3)].sort(() => Math.random() - 0.5) };
+  };
+  const table = S.table.flatMap((r) => r[1]);
+  const sylQ = (t) => {
+    const cands = S.rec.filter((s) => uniSylOk(track, s, known, t));
+    if (!cands.length) return null;
+    const s = rnd(cands), [i, f] = uniPyParts(s), lab = uniSylLabel(track, s), pool = new Set();
+    // look-alikes made of sounds the learner already knows come first, then other close syllables
+    const nearRaw = table.filter((y) => y !== s && (uniPyParts(y)[0] === i || uniPyParts(y)[1] === uniPyParts(s)[1]));
+    const pref = [...nearRaw.filter((y) => uniSylOk(track, y, known)).sort(() => Math.random() - 0.5), ...nearRaw.filter((y) => !uniSylOk(track, y, known)).sort(() => Math.random() - 0.5)].map((y) => uniSylLabel(track, y));
+    for (const y of pref) { if (pool.size >= 3) break; if (y !== lab) pool.add(y); }
+    return { type: "syl", a: lab, f: uniFile(s), label: lab, o: [lab, ...pool].sort(() => Math.random() - 0.5) };
+  };
+  for (let k = 0; k < n; k++) {
+    const t = lv.t === "check" ? focus[k % focus.length] : (k % 2 === 0 || Math.random() < 0.5 ? lv.k : rnd([...known]));
+    const q = (k % 2 === 1 && sylQ(t)) || soundQ(t);
+    qs.push(q);
+  }
+  return qs.sort(() => Math.random() - 0.5);
+}
+async function uniLevelFinish(S, track, idx) {
+  const U = uniState(), V = U.lv, P = uniProg("sounds"), n = V.qs.length;
+  const stars = V.score >= n - 1 ? 3 : V.score >= Math.ceil(n * 0.6) ? 2 : 1, k = `${track}:${idx}`;
+  P.done[k] = { at: new Date().toISOString(), stars: Math.max(stars, P.done[k]?.stars || 0) };
+  V.phase = "end"; render();
+  await uniSave("sounds");
+  if (await ztCountDay()) toast("Level done. Your streak tree grew today 🌱");
+  tEvent("uni", `Sounds (${track === "zh" ? "zhuyin" : "pinyin"}) · level ${idx + 1} · ${"★".repeat(stars)}`);
+}
+
 document.addEventListener("click", (e) => {
   const el = e.target.closest("[data-gu]"); if (!el) return;
   const U = uniState(), a = el.dataset.gu;
   if (a === "play") uniPlay(el.dataset.f);
   else if (a === "snd") {
-    const set = el.dataset.set, k = el.dataset.k, C = uniCourse(U.q?.key.split("/")[0] || "pre");
+    const set = el.dataset.set, k = el.dataset.k, C = uniCourse("sounds");
     const it = C.sounds[set].flatMap((g) => g.items).find((i) => i.k === k);
     U.sel[set] = k; uniPlay(uniSndFile(set, it)); render();
   }
@@ -7744,4 +7970,42 @@ document.addEventListener("click", (e) => {
   }
   else if (a === "gnext") { const G = U.game; G.i++; if (G.i >= G.n) { G.over = true; render(); } else uniGameNext(); }
   else if (a === "finish") { el.disabled = true; uniFinish(el.dataset.c, el.dataset.s); }
+  else if (a === "g") { const s = uniSt(el.dataset.k); (s.picks ??= []).push(+el.dataset.j); render(); }
+  else if (a === "tf") { uniSt(el.dataset.k).v = el.dataset.v === "true"; render(); }
+  else if (a === "flip") { const s = uniSt(el.dataset.k); s.open = !s.open; el.classList.toggle("open", s.open); }
+  else if (a === "ml") { uniSt(el.dataset.k).l = +el.dataset.i; uniSt(el.dataset.k).bad = null; render(); }
+  else if (a === "mr") {
+    const s = uniSt(el.dataset.k), i = +el.dataset.i;
+    if (s.l == null) { toast("Tap one on the left first."); return; }
+    if (s.l === i) { (s.done ??= []).push(i); s.l = null; s.bad = null; } else { s.bad = i; setTimeout(() => { if (s.bad === i) { s.bad = null; render(); } }, 700); }
+    render();
+  }
+  else if (a === "mx") { const s = uniSt(el.dataset.k), i = +el.dataset.i; s.sel = (s.sel ??= []).includes(i) ? s.sel.filter((x) => x !== i) : [...s.sel, i]; render(); }
+  else if (a === "mxcheck") { uniSt(el.dataset.k).checked = true; render(); }
+  else if (a === "mxagain") { const s = uniSt(el.dataset.k); s.checked = false; s.sel = []; render(); }
+  else if (a === "lp") { const s = uniSt(el.dataset.k); (s.picks ??= []).push(el.dataset.v); render(); }
+  else if (a === "wagain") { const s = uniSt(el.dataset.k); s.done = false; s.n = (s.n || 0) + 1; render(); }
+  else if (a === "rec") uniRecToggle();
+  else if (a === "recplay") { if (uniRecState.url) new Audio(uniRecState.url).play().catch(() => {}); }
+  else if (a === "track" || a === "trackswitch") {
+    const P = uniProg("sounds"); P.parts.track = a === "track" ? el.dataset.v : (P.parts.track === "py" ? "zh" : "py"); uniSave("sounds");
+    if (el.closest(".gutrack")) { toast(`${P.parts.track === "zh" ? "Zhuyin" : "Pinyin"} track saved. Find the Sounds course in the lecture hall.`); render(); return; }
+    location.hash = "#/learn/uni/sounds"; render();
+  }
+  else if (a === "lvplay" || a === "lvagain") {
+    const [, track, idx] = U.lv.key.split("/"), S = uniCourse("sounds");
+    Object.assign(U.lv, { phase: "play", i: 0, score: 0, picked: null, missed: [], qs: uniLevelQuestions(S, track, +idx) }); render();
+    setTimeout(() => uniPlay(U.lv.qs[0].f), 150);
+  }
+  else if (a === "lvpick") {
+    const V = U.lv; if (V.picked != null) return;
+    V.picked = el.dataset.v; const q = V.qs[V.i];
+    if (V.picked === q.a) V.score++; else if (!V.missed.some((m) => m.label === q.label)) V.missed.push({ label: q.label, f: q.f });
+    render(); if (V.picked !== q.a) setTimeout(() => uniPlay(q.f), 250);
+  }
+  else if (a === "lvnext") {
+    const V = U.lv, [, track, idx] = V.key.split("/");
+    V.i++; V.picked = null;
+    if (V.i >= V.qs.length) uniLevelFinish(uniCourse("sounds"), track, +idx); else { render(); setTimeout(() => uniPlay(V.qs[V.i].f), 150); }
+  }
 });
