@@ -1818,3 +1818,16 @@ a.arccart:hover { box-shadow: 0 0 0 2px var(--orange); }
 .wdrev b { font-size: 24px; color: var(--ink); }
 .wdok { color: #1b6f1b; } .wdno { color: #c0392b; }
 .ccopt.wdlong { font-size: 19px; }
+/* Flags: whole flag, never cropped (all flag files are 4:3) */
+.wdflag { object-fit: contain; aspect-ratio: 4 / 3; background: #fff; }
+.wdflag.big { width: 150px; height: 112px; }
+.wdflag.sm, .wdstamp .wdflag { width: 24px; height: 18px; }
+.wdflagopt { display: grid; place-items: center; }
+.wdflagopt .wdflag { width: auto; height: 76px; max-width: 100%; }
+/* Passport stamps open a card */
+button.wdstamp { font: inherit; cursor: pointer; }
+button.wdstamp:hover { background: #fff; }
+.wdcard { position: relative; gap: 10px; max-width: 360px; width: 100%; text-align: center; align-items: center; }
+.wdcard .wdflag { width: 120px; height: 90px; }
+.wdcard .wdbig { font-size: 40px; font-weight: 800; line-height: 1.1; }
+.wdcard .ztx { position: absolute; right: 10px; top: 8px; }

@@ -1,12 +1,12 @@
-import { createClient } from "./vendor/supabase.js?v=173";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=173";
-import { COUNTRIES } from "./countries.js?v=173";
-import { toZhuyin } from "./zhuyin.js?v=173";
-import { ORACLE, ORACLE_T } from "./course-oracle.js?v=173";
+import { createClient } from "./vendor/supabase.js?v=174";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=174";
+import { COUNTRIES } from "./countries.js?v=174";
+import { toZhuyin } from "./zhuyin.js?v=174";
+import { ORACLE, ORACLE_T } from "./course-oracle.js?v=174";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=173";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=174";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -41,7 +41,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=173"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=174"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -1705,7 +1705,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=173"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=174"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -2346,7 +2346,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=173");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=174");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -3257,7 +3257,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=173").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=174").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -5726,7 +5726,7 @@ async function cgRemember(t) {
   if (data?.length) await sb.from("char_recent").delete().eq("user_id", state.user.id).in("text", data.map((r) => r.text));
 }
 let cgHW = null;
-const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=173")).default);
+const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=174")).default);
 const cgStrokes = async (c) => {
   const S = cgState(); if (S.data.has(c)) return S.data.get(c);
   const HW = await cgLib(); const d = await HW.loadCharacterData(c).catch(() => null);
@@ -6273,7 +6273,7 @@ const wdState = () => (state.wd ??= { data: null, map: null, loading: false, b: 
 async function wdLoad() {
   const S = wdState(); if (S.data || S.loading) return; S.loading = true;
   try {
-    const [d, m] = await Promise.all([import("./countries-zh.js?v=173"), import("./worldmap.js?v=173")]);
+    const [d, m] = await Promise.all([import("./countries-zh.js?v=174"), import("./worldmap.js?v=174")]);
     S.data = d.WORLD_ZH.map((r) => ({ c: r[0], en: r[1], cont: r[2], twT: r[3], twS: r[4], twPy: r[5], cnS: r[6], cnT: r[7], cnPy: r[8], x: r[9], y: r[10], onMap: !!r[11], also: r[12] || null }));
     S.map = m.WORLD.filter((w) => w[0]);
     S.zoom = new Map(S.map.map((w) => [w[0], w[2]]));
@@ -6393,8 +6393,21 @@ async function wdAdd() {
   render();
 }
 const wdSay = (x, v = wdNames()) => { try { const u = new SpeechSynthesisUtterance(v === "tw" ? x.twT : x.cnS); u.lang = v === "tw" ? "zh-TW" : "zh-CN"; u.rate = 0.8; speechSynthesis.cancel(); speechSynthesis.speak(u); } catch {} };
-const wdStamp = (x, i = 0, small = false) => { const col = ["#c0392b", "#1f4f86", "#2e7d48", "#8e44ad", "#a8431a"][i % 5];
-  return `<span class="wdstamp ${small ? "sm" : ""}" style="--c:${col};--r:${((i % 3) - 1) * 8}deg" title="${esc(x.en)}">${wdFlag(x)}<b class="lzh">${esc(wdName(x))}</b>${wdDiff(x) && !small ? `<i class="lzh">${esc(wdName(x, wdOther()))}</i>` : ""}</span>`; };
+const wdStamp = (x, i = 0, small = false, btn = false) => { const col = ["#c0392b", "#1f4f86", "#2e7d48", "#8e44ad", "#a8431a"][i % 5], tag = btn ? "button" : "span";
+  return `<${tag} ${btn ? `type="button" data-wd="stamp" data-c="${x.c}" aria-label="${esc(x.en)}"` : ""} class="wdstamp ${small ? "sm" : ""}" style="--c:${col};--r:${((i % 3) - 1) * 8}deg" title="${esc(x.en)}">${wdFlag(x)}<b class="lzh">${esc(wdName(x))}</b>${wdDiff(x) && !small ? `<i class="lzh">${esc(wdName(x, wdOther()))}</i>` : ""}</${tag}>`; };
+// A stamp's card: the country as a vocab tile, with 🔊 and "Add to my flashcards".
+function wdStampCard(c) {
+  const S = wdState(), x = S.data?.find((y) => y.c === c); if (!x) return "";
+  const v = wdNames(), o = wdOther(v), w = wdCard(x), inDeck = (state.lu.cards || []).some((k) => k.hanzi === w.hanzi);
+  const al = x.also, alName = al ? `<b class="lzh">${esc(trad() ? al.t : al.s)}</b> ${esc(py(al.py))}` : "";
+  return `<div class="ztover center" data-wd="stampclose"><div class="card wdcard" data-stop role="dialog" aria-label="${esc(x.en)}">
+    <button type="button" class="ztx" data-wd="stampclose" aria-label="Close">×</button>
+    ${wdFlag(x)}<div class="wdbig lzh">${esc(wdName(x))}</div>
+    <div class="row" style="gap:8px;align-items:center;justify-content:center"><span>${esc(py(wdPy(x)))} · ${esc(x.en)}</span><button type="button" class="ccsay" data-wd="saycard" data-c="${x.c}" aria-label="Hear it">🔊</button></div>
+    ${wdDiff(x) ? `<div class="wdswapline">🔀 ${wdWhere(o)}: <b class="lzh">${esc(wdName(x, o))}</b> ${esc(py(wdPy(x, o)))}${al && al.side === o ? ` · also ${alName}` : ""}</div>` : al ? `<div class="wdswapline">💬 ${wdWhere(al.side)} people also say ${alName}</div>` : ""}
+    ${inDeck ? `<p class="ccadded" style="margin:0">✓ In your flashcards</p>` : `<button type="button" class="btn" data-wd="addone" data-c="${x.c}">🃏 Add to my flashcards</button>`}
+  </div></div>`;
+}
 
 function wdCartView() {
   wdLoad();
@@ -6423,8 +6436,9 @@ function wdCartView() {
           <div class="wdcont">Bonus</div>
           ${swapOpen ? `<a class="wdswap" href="#/learn/arcade/world/swap"><b>🔀 Strait Swap <span class="lzh">${z ? "兩岸大不同" : "两岸大不同"}</span></b><span class="tiny">Whose name is it: Taiwan, mainland China or both?${ss ? ` · ${"★".repeat(ss)}` : ""}</span></a>`
             : `<span class="wdswap lock"><b>🔒 Strait Swap <span class="lzh">${z ? "兩岸大不同" : "两岸大不同"}</span></b><span class="tiny">Opens after your first level</span></span>`}
-          ${stamps.length ? `<details class="wdpp"><summary>See my passport</summary><div class="wdppgrid">${stamps.map((x, i) => wdStamp(x, i, true)).join("")}</div></details>` : ""}</section>
+          ${stamps.length ? `<details class="wdpp" ${S.ppOpen ? "open" : ""}><summary data-wd="pp">See my passport</summary><div class="wdppgrid">${stamps.map((x, i) => wdStamp(x, i, true, true)).join("")}</div><span class="tiny muted">Tap a stamp to see the country and add it to your flashcards.</span></details>` : ""}</section>
         <a class="btn big" href="#/learn/arcade/world/${next.id}">✈ ${stamps.length ? `Continue · ${esc(next.cont[0].toUpperCase() + next.cont.slice(1))} ${next.n}` : "Start · Asia 1"}</a>
+        ${S.sel ? wdStampCard(S.sel) : ""}
         <p class="small muted" style="margin:0"><b>How to play:</b> fly from country to country. Recognise the flag, find the flag, or (from level 2 of each continent) spot the country on the map. Every right answer is a stamp in your passport; a wrong one costs a heart and that country comes back. Land with all 3 hearts for ★★★.</p>
       </div></div>`;
 }
@@ -6498,6 +6512,12 @@ document.addEventListener("click", (e) => {
   else if (a === "next" && b && (b.phase === "right" || b.phase === "miss")) wdAfter(b);
   else if (a === "again" && b) { wdStart(b.id); render(); ccMusicStart(); }
   else if (a === "add") wdAdd();
+  else if (a === "pp") setTimeout(() => { S.ppOpen = el.parentElement.open; }, 0);
+  else if (a === "stamp") { S.sel = el.dataset.c; S.ppOpen = true; render(); }
+  else if (a === "stampclose") { if (e.target.closest("[data-stop]") && !e.target.closest(".ztx")) return; S.sel = null; render(); }
+  else if (a === "saycard") { const x = S.data?.find((y) => y.c === el.dataset.c); if (x) wdSay(x); }
+  else if (a === "addone") { const x = S.data?.find((y) => y.c === el.dataset.c); if (!x || S.adding) return; S.adding = true;
+    ztAddWords([wdCard(x)], "game").then((n) => { S.adding = false; if (n) toast(`🃏 ${wdName(x)} added. It'll come up in the Flashcard Center.`); render(); }); }
 });
 
 // ---------------------------------------------------------------------------
@@ -6609,7 +6629,7 @@ async function wsMake(mode, win) {
   W.busy = true; wsCount(); toast(`Making your ${list.length === 1 ? "sheet" : `${list.length} sheets`}…`);
   try {
     await wsInfo(list); try { await document.fonts.ready; } catch {}
-    const { jsPDF } = await import("./vendor/pdf.js?v=173");
+    const { jsPDF } = await import("./vendor/pdf.js?v=174");
     const pdf = new jsPDF({ unit: "mm", format: "a4", compress: true });
     const cv = document.createElement("canvas"); cv.width = WS_A4.w; cv.height = WS_A4.h; const ctx = cv.getContext("2d");
     for (let i = 0; i < list.length; i++) {
