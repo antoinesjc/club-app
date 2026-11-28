@@ -1,12 +1,12 @@
-import { createClient } from "./vendor/supabase.js?v=163";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=163";
-import { COUNTRIES } from "./countries.js?v=163";
-import { toZhuyin } from "./zhuyin.js?v=163";
-import { ORACLE, ORACLE_T } from "./course-oracle.js?v=163";
+import { createClient } from "./vendor/supabase.js?v=164";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=164";
+import { COUNTRIES } from "./countries.js?v=164";
+import { toZhuyin } from "./zhuyin.js?v=164";
+import { ORACLE, ORACLE_T } from "./course-oracle.js?v=164";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=163";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=164";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -41,7 +41,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=163"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=164"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -1631,7 +1631,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=163"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=164"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -2102,7 +2102,7 @@ function profileView() {
     </div>
     <button type="button" class="ideabtn" data-act="idea-open" aria-haspopup="dialog"><span>${BULB}</span>Idea box</button>
   </header>
-  ${plansOn() ? `${myPlanCard()}${viewAsCard()}` : ""}
+  ${plansOn() ? `${tier() === "club" ? "" : myPlanCard()}${viewAsCard()}` : ""}
 
   <form class="stack" data-form="profile" style="gap:16px">
     <label class="field">Name others see
@@ -2224,6 +2224,7 @@ function profileView() {
   <div class="mobonly" style="display:contents">${notificationsCard()}<p class="small muted privnote">Privacy: the Club team can see when you last opened the app and your Club activity (sessions, XP, stickers), only to keep the Club running well. It’s never shared.</p><p class="small muted privnote">App version ${APP_BUILD.slice(2)} · <button type="button" class="linkbtn" data-act="app-reload">Check for updates</button></p></div>
   ${installHint(true)}
   <button type="button" class="btn ghost block" data-tour-start>Take the app tour</button>
+  ${plansOn() && tier() === "club" ? myPlanCard() : ""}
   <div class="row between">
     <span class="small muted">${esc(state.user.email)}</span>
     <button class="linkbtn" data-act="logout">Log out</button>
@@ -2271,7 +2272,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=163");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=164");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -3182,7 +3183,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=163").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=164").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -5644,7 +5645,7 @@ async function cgRemember(t) {
   if (data?.length) await sb.from("char_recent").delete().eq("user_id", state.user.id).in("text", data.map((r) => r.text));
 }
 let cgHW = null;
-const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=163")).default);
+const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=164")).default);
 const cgStrokes = async (c) => {
   const S = cgState(); if (S.data.has(c)) return S.data.get(c);
   const HW = await cgLib(); const d = await HW.loadCharacterData(c).catch(() => null);
@@ -6267,7 +6268,7 @@ async function wsMake(mode, win) {
   W.busy = true; wsCount(); toast(`Making your ${list.length === 1 ? "sheet" : `${list.length} sheets`}…`);
   try {
     await wsInfo(list); try { await document.fonts.ready; } catch {}
-    const { jsPDF } = await import("./vendor/pdf.js?v=163");
+    const { jsPDF } = await import("./vendor/pdf.js?v=164");
     const pdf = new jsPDF({ unit: "mm", format: "a4", compress: true });
     const cv = document.createElement("canvas"); cv.width = WS_A4.w; cv.height = WS_A4.h; const ctx = cv.getContext("2d");
     for (let i = 0; i < list.length; i++) {
