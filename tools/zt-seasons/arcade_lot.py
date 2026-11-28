@@ -14,13 +14,13 @@ def place(bg, src_c, dst_c, box):
             if pm[x,y][3] and 0 <= x+ox < patch.width and 0 <= y+oy < patch.height: pp[x+ox,y+oy] = SAND if y >= post.height - 6 else (143,207,90,255)
     # The Arcade is wider than the Post Office: move the two flower bushes 4px outwards so it doesn't cover them (28 Nov).
     OUT = (43,42,58)
-    bushes = []
+    bushes = []; src = bg.load()  # bush pixels from the untouched town (the patch already has the Post Office's spot painted over)
     for bx0, bx1, shift in ((-29, -17, -4), (16, 28, 4)):
         for ry in range(11, 20):
-            xs = [rx for rx in range(bx0, bx1 + 1) if pp[rx - x0, ry - y0][:3] == OUT]
+            xs = [rx for rx in range(bx0, bx1 + 1) if src[sx + rx, sy + ry][:3] == OUT]
             if not xs: continue
             for rx in range(min(xs), max(xs) + 1):
-                bushes.append((rx + shift, ry, pp[rx - x0, ry - y0])); pp[rx - x0, ry - y0] = (143,207,90,255)
+                bushes.append((rx + shift, ry, src[sx + rx, sy + ry])); pp[rx - x0, ry - y0] = (143,207,90,255)
     patch.alpha_composite(arc, (ox, oy))
     for rx, ry, c in bushes: pp[rx - x0, ry - y0] = c
     moved = {(rx, ry) for rx, ry, _ in bushes}

@@ -1,12 +1,12 @@
-import { createClient } from "./vendor/supabase.js?v=179";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=179";
-import { COUNTRIES } from "./countries.js?v=179";
-import { toZhuyin } from "./zhuyin.js?v=179";
-import { ORACLE, ORACLE_T } from "./course-oracle.js?v=179";
+import { createClient } from "./vendor/supabase.js?v=180";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=180";
+import { COUNTRIES } from "./countries.js?v=180";
+import { toZhuyin } from "./zhuyin.js?v=180";
+import { ORACLE, ORACLE_T } from "./course-oracle.js?v=180";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=179";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=180";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -41,7 +41,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=179"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=180"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -1705,7 +1705,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=179"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=180"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -2346,7 +2346,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=179");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=180");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -3257,7 +3257,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=179").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=180").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -3423,8 +3423,8 @@ const dayBack = (n) => { const d = new Date(); d.setHours(12, 0, 0, 0); d.setDat
 const todayKey = () => dayBack(0);
 const cardZh = (c) => (trad() ? c.hanzi_trad || c.hanzi : c.hanzi);
 const wordZh = (w) => (trad() ? w.hanzi_trad || w.hanzi : w.hanzi);
-// town8 art redrawn 28 Nov (Arcade bushes moved out): "?b=2" so devices fetch it straight away instead of the cached picture.
-const ztImg = (name, cls = "", alt = "") => `<img class="px ${cls}" src="icons/zt/${name}.png${name.startsWith("town8") ? "?b=2" : ""}" alt="${esc(alt)}" draggable="false">`;
+// town8 art redrawn 28 Nov (Arcade bushes moved out): "?b=3" so devices fetch it straight away instead of the cached picture.
+const ztImg = (name, cls = "", alt = "") => `<img class="px ${cls}" src="icons/zt/${name}.png${name.startsWith("town8") ? "?b=3" : ""}" alt="${esc(alt)}" draggable="false">`;
 const ZT_FRUITS = new Set(["orange", "apple", "peach", "strawberry", "lemon", "mango", "watermelon", "pineapple", "kiwi", "cherry", "coconut", "dragonfruit", "lychee", "pomelo", "starfruit", "guava", "passionfruit", "persimmon", "rambutan", "durian", "corn"]);
 const myFruitKey = () => (ZT_FRUITS.has(state.me?.fruit) ? state.me.fruit : "orange");
 
@@ -5789,7 +5789,7 @@ async function cgRemember(t) {
   if (data?.length) await sb.from("char_recent").delete().eq("user_id", state.user.id).in("text", data.map((r) => r.text));
 }
 let cgHW = null;
-const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=179")).default);
+const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=180")).default);
 const cgStrokes = async (c) => {
   const S = cgState(); if (S.data.has(c)) return S.data.get(c);
   const HW = await cgLib(); const d = await HW.loadCharacterData(c).catch(() => null);
@@ -6336,7 +6336,7 @@ const wdState = () => (state.wd ??= { data: null, map: null, loading: false, b: 
 async function wdLoad() {
   const S = wdState(); if (S.data || S.loading) return; S.loading = true;
   try {
-    const [d, m] = await Promise.all([import("./countries-zh.js?v=179"), import("./worldmap.js?v=179")]);
+    const [d, m] = await Promise.all([import("./countries-zh.js?v=180"), import("./worldmap.js?v=180")]);
     S.data = d.WORLD_ZH.map((r) => ({ c: r[0], en: r[1], cont: r[2], twT: r[3], twS: r[4], twPy: r[5], cnS: r[6], cnT: r[7], cnPy: r[8], x: r[9], y: r[10], onMap: !!r[11], also: r[12] || null }));
     S.map = m.WORLD.filter((w) => w[0]);
     S.zoom = new Map(S.map.map((w) => [w[0], w[2]]));
@@ -6693,7 +6693,7 @@ async function wsMake(mode, win) {
   W.busy = true; wsCount(); toast(`Making your ${list.length === 1 ? "sheet" : `${list.length} sheets`}…`);
   try {
     await wsInfo(list); try { await document.fonts.ready; } catch {}
-    const { jsPDF } = await import("./vendor/pdf.js?v=179");
+    const { jsPDF } = await import("./vendor/pdf.js?v=180");
     const pdf = new jsPDF({ unit: "mm", format: "a4", compress: true });
     const cv = document.createElement("canvas"); cv.width = WS_A4.w; cv.height = WS_A4.h; const ctx = cv.getContext("2d");
     for (let i = 0; i < list.length; i++) {
