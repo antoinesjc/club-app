@@ -140,7 +140,7 @@ async function syncSheet(rows: SheetRow[]) {
 
 async function stripeList() {
   const { data, error } = await db.from("members_stripe")
-    .select("email, name, plan, member_until, active, checked_at").order("active", { ascending: false }).order("email");
+    .select("email, name, tier, plan, member_until, active, checked_at").order("active", { ascending: false }).order("email");
   if (error) throw error;
   return data;
 }

@@ -1,6 +1,7 @@
-// Login step 1: the app sends the email here. Only Club members (sheet or
-// Stripe) get a 6-digit code; everyone else is told the Club is members-only.
-// Someone who paid minutes ago is found with a live Stripe check.
+// Login step 1: the app sends the email here. Club and Self-Study members (sheet or Stripe) and trial users get a
+// 6-digit code. Someone who paid minutes ago is found with a live Stripe check.
+// Free trial (when private.config open_signup = 'true'): a new email starts its 7-day trial here (one per email).
+// An ENDED trial still gets a code, so they log in and see "your free trial is over" with the plans.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { clubMemberByEmail } from "../_shared/stripe.ts";
 
@@ -45,7 +46,16 @@ Deno.serve(async (req) => {
         console.error("Live Stripe check failed:", e);
       }
     }
-    if (!r) return json({ ok: false, reason: "not_member" });
+    if (!r) {
+      const { data: t } = await admin.from("trials").select("started_at").eq("email", email).maybeSingle();
+      if (!t) {
+        const { data: open } = await admin.rpc("app_secret", { p_name: "open_signup" });
+        if (String(open) !== "true") return json({ ok: false, reason: "not_member" });
+        const { error: tErr } = await admin.from("trials").insert({ email });
+        if (tErr && !/duplicate/i.test(tErr.message)) throw tErr;
+      }
+      // trial running or ended: either way they may log in (the app shows the trial-over screen when it ended)
+    }
 
     // Make sure the login account exists (sign-ups are otherwise closed).
     const { error: createErr } = await admin.auth.admin.createUser({ email, email_confirm: true });
