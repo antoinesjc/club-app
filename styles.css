@@ -759,10 +759,30 @@ details.custom.sbdet > summary b { color: #6b4423; }
 .ztwk i.w { background: #e8f4fc; }
 .ztwk i.t { border: 2px dashed #e3d6cb; }
 .ztwk i.n { background: #f4efea; color: #b8aca3; }
-.ztinfo { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.ztinfo .card { gap: 4px; padding: 12px; }
-.ztinfo .water { background: #e8f4fc; border-color: #cfe6f6; color: #1f4f73; }
-.ztstages summary { cursor: pointer; font-weight: 800; padding: 6px 0; }
+.ztsheethead { display: flex; align-items: center; gap: 8px; margin: -6px -4px -4px 0; }
+.ztsheethead .eyebrow { flex: 1; min-width: 0; }
+.ztsheethead .ztx { position: static; flex: none; }
+.ztwater { display: inline-flex; align-items: center; gap: 4px; background: #e8f4fc; border: 1.5px solid #cfe6f6; color: #1f4f73; border-radius: 999px; padding: 4px 10px 4px 6px; font-size: 13px; white-space: nowrap; }
+.ztwater.none { background: var(--soft); border-color: var(--line); color: var(--muted); }
+.ztwater.none svg { filter: grayscale(1); opacity: .6; }
+.ztcounts { gap: 6px; padding: 12px 14px; }
+.ztcounts summary { cursor: pointer; font-weight: 800; list-style: none; display: flex; justify-content: space-between; align-items: center; }
+.ztcounts summary::-webkit-details-marker { display: none; }
+.ztcounts summary::after { content: "›"; font-size: 20px; color: var(--faint); transform: rotate(90deg); transition: transform .2s; }
+.ztcounts[open] summary::after { transform: rotate(-90deg); }
+.ztcounts p { margin: 6px 0 0; }
+.ztcounts p svg { width: 14px; height: 14px; vertical-align: -2px; }
+.ztest { gap: 6px; padding: 12px 14px; }
+.ztest .ztbar { flex: none; margin: 0; }
+.ztestlv { font-weight: 800; color: var(--green); white-space: nowrap; }
+/* Lanterns beside the streak tree: a warm glow that flickers (28 Nov 2026) */
+.ztlantern { position: absolute; aspect-ratio: 1; transform: translate(-50%, -50%); border-radius: 50%; pointer-events: none; z-index: 3;
+  background: radial-gradient(circle, rgba(255, 236, 150, .95) 0 12%, rgba(255, 190, 80, .55) 28%, rgba(255, 150, 50, .18) 52%, transparent 70%);
+  mix-blend-mode: screen; animation: ztlantern 3.2s ease-in-out infinite; }
+@keyframes ztlantern { 0%, 100% { opacity: .75; transform: translate(-50%, -50%) scale(1); } 18% { opacity: .95; transform: translate(-50%, -50%) scale(1.08); }
+  24% { opacity: .55; } 30% { opacity: 1; transform: translate(-50%, -50%) scale(1.12); } 55% { opacity: .7; transform: translate(-50%, -50%) scale(.96); }
+  62% { opacity: .9; } 68% { opacity: .6; } 80% { opacity: .95; transform: translate(-50%, -50%) scale(1.06); } }
+@media (prefers-reduced-motion: reduce) { .ztlantern { animation: none; opacity: .85; } }
 .ztstagegrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; text-align: center; font-size: 13px; }
 .ztstagegrid span { display: flex; flex-direction: column; align-items: center; gap: 2px; }
 .ztstagegrid img { width: 64px; }

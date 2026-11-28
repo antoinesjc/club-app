@@ -1,12 +1,12 @@
-import { createClient } from "./vendor/supabase.js?v=176";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=176";
-import { COUNTRIES } from "./countries.js?v=176";
-import { toZhuyin } from "./zhuyin.js?v=176";
-import { ORACLE, ORACLE_T } from "./course-oracle.js?v=176";
+import { createClient } from "./vendor/supabase.js?v=177";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=177";
+import { COUNTRIES } from "./countries.js?v=177";
+import { toZhuyin } from "./zhuyin.js?v=177";
+import { ORACLE, ORACLE_T } from "./course-oracle.js?v=177";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=176";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=177";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -41,7 +41,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=176"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=177"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -1705,7 +1705,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=176"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=177"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -2346,7 +2346,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=176");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=177");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -3257,7 +3257,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=176").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=177").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -3743,6 +3743,7 @@ function townMap(st) {
     ${(() => { const [x, y, sz] = M.fsign, k = sz / 24; return `<a class="ztsignwrap" href="#/learn/forest" style="${at(x, y)};width:${pct(sz, M.w)}" aria-label="To the Magical Forest">${ztImg("sign-forest")}<span class="ztsigntext" style="width:${(16 / 24) * 100}%;height:${(11 / 18) * 100}%;font-size:${(k * 1.75 / M.w) * 100}cqw">MAGICAL<br>FOREST</span></a>`; })()}
     ${M.trees.map(([x, y, big], i) => `<img class="px ztbush" src="icons/zt/${szArt(`tree4-${big ? "big" : "small"}`)}.png" alt="" draggable="false" style="${at(x, y)};width:${pct(big ? 24 : 17, M.w)};animation-delay:-${(i * 0.7) % 3}s">`).join("")}
     <button type="button" class="zttreebtn" data-zt="sheet" style="${at(...M.tree)};width:${pct(42, M.w)}" aria-label="Your streak tree">${treeImg(st)}</button>
+    ${[[3, 23], [40, 23]].map(([dx, dy], i) => `<span class="ztlantern" style="${at(M.tree[0] + dx, M.tree[1] + dy)};width:${pct(12, M.w)};animation-delay:-${i * 1.3}s" aria-hidden="true"></span>`).join("")}
     ${qlOpen() ? (() => { qlLoad(); const [qx, qy] = ztPosFor("qilin", k); return `<button type="button" class="ztqilin" data-ql="open" style="${at(qx, qy)};width:${pct(26, M.w)}" aria-label="The qilin: daily, weekly and monthly challenges">${qlBang() ? `<span class="qlbang" aria-hidden="true">!</span>` : ""}${ztImg("qilin-0", "q0")}${ztImg("qilin-1", "q1")}</button>`; })() : ""}
     ${st.wilted ? "" : `<button type="button" class="ztfruit" data-zt="cheer" style="${at(...h0)};width:${pct(18, M.w)}" aria-label="Your fruit"><span class="ztbubble" hidden></span>${ztImg("fruit-" + fruit)}</button>`}
     <a class="ztlabel" href="#/learn/cards" style="${at(M.house[0], M.house[1] + 15)}" aria-label="Flashcard Center, ${dueN} due">FLASHCARDS${dueN ? `<em>${dueN}</em>` : ""}</a>
@@ -4032,18 +4033,57 @@ function treeSheet(st) {
     const mark = kind === "water" ? ZT_DROP : kind ? "✓" : today ? "" : future ? "" : "·";
     return `<span class="ztwk"><small>${d}</small><i class="${kind ? (kind === "water" ? "w" : "y") : today ? "t" : future ? "f" : "n"}">${mark}</i></span>`;
   }).join("");
-  const w = ztWaterLeft();
+  const w = ztWaterLeft(), est = ztEstimate();
   return `<div class="ztover" data-zt="close"><div class="ztsheet" role="dialog" aria-label="Your streak tree" data-stop>
-    <button type="button" class="ztx" data-zt="close" aria-label="Close">×</button>
+    <div class="ztsheethead"><span class="eyebrow">Your streak tree</span>
+      <span class="ztwater ${w ? "" : "none"}" title="${w ? "If you miss a day, your watering can brings your tree back." : "Used this month. You get a new one on the 1st."}">${ZT_DROP}<b>${w}</b> watering can${w === 1 ? "" : "s"}</span>
+      <button type="button" class="ztx" data-zt="close" aria-label="Close">×</button></div>
     <div class="row" style="gap:14px;align-items:center"><span class="zttreeart lg ${st.wilted ? "dead" : ""}">${treeImg(st)}</span>
-      <div><div class="eyebrow">Your streak tree</div><div class="ztday">${st.wilted ? "Wilted" : `Day ${st.n}`}</div><div class="ztstage">${esc(stageName(st.stage))}</div>
+      <div style="flex:1;min-width:0"><div class="ztday">${st.wilted ? "Wilted" : `Day ${st.n}`}</div><div class="ztstage">${esc(stageName(st.stage))}</div>
       ${st.wilted ? "" : `<div class="small muted" style="margin-top:6px">${nx.text}</div><span class="ztbar"><i style="width:${nx.pct}%"></i></span>`}</div></div>
     <div class="card" style="gap:8px"><b>This week</b><div class="ztweek">${week}</div></div>
-    <div class="ztinfo"><div class="card"><b>What counts</b><span class="small">Joining a session, a flashcard review, reading a Library chapter (tap “I’ve read this chapter”), writing a character in the Calligraphy School (practice or character box), or sending a letter at the Post Office, once a day.</span></div>
-      <div class="card water">${ZT_DROP}<b>${w} watering can</b><span class="small">${w ? "left this month. If you miss a day, it brings your tree back." : "used this month. You get a new one on the 1st."}</span></div></div>
+    ${est}
+    <details class="card ztcounts"><summary>What counts?</summary>
+      <p class="small">Joining a session, a flashcard review, reading a Library chapter (tap “I’ve read this chapter”), writing a character in the Calligraphy School (practice or character box), or sending a letter at the Post Office, once a day.</p>
+      <p class="small">${ZT_DROP} <b>Watering can:</b> ${w ? `you have ${w} left this month. If you miss a day, it brings your tree back.` : "used this month. You get a new one on the 1st."}</p></details>
     ${state.push?.subscribed ? "" : `<a class="ztnotif" href="#/settings" data-scroll="notifications">${ICON.bell}<span><b>Turn on notifications</b> so you never lose your streak. We'll remind you 1 hour before your day ends.</span><span class="chev" aria-hidden="true">›</span></a>`}
-    <details class="ztstages"><summary>All 9 stages</summary><div class="ztstagegrid">${ZT_STAGES.map((s, i) => `<span>${ztImg("tree-" + i)}<b>${esc(s[0])}</b><small>Day ${s[3]}${i < 8 ? "+" : ""}</small></span>`).join("")}</div></details>
   </div></div>`;
+}
+// Estimated HSK level from the town (28 Nov 2026): the words in the Flashcard Center, by HSK level.
+// A known word (next review 3 months or more away) counts 1, a word being learned (reviewed, next review 1 week+) ½.
+// HSK levels build on each other, so the estimate is the highest level whose words (with all the levels below) are
+// at least 60% covered. Under 20 known words and 60 reviewed ones, there isn't enough to go on.
+const ZT_EST_MIN_KNOWN = 20, ZT_EST_MIN_SEEN = 60, ZT_EST_PASS = 0.6;
+function ztEstimateData() {
+  const per = Object.fromEntries(HSK_LEVELS.map((l) => [l, new Map()]));
+  let known = 0, seen = 0;
+  for (const c of state.lu?.cards || []) {
+    if (!(c.reps > 0)) continue;
+    const isKnown = ztKnown(c), wt = isKnown ? 1 : (c.interval_days || 0) >= 7 ? 0.5 : 0;
+    seen++; if (isKnown) known++;
+    const m = per[String(c.hsk_level || "")];
+    if (m && wt) m.set(c.hanzi, Math.max(m.get(c.hanzi) || 0, wt));
+  }
+  if (known < ZT_EST_MIN_KNOWN && seen < ZT_EST_MIN_SEEN) return { ok: false, known, seen };
+  let cumHave = 0, cumSize = 0, level = null, next = null;
+  for (const l of HSK_LEVELS) {
+    cumHave += [...per[l].values()].reduce((a, b) => a + b, 0); cumSize += HSK_SIZE[l];
+    const pct = cumHave / cumSize;
+    if (pct >= ZT_EST_PASS) level = l;
+    else { next = { level: l, pct: Math.min(99, Math.round((pct / ZT_EST_PASS) * 100)) }; break; }
+  }
+  return { ok: true, known, seen, level, next };
+}
+function ztEstimate() {
+  if (!state.lu?.loaded) return "";
+  const e = ztEstimateData();
+  if (!e.ok) return `<div class="card ztest"><b>Your estimated level</b>
+    <span class="small muted">Play more in the town for the ability to estimate your level. Review flashcards in the Flashcard Center or add words from the HSK Temple: after about ${ZT_EST_MIN_KNOWN} words you know well (or ${ZT_EST_MIN_SEEN} you’re learning), we’ll estimate it here.</span>
+    <span class="ztbar"><i style="width:${Math.min(100, Math.round(Math.max(e.known / ZT_EST_MIN_KNOWN, e.seen / ZT_EST_MIN_SEEN) * 100))}%"></i></span></div>`;
+  const head = e.level ? `About HSK ${e.level.replace("-", "–")}` : "Working towards HSK 1";
+  return `<div class="card ztest"><div class="row between" style="gap:8px"><b>Estimated level</b><span class="ztestlv">${head}</span></div>
+    ${e.next ? `<div class="small muted">${e.next.pct}% of the way to HSK ${e.next.level.replace("-", "–")}</div><span class="ztbar"><i style="width:${e.next.pct}%"></i></span>` : `<div class="small muted">You know most of the HSK words. 了不起！</div>`}
+    <span class="tiny muted">Based on the ${e.known.toLocaleString()} word${e.known === 1 ? "" : "s"} you know and the ${(e.seen - e.known).toLocaleString()} you’re learning in the Flashcard Center. An estimate, not an official HSK result.</span></div>`;
 }
 function wiltedModal(st) {
   const w = ztWaterLeft();
@@ -5742,7 +5782,7 @@ async function cgRemember(t) {
   if (data?.length) await sb.from("char_recent").delete().eq("user_id", state.user.id).in("text", data.map((r) => r.text));
 }
 let cgHW = null;
-const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=176")).default);
+const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=177")).default);
 const cgStrokes = async (c) => {
   const S = cgState(); if (S.data.has(c)) return S.data.get(c);
   const HW = await cgLib(); const d = await HW.loadCharacterData(c).catch(() => null);
@@ -6289,7 +6329,7 @@ const wdState = () => (state.wd ??= { data: null, map: null, loading: false, b: 
 async function wdLoad() {
   const S = wdState(); if (S.data || S.loading) return; S.loading = true;
   try {
-    const [d, m] = await Promise.all([import("./countries-zh.js?v=176"), import("./worldmap.js?v=176")]);
+    const [d, m] = await Promise.all([import("./countries-zh.js?v=177"), import("./worldmap.js?v=177")]);
     S.data = d.WORLD_ZH.map((r) => ({ c: r[0], en: r[1], cont: r[2], twT: r[3], twS: r[4], twPy: r[5], cnS: r[6], cnT: r[7], cnPy: r[8], x: r[9], y: r[10], onMap: !!r[11], also: r[12] || null }));
     S.map = m.WORLD.filter((w) => w[0]);
     S.zoom = new Map(S.map.map((w) => [w[0], w[2]]));
@@ -6646,7 +6686,7 @@ async function wsMake(mode, win) {
   W.busy = true; wsCount(); toast(`Making your ${list.length === 1 ? "sheet" : `${list.length} sheets`}…`);
   try {
     await wsInfo(list); try { await document.fonts.ready; } catch {}
-    const { jsPDF } = await import("./vendor/pdf.js?v=176");
+    const { jsPDF } = await import("./vendor/pdf.js?v=177");
     const pdf = new jsPDF({ unit: "mm", format: "a4", compress: true });
     const cv = document.createElement("canvas"); cv.width = WS_A4.w; cv.height = WS_A4.h; const ctx = cv.getContext("2d");
     for (let i = 0; i < list.length; i++) {
