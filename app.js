@@ -1,12 +1,12 @@
-import { createClient } from "./vendor/supabase.js?v=161";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=161";
-import { COUNTRIES } from "./countries.js?v=161";
-import { toZhuyin } from "./zhuyin.js?v=161";
-import { ORACLE, ORACLE_T } from "./course-oracle.js?v=161";
+import { createClient } from "./vendor/supabase.js?v=162";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=162";
+import { COUNTRIES } from "./countries.js?v=162";
+import { toZhuyin } from "./zhuyin.js?v=162";
+import { ORACLE, ORACLE_T } from "./course-oracle.js?v=162";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=161";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=162";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -41,7 +41,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=161"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=162"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -1399,7 +1399,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=161"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=162"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -2026,7 +2026,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=161");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=162");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -2937,7 +2937,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=161").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=162").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -3080,6 +3080,7 @@ const ZT_STAGES = [ // [en, simplified, traditional, first day]
   ["Fruiting tree", "结果树", "結果樹", 330], ["Orange tree", "橘子树", "橘子樹", 365],
 ];
 const HSK_LEVELS = ["1", "2", "3", "4", "5", "6", "7-9"];
+const HSK_SIZE = { 1: 300, 2: 200, 3: 500, 4: 1000, 5: 1600, 6: 1800, "7-9": 5615 }; // official New HSK word counts
 const ZT_LEARNED = 3; // good answers in a row (kept for the streak counter on each card)
 const ZT_KNOWN_DAYS = 90; // a word counts as known (dark green) once its next review is 3 months or more away (21 Nov)
 const ztKnown = (c) => !!c && (c.interval_days || 0) >= ZT_KNOWN_DAYS;
@@ -3641,10 +3642,12 @@ function dashTiles() {
       big: `${esc((Array.isArray(s.zh) ? s.zh[z ? 1 : 0] : s.zh) || "")} ${esc(s.en || "")}`.trim(), sub: `${mine[0].awarded_at ? ago(mine[0].awarded_at) + " · " : ""}${sc.n}/${sc.total}` }));
   } else out.push(dTile({ href: "#/learn/gallery", art: ztImg("gallery"), eye: "Stickers", big: "None yet", sub: "See how to earn them" }));
   // HSK Temple
-  const lv = HSK_LEVELS.includes(state.lu.lv) ? state.lu.lv : "1", words = state.lu.hsk.get(lv), ws = ztWordStatus();
-  const learnedAll = ztDeck().cards.filter((c) => c.hsk_level && (c.interval_days || 0) >= ZT_KNOWN_DAYS).length;
+  // The level shown is the first one you haven't finished yet (28 Nov 2026; before, the last level opened in the Temple).
+  const known = ztDeck().cards.filter((c) => c.hsk_level && (c.interval_days || 0) >= ZT_KNOWN_DAYS), learnedAll = known.length;
+  const perLv = new Map(); for (const c of known) { const k = String(c.hsk_level); if (!perLv.has(k)) perLv.set(k, new Set()); perLv.get(k).add(c.hanzi); }
+  const lv = HSK_LEVELS.find((L) => (perLv.get(L)?.size || 0) < HSK_SIZE[L]) || "7-9", words = state.lu.hsk.get(lv), ws = ztWordStatus();
   let pct = null; if (words?.length) pct = Math.round((words.filter((w) => statusOf(w, ws) === "learned").length / words.length) * 100); else ztLoadLevel(lv);
-  out.push(dTile({ href: "#/learn/temple", art: ztImg("temple"), eye: "HSK Temple",
+  out.push(dTile({ href: "#/learn/temple", art: ztImg("temple"), eye: "HSK Temple", attrs: `data-zt="lv" data-v="${lv}"`,
     big: `${learnedAll.toLocaleString()} learned`, sub: pct === null ? `HSK ${esc(lv)} words` : `HSK ${esc(lv)} · ${pct}%`, extra: pct === null ? "" : dBar(pct, "#2e7d48") }));
   return out;
 }
@@ -5377,7 +5380,7 @@ async function cgRemember(t) {
   if (data?.length) await sb.from("char_recent").delete().eq("user_id", state.user.id).in("text", data.map((r) => r.text));
 }
 let cgHW = null;
-const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=161")).default);
+const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=162")).default);
 const cgStrokes = async (c) => {
   const S = cgState(); if (S.data.has(c)) return S.data.get(c);
   const HW = await cgLib(); const d = await HW.loadCharacterData(c).catch(() => null);
@@ -6000,7 +6003,7 @@ async function wsMake(mode, win) {
   W.busy = true; wsCount(); toast(`Making your ${list.length === 1 ? "sheet" : `${list.length} sheets`}…`);
   try {
     await wsInfo(list); try { await document.fonts.ready; } catch {}
-    const { jsPDF } = await import("./vendor/pdf.js?v=161");
+    const { jsPDF } = await import("./vendor/pdf.js?v=162");
     const pdf = new jsPDF({ unit: "mm", format: "a4", compress: true });
     const cv = document.createElement("canvas"); cv.width = WS_A4.w; cv.height = WS_A4.h; const ctx = cv.getContext("2d");
     for (let i = 0; i < list.length; i++) {
