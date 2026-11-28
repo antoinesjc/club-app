@@ -19,6 +19,14 @@
  * (new Stripe payers appear in the Members tab within 10 minutes, even before they log in).
  * The menu "Club app" in the sheet has "Sync now", "Check Stripe now" and "Get new ideas".
  *
+ * Plans (28 Nov 2026): Stripe payers come in as "member" (Club) or "self-study" (Self-Study) in the Role
+ * column; their Note says the plan. A self-study row never gives Club access, even if its Status is
+ * changed to "active". Switching plan in Stripe updates the Role and Note within 10 minutes.
+ *
+ * Free trials: people on the 7-day free trial are listed in the "Free trials" tab (created automatically,
+ * rewritten at every sync), never in the Members tab. When they take a paid plan they leave the Free trials
+ * tab and appear in the Members tab ("via Stripe").
+ *
  * Idea box: ideas members send from the app land in the "Ideas" tab (created automatically),
  * newest at the bottom, within 10 minutes (and after each sync). Only new ideas are added, so you can
  * use the "Status" and "Our notes" columns freely; they're never overwritten.
@@ -30,6 +38,9 @@ const STRIPE_TAB = 'From Stripe';
 const VIA_STRIPE = 'via Stripe';
 const IDEAS_URL = 'https://eypehvhcqzhwssydvrhn.supabase.co/functions/v1/ideas-export';
 const IDEAS_TAB = 'Ideas';
+const TRIALS_URL = 'https://eypehvhcqzhwssydvrhn.supabase.co/functions/v1/trials-export';
+const TRIALS_TAB = 'Free trials';
+const SELF_ROLE = 'self-study';
 const IDEAS_HEAD = ['Date', 'Name', 'Email', 'About', 'Idea / topic', 'Level', 'Time zone', 'Best days', 'Best time of day', 'Status', 'Our notes', 'ID'];
 const IDEA_CATS = { sessions: 'Sessions', app: 'App features', discord: 'Discord', other: 'Something else' };
 
@@ -38,6 +49,7 @@ function onOpen() {
     .addItem('Sync now', 'syncNow')
     .addItem('Check Stripe now', 'syncWithStripe')
     .addItem('Get new ideas', 'syncIdeas')
+    .addItem('Update free trials', 'syncTrials')
     .addToUi();
 }
 
@@ -78,6 +90,8 @@ function sync_(stripeNow) {
       .filter(r => String(r[0]).trim())
       // "via Stripe" rows don't give access by themselves: Stripe does (blocked still blocks).
       .filter(r => String(r[3]).trim().toLowerCase() !== VIA_STRIPE.toLowerCase())
+      // Self-Study access only ever comes from Stripe, never from this tab.
+      .filter(r => String(r[2]).trim().toLowerCase() !== SELF_ROLE)
       .map(r => ({ email: r[0], name: r[1], role: r[2], status: r[3], note: r[4] }));
 
     const res = UrlFetchApp.fetch(SYNC_URL, {
@@ -99,6 +113,29 @@ function sync_(stripeNow) {
     lock.releaseLock();
   }
   try { syncIdeas(); } catch (err) { console.error(err); } // ideas never block the members sync
+  try { syncTrials(); } catch (err) { console.error(err); }
+}
+
+// Free trials → "Free trials" tab (whole tab rewritten; only people who haven't paid yet).
+function syncTrials() {
+  const secret = PropertiesService.getScriptProperties().getProperty('SYNC_SECRET');
+  const res = UrlFetchApp.fetch(TRIALS_URL, {
+    method: 'post', contentType: 'application/json', headers: { 'x-sync-secret': secret },
+    payload: '{}', muteHttpExceptions: true,
+  });
+  const body = JSON.parse(res.getContentText() || '{}');
+  if (res.getResponseCode() !== 200 || !body.ok) throw new Error('Free trials sync failed: ' + (body.error || res.getResponseCode()));
+  const ss = SpreadsheetApp.getActive();
+  let sheet = ss.getSheetByName(TRIALS_TAB);
+  if (!sheet) { sheet = ss.insertSheet(TRIALS_TAB); sheet.setFrozenRows(1); }
+  const tz = ss.getSpreadsheetTimeZone();
+  const fmt = d => d ? Utilities.formatDate(new Date(d), tz, 'yyyy-MM-dd') : '';
+  const out = [['Email', 'Name', 'Trial started', 'Trial ends', 'Status', 'Last opened the app']].concat(
+    (body.trials || []).map(t => [t.email, t.name || '', fmt(t.started_at), fmt(t.ends_at), t.status, fmt(t.last_opened)]));
+  sheet.getRange(1, 1, Math.max(sheet.getMaxRows(), 1), 6).clearContent();
+  sheet.getRange(1, 1, out.length, 6).setValues(out);
+  sheet.getRange(1, 1, 1, 6).setFontWeight('bold');
+  return out.length - 1;
 }
 
 // Idea box → "Ideas" tab. Adds only ideas the tab doesn't have yet (matched by the ID column).
@@ -144,12 +181,12 @@ function writeStripe_(ss, list) {
   const sheet = ss.getSheetByName(STRIPE_TAB);
   const tz = ss.getSpreadsheetTimeZone();
   const fmt = d => d ? Utilities.formatDate(new Date(d), tz, 'yyyy-MM-dd') : '';
-  const out = [['Email', 'Name', 'Plan', 'Member until', 'Status', 'Last checked']].concat(
+  const out = [['Email', 'Name', 'Plan', 'Member until', 'Status', 'Last checked', 'Tier']].concat(
     list.map(m => [m.email, m.name, m.plan, fmt(m.member_until),
       m.active && (!m.member_until || new Date(m.member_until) > new Date()) ? 'active' : 'ended',
-      fmt(m.checked_at)]));
-  sheet.getRange(2, 1, Math.max(sheet.getMaxRows() - 1, 1), 6).clearContent();
-  sheet.getRange(1, 1, out.length, 6).setValues(out);
+      fmt(m.checked_at), m.tier === 'self' ? 'Self-Study' : 'Club']));
+  sheet.getRange(2, 1, Math.max(sheet.getMaxRows() - 1, 1), 7).clearContent();
+  sheet.getRange(1, 1, out.length, 7).setValues(out);
 }
 
 // Copy Stripe payers into the Members tab (Status "via Stripe") and keep their Note up to date.
@@ -165,17 +202,20 @@ function addStripeMembers_(ss, list) {
     const email = String(m.email || '').trim().toLowerCase();
     if (!email) return;
     const paying = m.active && (!m.member_until || new Date(m.member_until) > new Date());
-    const plan = m.plan ? m.plan.charAt(0).toUpperCase() + m.plan.slice(1) : '';
-    const note = 'Stripe' + (plan ? ' ' + plan : '') + (m.member_until ? ' · until ' + fmt(m.member_until) : '') + (paying ? '' : ' · payment ended');
+    const plan = (m.tier === 'self' ? 'Self-Study ' : 'Club ') + (m.plan || '');
+    const role = m.tier === 'self' ? SELF_ROLE : 'member';
+    const note = 'Stripe ' + plan.trim() + (m.member_until ? ' · until ' + fmt(m.member_until) : '') + (paying ? '' : ' · payment ended');
     const row = rowOf.get(email);
     if (row) {
       // Only rows the script manages ("via Stripe") get their note refreshed; hand-made rows are left alone.
       if (String(values[row - 1][3]).trim().toLowerCase() === VIA_STRIPE.toLowerCase()) {
         if (values[row - 1][4] !== note) sheet.getRange(row, 5).setValue(note);
+        const cur = String(values[row - 1][2]).trim().toLowerCase();
+        if (paying && (cur === 'member' || cur === SELF_ROLE || !cur) && cur !== role) sheet.getRange(row, 3).setValue(role); // plan switched in Stripe
         if (!String(values[row - 1][1]).trim() && m.name) sheet.getRange(row, 2).setValue(m.name);
       }
     } else if (paying) {
-      newRows.push([email, m.name || '', 'member', VIA_STRIPE, note, fmt(new Date())]);
+      newRows.push([email, m.name || '', role, VIA_STRIPE, note, fmt(new Date())]);
       rowOf.set(email, -1);
     }
   });
