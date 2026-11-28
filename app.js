@@ -1,12 +1,12 @@
-import { createClient } from "./vendor/supabase.js?v=174";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=174";
-import { COUNTRIES } from "./countries.js?v=174";
-import { toZhuyin } from "./zhuyin.js?v=174";
-import { ORACLE, ORACLE_T } from "./course-oracle.js?v=174";
+import { createClient } from "./vendor/supabase.js?v=175";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=175";
+import { COUNTRIES } from "./countries.js?v=175";
+import { toZhuyin } from "./zhuyin.js?v=175";
+import { ORACLE, ORACLE_T } from "./course-oracle.js?v=175";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=174";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=175";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -41,7 +41,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=174"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=175"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -1705,7 +1705,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=174"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=175"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -2346,7 +2346,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=174");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=175");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -3257,7 +3257,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=174").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=175").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -3667,7 +3667,7 @@ function learnView() {
   const L = state.lu;
   if (!L.loaded) { ztLoad(); return `${ztHeader(null)}<p class="muted small">${L.error ? "Couldn't load Zest Town. Pull to refresh or try again later." : "Opening Zest Town…"}</p>`; }
   const sub = routeArg(), bld = sub.split(/[/?]/)[0];
-  if (["cards", "temple", "forest", "gallery", "post", "callig", "library"].includes(bld)) qlVisit(bld);
+  if (["cards", "temple", "forest", "gallery", "post", "callig", "library", "arcade"].includes(bld)) qlVisit(bld);
   if (sub === "cards") return L.review ? reviewView() : cardsView();
   if (sub === "temple") return templeView();
   if (sub === "forest") return forestView();
@@ -3753,7 +3753,7 @@ function townMap(st) {
     ${calligOpen() ? `<a class="ztlabel cg" href="#/learn/callig" style="${at(M.callig[0], M.callig[1] + 15)}" aria-label="Calligraphy School">CALLIGRAPHY</a>`
       : `<button type="button" class="ztlabel soon" data-zt="soon" data-v="callig" style="${at(M.callig[0], M.callig[1] + 15)}" aria-label="Calligraphy School, opening soon">CALLIGRAPHY<em>SOON</em></button>`}
     ${postOpen() ? (() => { const n = postUnread(); postLoad(); return `${n ? `<span class="ztmail" style="${at(M.post[0], M.post[1] - 27)};width:${pct(12, M.w)}" aria-hidden="true">${POST_ENV}</span>` : ""}<a class="ztlabel post" href="#/learn/post" style="${at(M.post[0], M.post[1] + 15)}" aria-label="Post Office${n ? `, ${n} new letter${n === 1 ? "" : "s"}` : ""}">POST OFFICE${n ? `<em>${n}</em>` : ""}</a>`; })() : ""}
-    ${arcadeOpen() ? `<a class="ztlabel arc" href="#/learn/arcade" style="${at(M.arcade[0], M.arcade[1] + 15)}" aria-label="Arcade (beta)">ARCADE<em>BETA</em></a>`
+    ${arcadeOpen() ? `<a class="ztlabel arc" href="#/learn/arcade" style="${at(M.arcade[0], M.arcade[1] + 15)}" aria-label="Arcade">ARCADE</a>`
       : `<button type="button" class="ztlabel soon" data-zt="soon" data-v="arcade" style="${at(M.arcade[0], M.arcade[1] + 15)}" aria-label="Arcade, opening soon">ARCADE<em>SOON</em></button>`}
     <button type="button" class="ztlabel day ${st.wilted ? "dead" : ""}" data-zt="sheet" style="${at(M.plaza[0], M.plaza[1] + 11)}">${st.wilted ? "WILTED" : `DAY ${st.n}`}</button>
   </div>`;
@@ -5317,6 +5317,7 @@ const QL = {
     { id: "forest", t: "Visit the Magical Forest", b: "Magical Forest", go: "#/learn/forest", k: "visit:forest", n: 1 },
     { id: "visit4", t: "Visit 4 different buildings today", b: "Zest Town", go: "#/learn", k: "visit:", f: "distinct", n: 4 },
     { id: "letter", t: "Send a letter, even a short one", b: "Post Office", go: "#/learn/post", k: "letter", n: 1 },
+    { id: "arcplay", t: "Play a level in the Arcade", b: "Arcade", go: "#/learn/arcade", k: "arc_play", n: 1 },
   ],
   week: [
     { id: "tree5", t: "Grow your streak tree 5 days this week", b: "Streak tree", go: "#/learn", f: "days", n: 5 },
@@ -5333,6 +5334,8 @@ const QL = {
     { id: "trio", t: "Flashcards, writing and a Library chapter on the same day", b: "Zest Town", go: "#/learn", f: "trio", n: 1 },
     { id: "forest3", t: "Visit the Magical Forest on 3 days", b: "Magical Forest", go: "#/learn/forest", k: "visit:forest", f: "daysWith", n: 3 },
     { id: "clear4", t: "Clear your due flashcards on 4 days", b: "Flashcard Center", go: "#/learn/cards", k: "fc_clear", f: "daysWith", n: 4 },
+    { id: "arcwin3", t: "Win 3 levels in the Arcade", b: "Arcade", go: "#/learn/arcade", k: "arc_win", n: 3 },
+    { id: "stamps10", t: "Collect 10 passport stamps in Around the World", b: "Arcade", go: "#/learn/arcade/world", k: "wd_stamp", n: 10 },
   ],
   month: [
     { id: "tree20", t: "Grow your streak tree on 20 days", b: "Streak tree", go: "#/learn", f: "days", n: 20 },
@@ -5343,6 +5346,7 @@ const QL = {
     { id: "pack30", t: "Add 30 characters from a character package", b: "Calligraphy School", go: "#/learn/callig", k: "cg_pack", n: 30 },
     { id: "cochapters2", t: "Finish 2 chapters of the Oracle Bone course", b: "Calligraphy School", go: "#/learn/callig/course/oracle", k: "co_chapter", n: 2 },
     { id: "chapters8", t: "Read 8 Library chapters", b: "Library", go: "#/learn/library", k: "lib_chapter", n: 8 },
+    { id: "arc3star5", t: "Get ★★★ on 5 Arcade levels", b: "Arcade", go: "#/learn/arcade", k: "arc_3star", n: 5 },
     { id: "letters5", t: "Send 5 letters", b: "Post Office", go: "#/learn/post", k: "letter", n: 5 },
     { id: "people3", t: "Write to 3 different people", b: "Post Office", go: "#/learn/post", k: "letterto:", f: "distinct", n: 3 },
   ],
@@ -5726,7 +5730,7 @@ async function cgRemember(t) {
   if (data?.length) await sb.from("char_recent").delete().eq("user_id", state.user.id).in("text", data.map((r) => r.text));
 }
 let cgHW = null;
-const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=174")).default);
+const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=175")).default);
 const cgStrokes = async (c) => {
   const S = cgState(); if (S.data.has(c)) return S.data.get(c);
   const HW = await cgLib(); const d = await HW.loadCharacterData(c).catch(() => null);
@@ -5963,12 +5967,12 @@ function calligView(parts) {
 }
 
 // ---------------------------------------------------------------------------
-// Arcade 遊戲廳 (27 Nov 2026; beta: admins only, arcadeOpen()). Mockups on the design canvas, option A (neon arcade).
+// Arcade 遊戲廳 (27 Nov 2026; live for everyone since 28 Nov, arcadeOpen()). Mockups on the design canvas, option A (neon arcade).
 // Members see the building with "SOON". Inside: a games room (old TV + console); every game is a cartridge:
 // My cartridges (free games + bought ones, with progress) and a Game shop (games sold one by one, like the books).
 // No games yet: the first one (Character Clash 字妖大戰, free, HSK 1) is shown as coming soon.
 // ---------------------------------------------------------------------------
-const arcadeOpen = () => isAdmin();
+const arcadeOpen = () => true; // live for everyone since 28 Nov 2026 (admin beta from 27 Nov)
 const ARC_GAMES = [{ id: "battle", zh: ["字妖大战", "字妖大戰"], en: "Character Clash", hsk: "HSK 1", free: true, levels: 10, blurb: "Battle ink monsters 字妖: pick the right meaning to strike." },
   { id: "world", zh: ["环游世界", "環遊世界"], en: "Around the World", hsk: "Countries", free: true, levels: 23, blurb: "Fly around the world and learn the countries in Chinese." }];
 const arcState = () => (state.arc ??= { prog: null, loading: false, b: null });
@@ -6004,13 +6008,12 @@ function arcadeView(parts) {
   const cart = (g) => { const d = arcDone(g.id);
     return `<a class="arccart" href="#/learn/arcade/${g.id}">${ztImg(`cart-${g.id}`)}<b class="arct"><span class="lzh">${esc(g.zh[z ? 1 : 0])}</span>${esc(g.en)}</b>
     <span class="row" style="gap:4px;justify-content:center"><span class="arclv">${g.hsk}</span>${g.free ? `<span class="arcfree">Free</span>` : ""}</span>
-    ${arcBar((d / g.levels) * 100)}<span class="tiny muted">${d ? `Level ${Math.min(d + 1, g.levels)} of ${g.levels} · ★ ${arcStars(g.id)}` : "Not started"}</span></a>`; };
+    ${arcBar((d / g.levels) * 100)}<span class="tiny muted">${d ? `${d} of ${g.levels} levels done · ★ ${arcStars(g.id)}` : "Not started"}</span></a>`; };
   const body = tab === "mine"
     ? `<div class="arccarts">${ARC_GAMES.filter((g) => g.free).map(cart).join("")}</div>
        <p class="small muted" style="margin:0">Your cartridges live here: free games for everyone, plus the ones you buy. Tap one to put it in the console.</p>`
     : `<section class="card" style="text-align:center"><b>The Game shop opens with the next games</b><p class="small muted" style="margin:4px 0 0">Games will be sold one by one, like the books in the Library.</p></section>`;
   return `${ztHeader(ztStreak(), `Arcade <span class='zhsub'>${z ? "遊戲廳" : "游戏厅"}</span>`)}
-    <p class="small muted" style="margin:0"><b>Beta, admins only.</b> Members see the building with “SOON”.</p>
     <div class="arcwrap">${arcadeRoom()}
       <div class="stack" style="gap:12px">
         <div class="arctabs" role="tablist"><a href="#/learn/arcade" class="${tab === "mine" ? "on" : ""}" role="tab" aria-selected="${tab === "mine"}">My cartridges</a><a href="#/learn/arcade/shop" class="${tab === "shop" ? "on" : ""}" role="tab" aria-selected="${tab === "shop"}">Game shop</a></div>
@@ -6087,6 +6090,7 @@ function ccAnswer(k) {
 }
 async function ccEnd(b, won) {
   b.phase = won ? "win" : "lose"; b.stars = won ? Math.max(1, b.hearts) : 0; ccMusicStop(); ccSfx(won ? "win" : "lose"); render();
+  qLog("arc_play"); if (won) { qLog("arc_win"); if (b.stars === 3) qLog("arc_3star"); }
   if (won) await arcSave("battle", b.lv, b.stars, b.right);
   const grew = await ztCountDay();
   tEvent("arcade", `字妖大戰 · level ${b.lv} · ${won ? "★".repeat(b.stars) : "lost"}`);
@@ -6273,7 +6277,7 @@ const wdState = () => (state.wd ??= { data: null, map: null, loading: false, b: 
 async function wdLoad() {
   const S = wdState(); if (S.data || S.loading) return; S.loading = true;
   try {
-    const [d, m] = await Promise.all([import("./countries-zh.js?v=174"), import("./worldmap.js?v=174")]);
+    const [d, m] = await Promise.all([import("./countries-zh.js?v=175"), import("./worldmap.js?v=175")]);
     S.data = d.WORLD_ZH.map((r) => ({ c: r[0], en: r[1], cont: r[2], twT: r[3], twS: r[4], twPy: r[5], cnS: r[6], cnT: r[7], cnPy: r[8], x: r[9], y: r[10], onMap: !!r[11], also: r[12] || null }));
     S.map = m.WORLD.filter((w) => w[0]);
     S.zoom = new Map(S.map.map((w) => [w[0], w[2]]));
@@ -6370,6 +6374,7 @@ function wdAfter(b) {
 }
 async function wdEnd(b, won) {
   b.phase = won ? "win" : "lose"; b.stars = won ? Math.max(1, b.hearts) : 0; ccMusicStop(); ccSfx(won ? "win" : "lose"); render();
+  qLog("arc_play"); if (won) { qLog("arc_win"); if (b.stars === 3) qLog("arc_3star"); if (b.id !== "swap") qLog("wd_stamp", b.list.length); }
   if (won) await arcSave("world", b.id, b.stars, b.right);
   const grew = await ztCountDay();
   tEvent("arcade", `環遊世界 · ${b.id === "swap" ? "Strait Swap" : b.id} · ${won ? "★".repeat(b.stars) : "lost"}`);
@@ -6629,7 +6634,7 @@ async function wsMake(mode, win) {
   W.busy = true; wsCount(); toast(`Making your ${list.length === 1 ? "sheet" : `${list.length} sheets`}…`);
   try {
     await wsInfo(list); try { await document.fonts.ready; } catch {}
-    const { jsPDF } = await import("./vendor/pdf.js?v=174");
+    const { jsPDF } = await import("./vendor/pdf.js?v=175");
     const pdf = new jsPDF({ unit: "mm", format: "a4", compress: true });
     const cv = document.createElement("canvas"); cv.width = WS_A4.w; cv.height = WS_A4.h; const ctx = cv.getContext("2d");
     for (let i = 0; i < list.length; i++) {
