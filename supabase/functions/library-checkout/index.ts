@@ -1,10 +1,12 @@
 // Library Bookshop: Stripe Checkout for a book, and unlocking it once Stripe says it's paid.
+// Club members (and hosts) pay the book's Club price; Self-Study and trial users pay SELF_PRICE (US$8).
 // Called by the app with the member's login (checked here with auth.getUser; verify_jwt off so the CORS preflight passes).
 //   { action: "create", book_id }      -> { client_secret, publishable_key } (embedded in the app) or { url } (Stripe page)
 //   { action: "verify", session_id? }  -> checks this member's started checkouts, unlocks paid books -> { owned, unlocked }
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const APP_URL = "https://app.mandarinzest.com";
+const SELF_PRICE = 800; // US$8 per book for Self-Study and trial users (28 Nov 2026)
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info", "Access-Control-Allow-Methods": "POST, OPTIONS" };
 const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { status, headers: { ...cors, "Content-Type": "application/json" } });
 const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
@@ -61,7 +63,8 @@ Deno.serve(async (req) => {
     const user = u?.user;
     if (!user) return json({ error: "Please log in again." }, 401);
     const { data: role } = await admin.rpc("access_role", { p_email: user.email ?? "" });
-    if (!["member", "host", "admin"].includes(String(role))) return json({ error: "Not allowed" }, 403);
+    if (!["member", "host", "admin", "self", "trial"].includes(String(role))) return json({ error: "Not allowed" }, 403);
+    const club = ["member", "host", "admin"].includes(String(role));
     const body = await req.json().catch(() => ({}));
 
     if (body.action === "create") {
@@ -72,14 +75,15 @@ Deno.serve(async (req) => {
       const { data: pk } = await admin.rpc("app_secret", { p_name: "stripe_publishable" });
       const embedded = !!pk && body.embedded !== false;
       const back = `${APP_URL}/#/learn/library?paid={CHECKOUT_SESSION_ID}`;
-      const price = await priceOf(book).catch((e) => { console.error("price lookup", e); return null; });
+      if (!club && book.price_cents === 0) return json({ owned: true });  // free books are on everyone's shelf
+      const price = club ? await priceOf(book).catch((e) => { console.error("price lookup", e); return null; }) : null;
       const s = await stripe("POST", "checkout/sessions", {
         mode: "payment",
         "line_items[0][quantity]": "1",
         ...(price ? { "line_items[0][price]": price } : {
-          "line_items[0][price_data][currency]": book.currency,
-          "line_items[0][price_data][unit_amount]": String(book.price_cents),
-          "line_items[0][price_data][product_data][name]": `${book.title_zh ? book.title_zh + " · " : ""}${book.title} (Club app book)`,
+          "line_items[0][price_data][currency]": club ? book.currency : "usd",
+          "line_items[0][price_data][unit_amount]": String(club ? book.price_cents : SELF_PRICE),
+          "line_items[0][price_data][product_data][name]": `${book.title_zh ? book.title_zh + " · " : ""}${book.title} (${club ? "Club app book" : "app book"})`,
           "line_items[0][price_data][product_data][description]": book.subtitle ?? "Digital book in the Mandarin Zest Club app",
         }),
         client_reference_id: user.id,
