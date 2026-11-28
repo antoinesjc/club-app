@@ -1,12 +1,12 @@
-import { createClient } from "./vendor/supabase.js?v=166";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=166";
-import { COUNTRIES } from "./countries.js?v=166";
-import { toZhuyin } from "./zhuyin.js?v=166";
-import { ORACLE, ORACLE_T } from "./course-oracle.js?v=166";
+import { createClient } from "./vendor/supabase.js?v=167";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=167";
+import { COUNTRIES } from "./countries.js?v=167";
+import { toZhuyin } from "./zhuyin.js?v=167";
+import { ORACLE, ORACLE_T } from "./course-oracle.js?v=167";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=166";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=167";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -41,7 +41,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=166"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=167"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -767,10 +767,12 @@ function clubOnlyView() {
 // The plans: in the app (#/plans) and on the "free trial is over" screen.
 function planCards(where) {
   if (!state.plans) loadPlans();
+  const back = location.hash.match(/plans\/paid\/(cs_[A-Za-z0-9_]+)/); // came back from a Stripe redirect
+  if (back && state.planChecked !== back[1]) { state.planChecked = back[1]; setTimeout(() => planVerify(back[1]), 0); }
   const t = where === "over" ? "over" : tier(), sub = t === "self" || (t === "club" && state.plan?.stripe);
   const btn = (k, label, cls = "") => sub
     ? `<button type="button" class="btn block ${cls}" data-pl="portal">${t === "club" ? "Change plan" : "Upgrade in your plan settings"}</button>`
-    : `<a class="btn block ${cls}" href="${esc(planUrl(k))}" target="_blank" rel="noopener">${label}</a>`;
+    : `<button type="button" class="btn block ${cls}" data-pl="plan-buy" data-k="${k}">${label}</button>`;
   const self = `<div class="plancard self ${t === "self" ? "mine" : ""}">
       <div class="row between" style="align-items:baseline;gap:8px"><b class="planname">📚 Self-Study</b><span class="planprice">${planPrice("self") || "Monthly"}</span></div>
       <ul class="planlist"><li>All of Zest Town, no limits: flashcards, the HSK Temple, the Calligraphy School and writing sheets</li><li>The Library: every book to buy (${money(SELF_BOOK_CENTS, "usd")} each), the Arcade, courses</li><li>The Magical Forest and the Post Office: write to learners all over the world</li><li>Bootcamps at the regular price</li></ul>
@@ -782,7 +784,7 @@ function planCards(where) {
       ${t === "club" ? `<div class="planmine">✓ Your plan</div>` : t === "self" ? btn("", "") : `<div class="row" style="gap:8px">${btn("clubMonthly", "Join monthly")}${state.plans?.clubYearly ? btn("clubYearly", "Join yearly", "ghost") : ""}</div>`}</div>`;
   const note = state.plans === "error" ? `<p class="small muted" style="margin:0">Couldn't load the prices right now. <a href="${CLUB_PAGE}" target="_blank" rel="noopener">See them on the website ↗</a></p>` : "";
   const after = sub ? `<p class="small muted" style="margin:0">Changes go through Stripe: moving up starts right away (you only pay the difference), moving down or stopping takes effect at the end of the period you paid for.</p>`
-    : `<p class="small muted" style="margin:0">Pay with <b>${esc(state.user?.email || "the email you log in with")}</b> so the app finds your plan. Afterwards, come back here and tap “I've paid”.</p>`;
+    : `<p class="small muted" style="margin:0">Secure payment by Stripe, right here in the app. Your plan starts as soon as you've paid, and you can change or cancel it any time in Me → My plan.</p>`;
   return `<div class="plangrid">${self}${club}</div>${note}${after}`;
 }
 function plansView() {
@@ -856,9 +858,41 @@ document.addEventListener("click", (e) => {
   else if (a === "portal") openPortal(el);
   else if (a === "viewas") { state.viewAs = v; try { sessionStorage.setItem("mz-viewas", v); } catch { /* fine */ } if (v === "over") location.hash = "#/plans"; render(); }
   else if (a === "boot-buy") bootBuy(el);
+  else if (a === "plan-buy") planBuy(el);
+  else if (a === "planclose") { if (e.target.closest("[data-stop]") && !e.target.closest(".ztx")) return; planCloseCheckout(); }
   else if (a === "bootclose") { if (e.target.closest("[data-stop]") && !e.target.closest(".ztx")) return; bootCloseCheckout(); }
   else if (a === "cust-cancel") { state.draft = null; render(); }
 });
+
+// Plans bought inside the app: subscription checkout from the billing function, in Stripe's embedded form.
+async function planBuy(el) {
+  const label = el.textContent; el.disabled = true; el.textContent = "Opening…";
+  const r = await billingCall({ action: "plan", plan: el.dataset.k });
+  el.disabled = false; el.textContent = label;
+  if (r.error === "already_subscribed") { openPortal(); return; }
+  if (r.url) { location.href = r.url; return; }
+  if (!r.client_secret) { toast("Couldn't open the checkout. Please try again."); if (r.error) console.error("plan checkout:", r.error); return; }
+  try {
+    const Stripe = await loadStripe();
+    document.body.insertAdjacentHTML("beforeend", `<div class="ztover center lcheckover plancheckover" data-pl="planclose"><div class="ztsheet lcheck" data-stop><button type="button" class="ztx" data-pl="planclose" aria-label="Close">×</button><b>Secure checkout · Stripe</b><div id="plancheckout"></div></div></div>`);
+    const co = await Stripe(r.publishable_key).initEmbeddedCheckout({ fetchClientSecret: async () => r.client_secret, onComplete: () => { planCloseCheckout(); planVerify(r.session_id); } });
+    state.planCo = co; co.mount("#plancheckout");
+  } catch { planCloseCheckout(); toast("Couldn't load the checkout. Please try again."); }
+}
+function planCloseCheckout() {
+  try { state.planCo?.destroy(); } catch { /* already gone */ }
+  state.planCo = null; document.querySelector(".plancheckover")?.remove();
+}
+async function planVerify(sessionId) {
+  toast("Payment received, setting up your plan…");
+  let r = {};
+  for (let i = 0; i < 4 && !r.role; i++) { r = await billingCall({ action: "plan-verify", session_id: sessionId }); if (!r.role) await new Promise((ok) => setTimeout(ok, 2500)); }
+  if (!r.role) { toast("Stripe is still confirming your payment. Tap “I've paid · check again” in a minute."); return; }
+  if (location.hash.includes("/paid/")) location.hash = "#/learn";
+  const { data } = await sb.auth.getUser();
+  if (data.user) await startSession(data.user);
+  toast(r.role === "self" ? "🎉 Welcome to Self-Study! All of Zest Town is yours." : "🎉 Welcome to the Club! See you in a session soon.");
+}
 
 // Bootcamps at the regular price for Self-Study and trial users (Stripe Checkout through the billing function).
 // Stripe's form opens inside the app (same embedded checkout as the Library); Stripe's own page only as a fallback.
@@ -1649,7 +1683,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=166"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=167"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -2290,7 +2324,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=166");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=167");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -3201,7 +3235,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=166").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=167").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -5663,7 +5697,7 @@ async function cgRemember(t) {
   if (data?.length) await sb.from("char_recent").delete().eq("user_id", state.user.id).in("text", data.map((r) => r.text));
 }
 let cgHW = null;
-const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=166")).default);
+const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=167")).default);
 const cgStrokes = async (c) => {
   const S = cgState(); if (S.data.has(c)) return S.data.get(c);
   const HW = await cgLib(); const d = await HW.loadCharacterData(c).catch(() => null);
@@ -6286,7 +6320,7 @@ async function wsMake(mode, win) {
   W.busy = true; wsCount(); toast(`Making your ${list.length === 1 ? "sheet" : `${list.length} sheets`}…`);
   try {
     await wsInfo(list); try { await document.fonts.ready; } catch {}
-    const { jsPDF } = await import("./vendor/pdf.js?v=166");
+    const { jsPDF } = await import("./vendor/pdf.js?v=167");
     const pdf = new jsPDF({ unit: "mm", format: "a4", compress: true });
     const cv = document.createElement("canvas"); cv.width = WS_A4.w; cv.height = WS_A4.h; const ctx = cv.getContext("2d");
     for (let i = 0; i < list.length; i++) {

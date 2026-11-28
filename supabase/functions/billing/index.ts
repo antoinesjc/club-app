@@ -1,13 +1,16 @@
 // Plans and bootcamps (28 Nov 2026). Called by the app with the user's login (checked here; verify_jwt off for CORS).
 //   { action: "portal" }                     -> { url } Stripe customer portal (change plan, card, cancel), back to Me
 //   { action: "links" }                      -> { self, clubMonthly, clubYearly } payment link addresses (plans screen)
+//   { action: "plan", plan: "self"|"clubMonthly"|"clubYearly" } -> { client_secret, publishable_key } subscription checkout
+//                                               inside the app, same price as the payment link (people without a paid plan)
+//   { action: "plan-verify", session_id }    -> { role } saves the new plan at once (no wait for the sync)
 //   { action: "bootcamp", url }              -> { client_secret, publishable_key } (embedded) or { url }
 //                                               regular price from the website feed (early bird until earlyEnds)
 //                                               Self-Study and trial users only (Club members ask a host, Club price)
 //   { action: "bootcamp-verify", session_id? } -> { paid: [bootcamp urls] }; a paid one becomes a bootcamp_requests row
 //                                               ("Paid US$x in the app"), emailed to the team by bootcamp-notify
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { links as linkIds } from "../_shared/stripe.ts";
+import { links as linkIds, membersFromCheckouts, PLAN_KIND } from "../_shared/stripe.ts";
 
 const APP_URL = "https://app.mandarinzest.com";
 const FEED = "https://antoinesjc.github.io/Mandarin-Zest-Class-Calendar/bootcamps.json";
@@ -46,7 +49,7 @@ async function planLinks() {
     const pl = await stripe("GET", `payment_links/${id}`);
     const items = await stripe("GET", `payment_links/${id}/line_items`, { limit: "1" });
     const pr = items.data?.[0]?.price ?? {};
-    out[k] = { url: pl.url, amount: pr.unit_amount ?? null, currency: pr.currency ?? "usd", interval: pr.recurring?.interval ?? null };
+    out[k] = { url: pl.url, amount: pr.unit_amount ?? null, currency: pr.currency ?? "usd", interval: pr.recurring?.interval ?? null, price: pr.id ?? null };
   }
   PLANS = out;
   return out;
@@ -75,7 +78,46 @@ Deno.serve(async (req) => {
     const { data: role } = await admin.rpc("access_role", { p_email: email });
     const body = await req.json().catch(() => ({}));
 
-    if (body.action === "links") return json(await planLinks());
+    if (body.action === "links") { const P = await planLinks(); return json(Object.fromEntries(Object.entries(P).map(([k, v]) => [k, v && { ...v, price: undefined }]))); }
+
+    if (body.action === "plan") {
+      const P = await planLinks(), plan = String(body.plan ?? ""), price = P[plan]?.price;
+      if (!price) return json({ error: "This plan isn't available right now." }, 404);
+      // Already paying (Self-Study or Club): plan changes go through the portal, so nobody pays twice.
+      const { data: cur } = await admin.from("members_stripe").select("tier").eq("email", email).eq("active", true).gt("member_until", new Date().toISOString());
+      if ((cur ?? []).length && role !== "admin") return json({ error: "already_subscribed" }, 409);
+      const { data: pk } = await admin.rpc("app_secret", { p_name: "stripe_publishable" });
+      if (!pk) return json({ url: P[plan].url });
+      const found = await stripe("GET", "customers", { email, limit: "1" }).catch(() => null);
+      const customer = found?.data?.[0]?.id;
+      const s = await stripe("POST", "checkout/sessions", {
+        mode: "subscription",
+        "line_items[0][price]": price,
+        "line_items[0][quantity]": "1",
+        ...(customer ? { customer } : { customer_email: email }),
+        client_reference_id: user.id,
+        "metadata[kind]": PLAN_KIND, "metadata[plan]": plan, "metadata[user_id]": user.id,
+        "subscription_data[metadata][kind]": PLAN_KIND, "subscription_data[metadata][plan]": plan,
+        allow_promotion_codes: "true",
+        ui_mode: "embedded_page", redirect_on_completion: "if_required",
+        return_url: `${APP_URL}/#/plans/paid/{CHECKOUT_SESSION_ID}`,
+      });
+      return json({ client_secret: s.client_secret, publishable_key: pk, session_id: s.id });
+    }
+
+    if (body.action === "plan-verify") {
+      const id = String(body.session_id ?? "");
+      if (!/^cs_[A-Za-z0-9_]+$/.test(id)) return json({ error: "bad session" }, 400);
+      const s = await stripe("GET", `checkout/sessions/${id}`);
+      if (s.metadata?.user_id !== user.id || s.metadata?.kind !== PLAN_KIND) return json({ error: "Not allowed" }, 403);
+      if (s.status === "complete") {
+        // Save under the login email too (the checkout email is the same: customer_email / customer found by it).
+        const map = await membersFromCheckouts([s]);
+        for (const m of map.values()) await admin.from("members_stripe").upsert({ ...m, email: m.email || email, checked_at: new Date().toISOString() });
+      }
+      const { data: r2 } = await admin.rpc("access_role", { p_email: email });
+      return json({ status: s.status, role: r2 ?? null });
+    }
 
     if (body.action === "portal") {
       // Expired trials and lapsed members can't change a plan here; they buy one from the plans screen.

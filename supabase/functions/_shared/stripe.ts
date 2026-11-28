@@ -5,6 +5,8 @@
 // customer portal (Self-Study <-> Club) is picked up even though the checkout was made with the other link.
 // Old yearly links = one-time payment: member for 12 months from the payment date (paying again early adds a year).
 // Fully refunded payments don't count.
+// In-app plan checkouts (billing function, since 28 Nov 2026) have no payment link: they carry metadata kind "club-plan"
+// and use the same prices as the links, so they count exactly like a link subscription.
 
 // Old links (US$20 / US$200) stay listed so people who paid with them keep access.
 export const PLINKS_MONTHLY = [
@@ -21,6 +23,8 @@ export const LINK_URLS = {
   self: "https://buy.stripe.com/fZu5kD6Wt4n32nm8C96oo0v",       // Self-Study monthly subscription (from 28 Nov 2026)
 };
 const isYearly = (l: unknown) => PLINKS_YEARLY.includes(String(l));
+export const PLAN_KIND = "club-plan";
+const IN_APP_SINCE = "1795824000"; // 28 Nov 2026 00:00 UTC: in-app plan checkouts start here
 
 const GRACE_MS = 3 * 24 * 3600 * 1000;
 
@@ -104,7 +108,7 @@ export async function membersFromCheckouts(sessions: Obj[]): Promise<Map<string,
   const L = await links();
   const subLinks = new Set([...PLINKS_MONTHLY, ...Object.values(L.ids)]);
   const club = sessions
-    .filter((s) => s.status === "complete" && (subLinks.has(String(s.payment_link)) || isYearly(s.payment_link)))
+    .filter((s) => s.status === "complete" && (subLinks.has(String(s.payment_link)) || isYearly(s.payment_link) || s.metadata?.kind === PLAN_KIND))
     .filter((s) => s.customer_details?.email)
     .sort((a, b) => a.created - b.created);
 
@@ -153,6 +157,8 @@ export async function allClubMembers(): Promise<Map<string, StripeMember>> {
   for (const link of [...PLINKS_MONTHLY, ...PLINKS_YEARLY, ...Object.values(L.ids)]) {
     sessions.push(...(await listAll("checkout/sessions", { payment_link: link, status: "complete" })));
   }
+  const recent = await listAll("checkout/sessions", { status: "complete", "created[gte]": IN_APP_SINCE });
+  sessions.push(...recent.filter((s) => s.metadata?.kind === PLAN_KIND));
   return membersFromCheckouts(sessions);
 }
 
