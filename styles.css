@@ -1763,3 +1763,58 @@ a.arccart:hover { box-shadow: 0 0 0 2px var(--orange); }
 .dqlrows { display: flex; flex-direction: column; gap: 4px; padding-left: 64px; }
 .dqlhead:focus-visible, .dqlrows:focus-visible { outline: 2px solid var(--green); outline-offset: 3px; border-radius: 10px; }
 @media (max-width: 480px) { .dqlrows { padding-left: 0; } }
+
+/* ---------- Around the World 環遊世界 (Arcade, 28 Nov 2026) ---------- */
+.wdttlwrap { background: radial-gradient(circle at 50% 40%, #2d4f8a, #14213d); }
+.wdttl { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5%; }
+.wdttl .wdglobe { width: 34%; image-rendering: pixelated; animation: ccbob 2.4s ease-in-out infinite; }
+.wdttl b { font-size: clamp(13px, 3vw, 22px); color: #fff; text-shadow: 2px 2px 0 #2a2420; letter-spacing: .05em; }
+.wdcont { font-weight: 800; font-size: 12px; letter-spacing: .05em; color: var(--muted); text-transform: uppercase; margin-bottom: -4px; }
+.wdcont .lzh { text-transform: none; }
+.wdnodes { grid-template-columns: repeat(6, 1fr); }
+.wdswap { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: 12px; background: #fff4e6; box-shadow: inset 0 0 0 1.5px #f6c48f; color: var(--ink); text-decoration: none; }
+.wdswap.lock { background: #f7f1ea; box-shadow: inset 0 0 0 1.5px #e6d8ca; color: var(--muted); }
+.wdpp summary { cursor: pointer; font-weight: 800; font-size: 14px; color: var(--green); }
+.wdppgrid { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; padding: 12px; margin-top: 8px; background: #f6ecd9; border-radius: 14px; box-shadow: inset 0 0 0 2px #e4d3b4; }
+.wdppgrid.end { margin: 4px 0 8px; }
+.wdstamp { width: 74px; height: 74px; border-radius: 50%; border: 3px dashed var(--c); color: var(--c); display: inline-flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; transform: rotate(var(--r)); background: rgba(255,255,255,.55); line-height: 1.05; padding: 4px; box-sizing: border-box; }
+.wdstamp.sm { width: 60px; height: 60px; }
+.wdstamp .wdflag { width: 26px; height: 17px; margin-bottom: 2px; }
+.wdstamp b { font-size: 12px; font-weight: 800; max-width: 100%; overflow-wrap: anywhere; }
+.wdstamp.sm b { font-size: 10.5px; }
+.wdstamp i { font-style: normal; font-size: 9px; opacity: .75; }
+.wdmissed .wdstamp { --c: #c0392b !important; opacity: .8; }
+.wdflag { display: inline-block; object-fit: cover; border-radius: 3px; box-shadow: 0 0 0 1px rgba(0,0,0,.15); vertical-align: middle; }
+.wdflag.big { width: 150px; height: 100px; margin-top: 4px; }
+.wdflag.sm { width: 26px; height: 17px; }
+.wdprog { display: flex; align-items: center; gap: 10px; }
+.wdprog .ccpx { color: #ffd166; white-space: nowrap; }
+.wdprog .arcbar { flex: 1; }
+.wdmapwrap { border-radius: 12px; overflow: hidden; box-shadow: 0 0 0 3px #fff; background: #5aa9e6; aspect-ratio: 1.9; }
+.wdmapwrap.q { box-shadow: none; width: 100%; margin-top: 4px; }
+.wdmap { width: 100%; height: 100%; display: block; }
+.wdmap path { fill: #7fbf6e; stroke: #4f8f43; stroke-width: .35; }
+.wdmap path.hi { fill: #f37a48; stroke: #a8431a; stroke-width: .8; }
+.wdmap .hidot { fill: #f37a48; stroke: #a8431a; stroke-width: .6; }
+.wdplane { transition: transform 1.1s ease-in-out; }
+.wdplane image { image-rendering: pixelated; }
+.wdask { gap: 6px; }
+.wdflagopt { padding: 8px; }
+.wdflagopt .wdflag { width: 100%; height: 64px; }
+.ccopts.wdone { grid-template-columns: 1fr; }
+.ccopt.wdwide { font: 700 18px/1.2 Outfit, "Noto Sans TC", "Noto Sans SC", sans-serif; min-height: 52px; }
+.wdfeed { flex-direction: column; gap: 6px; background: #fff; color: var(--ink); border-radius: 12px; padding: 10px; }
+.wdfeed .lzh { color: var(--ink) !important; }
+.wdfeed.no { box-shadow: inset 0 0 0 2px #e5484d; } .wdfeed.ok { box-shadow: inset 0 0 0 2px #3fc25a; }
+.wdswapline { background: #fff4e6; border-radius: 10px; padding: 6px 10px; font-size: 14px; box-shadow: inset 0 0 0 1.5px #f6c48f; }
+.wdtwo { display: flex; gap: 18px; justify-content: center; }
+.wdtwo span { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.wdtwo b { font-size: 24px; } .wdtwo i { font-style: normal; font-size: 12px; color: var(--muted); }
+.chipn { border-radius: 999px; padding: 1px 8px; font-size: 11px; font-weight: 800; background: #f3ece4; color: var(--muted); }
+.chipn.tw { background: #e3eef9; color: #1f4f86; } .chipn.cn { background: #fde3df; color: #9b2c2c; }
+@media (prefers-reduced-motion: reduce) { .wdplane { transition: none; } .wdttl .wdglobe { animation: none; } }
+.wdfeed { color: var(--ink) !important; }
+.wdrev { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center; font-size: 14px; color: var(--muted); }
+.wdrev b { font-size: 24px; color: var(--ink); }
+.wdok { color: #1b6f1b; } .wdno { color: #c0392b; }
+.ccopt.wdlong { font-size: 19px; }

@@ -1,12 +1,12 @@
-import { createClient } from "./vendor/supabase.js?v=170";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=170";
-import { COUNTRIES } from "./countries.js?v=170";
-import { toZhuyin } from "./zhuyin.js?v=170";
-import { ORACLE, ORACLE_T } from "./course-oracle.js?v=170";
+import { createClient } from "./vendor/supabase.js?v=171";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=171";
+import { COUNTRIES } from "./countries.js?v=171";
+import { toZhuyin } from "./zhuyin.js?v=171";
+import { ORACLE, ORACLE_T } from "./course-oracle.js?v=171";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=170";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=171";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -41,7 +41,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=170"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=171"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -1705,7 +1705,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=170"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=171"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -2346,7 +2346,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=170");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=171");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -3257,7 +3257,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=170").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=171").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -5726,7 +5726,7 @@ async function cgRemember(t) {
   if (data?.length) await sb.from("char_recent").delete().eq("user_id", state.user.id).in("text", data.map((r) => r.text));
 }
 let cgHW = null;
-const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=170")).default);
+const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=171")).default);
 const cgStrokes = async (c) => {
   const S = cgState(); if (S.data.has(c)) return S.data.get(c);
   const HW = await cgLib(); const d = await HW.loadCharacterData(c).catch(() => null);
@@ -5969,7 +5969,8 @@ function calligView(parts) {
 // No games yet: the first one (Character Clash 字妖大戰, free, HSK 1) is shown as coming soon.
 // ---------------------------------------------------------------------------
 const arcadeOpen = () => isAdmin();
-const ARC_GAMES = [{ id: "battle", zh: ["字妖大战", "字妖大戰"], en: "Character Clash", hsk: "HSK 1", free: true, levels: 10, blurb: "Battle ink monsters 字妖: pick the right meaning to strike." }];
+const ARC_GAMES = [{ id: "battle", zh: ["字妖大战", "字妖大戰"], en: "Character Clash", hsk: "HSK 1", free: true, levels: 10, blurb: "Battle ink monsters 字妖: pick the right meaning to strike." },
+  { id: "world", zh: ["环游世界", "環遊世界"], en: "Around the World", hsk: "Countries", free: true, levels: 23, blurb: "Fly around the world and learn the countries in Chinese." }];
 const arcState = () => (state.arc ??= { prog: null, loading: false, b: null });
 async function arcLoad(force) {
   const A = arcState(); if (A.loading || (A.prog && !force)) return;
@@ -5998,6 +5999,7 @@ const arcBar = (pct) => `<span class="arcbar"><i style="width:${Math.max(0, Math
 function arcadeView(parts) {
   arcLoad();
   if (parts[0] === "battle") return parts[1] ? ccPlayView(+parts[1]) : ccCartView();
+  if (parts[0] === "world") return parts[1] ? wdPlayView(parts[1]) : wdCartView();
   const tab = parts[0] === "shop" ? "shop" : "mine", z = trad();
   const cart = (g) => { const d = arcDone(g.id);
     return `<a class="arccart" href="#/learn/arcade/${g.id}">${ztImg(`cart-${g.id}`)}<b class="arct"><span class="lzh">${esc(g.zh[z ? 1 : 0])}</span>${esc(g.en)}</b>
@@ -6159,11 +6161,12 @@ function ccSfx(kind) {
   for (const [m, d, len] of seq) ccTone(t + d, m, len, "square", 0.07);
   if (kind === "hit" || kind === "crit") ccNoise(t, 0.08, 0.1, 2500);
 }
-const ccPlaying = () => /^#\/learn\/arcade\/battle\/\d+/.test(location.hash) && arcState().b && !["win", "lose"].includes(arcState().b.phase);
+const ccPlaying = () => (/^#\/learn\/arcade\/battle\/\d+/.test(location.hash) && arcState().b && !["win", "lose"].includes(arcState().b.phase))
+  || (/^#\/learn\/arcade\/world\/[a-z]/.test(location.hash) && state.wd?.b && !["win", "lose"].includes(state.wd.b.phase));
 // Browsers only allow sound after a tap (Safari: after a "click"), so the tap on Start / Continue / a level /
 // Next level / Play again unlocks the sound, and the music starts as soon as the battle is on screen.
 const ccUnlock = (e) => {
-  if (!CCM.on() || !e.target.closest('.ccgame, a[href^="#/learn/arcade/battle/"], .ccttlwrap')) return;
+  if (!CCM.on() || !e.target.closest('.ccgame, a[href^="#/learn/arcade/battle/"], a[href^="#/learn/arcade/world/"], .ccttlwrap')) return;
   ccAudio(); if (ccPlaying()) ccMusicStart(); else setTimeout(() => { if (ccPlaying()) ccMusicStart(); }, 60);
 };
 document.addEventListener("pointerdown", ccUnlock, true);
@@ -6238,6 +6241,241 @@ document.addEventListener("click", (e) => {
   else if (a === "music") { if (CCM.on()) { lsSet("mz-arc-music", "off"); ccMusicStop(); } else { lsSet("mz-arc-music", "on"); if (ccPlaying()) ccMusicStart(); } render(); }
   else if (a === "addall") ccAdd(false);
   else if (a === "addmiss") ccAdd(true);
+});
+
+// ---- Around the World 環遊世界 (28 Nov 2026, free): countries in Chinese. Mockups on the design canvas.
+// Your fruit flies a pixel plane from stop to stop; every country you get right is a stamp in your passport.
+// Levels by continent (best-known countries first, ~10 a level), 3 hearts, a missed country comes back, stars = hearts left.
+// Question types: flag → name, name → flag, English → name, and from level 2 of a continent: the map → name.
+// Taiwan vs mainland names (89 of the 196 differ): each player picks "Taiwan names" or "Mainland names" (default: their
+// script). Questions only use that set; the other name is shown after the answer when it differs. Bonus level
+// "Strait Swap 兩岸大不同": whose name is it? Data: countries-zh.js (CLDR), map: worldmap.js. Progress: arcade_progress "world".
+const WD_CONT = [["asia", "Asia", "亞洲", "亚洲"], ["europe", "Europe", "歐洲", "欧洲"], ["africa", "Africa", "非洲", "非洲"], ["americas", "Americas", "美洲", "美洲"], ["oceania", "Oceania", "大洋洲", "大洋洲"]];
+const wdState = () => (state.wd ??= { data: null, map: null, loading: false, b: null });
+async function wdLoad() {
+  const S = wdState(); if (S.data || S.loading) return; S.loading = true;
+  try {
+    const [d, m] = await Promise.all([import("./countries-zh.js?v=171"), import("./worldmap.js?v=171")]);
+    S.data = d.WORLD_ZH.map((r) => ({ c: r[0], en: r[1], cont: r[2], twT: r[3], twS: r[4], twPy: r[5], cnS: r[6], cnT: r[7], cnPy: r[8], x: r[9], y: r[10], onMap: !!r[11] }));
+    S.map = m.WORLD.filter((w) => w[0]);
+    S.zoom = new Map(S.map.map((w) => [w[0], w[2]]));
+    S.levels = [];
+    for (const [k] of WD_CONT) {
+      const l = S.data.filter((x) => x.cont === k), n = Math.ceil(l.length / 10), size = Math.ceil(l.length / n);
+      for (let i = 0; i < n; i++) S.levels.push({ id: `${k}-${i + 1}`, cont: k, n: i + 1, list: l.slice(i * size, (i + 1) * size) });
+    }
+  } catch (e) { console.error(e); toast("Couldn't load the game. Check your connection."); }
+  S.loading = false; render();
+}
+const wdNames = () => lsGet("mz-wd-names") || (trad() ? "tw" : "cn"); // "tw" = Taiwan names, "cn" = mainland names
+const wdName = (x, v = wdNames()) => (v === "tw" ? (trad() ? x.twT : x.twS) : (trad() ? x.cnT : x.cnS));
+const wdPy = (x, v = wdNames()) => (v === "tw" ? x.twPy : x.cnPy);
+const wdDiff = (x) => x.twS !== x.cnS;
+const wdOther = (v = wdNames()) => (v === "tw" ? "cn" : "tw");
+const wdWhere = (v) => (v === "tw" ? "In Taiwan" : "In mainland China");
+const wdFlag = (x, cls = "") => `<img class="wdflag ${cls}" src="flags/${x.c}.svg" alt="" draggable="false">`;
+const wdContName = (k) => { const C = WD_CONT.find((c) => c[0] === k); return C ? `${C[1]} <span class="lzh">${trad() ? C[2] : C[3]}</span>` : ""; };
+const wdLevel = (id) => wdState().levels?.find((L) => L.id === id);
+const wdLvLabel = (L) => (L.id === "swap" ? "STRAIT SWAP" : `${L.cont.toUpperCase()} ${L.n}`);
+// A level is open when it's the first of its continent or the one before it has a star; Strait Swap once any level is done.
+function wdOpen(id) {
+  const st = arcProg("world").stars || {};
+  if (id === "swap") return Object.keys(st).some((k) => k !== "swap" && +st[k] > 0);
+  const [k, n] = id.split("-"); return +n === 1 || +st[`${k}-${+n - 1}`] > 0;
+}
+const wdStampsDone = () => { const st = arcProg("world").stars || {}; return (wdState().levels || []).filter((L) => +st[L.id] > 0).flatMap((L) => L.list); };
+
+// The map: a view box around the level (or zoomed on one country), the target in orange, the plane at its last stop.
+function wdBox(list) {
+  const S = wdState(), bx = list.map((x) => S.zoom.get(x.c) || [x.x - 4, x.y - 4, x.x + 4, x.y + 4]);
+  let x0 = Math.min(...bx.map((b) => b[0])), y0 = Math.min(...bx.map((b) => b[1])), x1 = Math.max(...bx.map((b) => b[2])), y1 = Math.max(...bx.map((b) => b[3]));
+  const pad = Math.max(12, (x1 - x0) * 0.08); x0 -= pad; x1 += pad; y0 -= pad; y1 += pad;
+  const w = x1 - x0, h = y1 - y0, want = 1.9; // keep a wide strip
+  if (w / h < want) { const nw = h * want; x0 -= (nw - w) / 2; x1 = x0 + nw; } else { const nh = w / want; y0 -= (nh - h) / 2; y1 = y0 + nh; }
+  return [x0, y0, x1 - x0, y1 - y0];
+}
+function wdMap(box, hi, plane, cls = "") {
+  const S = wdState(), pw = box[2] * 0.075;
+  const paths = S.map.map(([c, d]) => `<path d="${d}" class="${c === hi ? "hi" : ""}"/>`).join("");
+  const dot = hi && !S.map.some((w) => w[0] === hi) ? (() => { const x = S.data.find((q) => q.c === hi); return x ? `<circle cx="${x.x}" cy="${x.y}" r="${box[2] * 0.012}" class="hidot"/>` : ""; })() : "";
+  const pl = plane ? `<g class="wdplane" style="transform:translate(${plane[0] - pw / 2}px,${plane[1] - pw / 3}px)"><image href="icons/zt/arc-plane.png" width="${pw}" height="${pw * 0.667}"/></g>` : "";
+  return `<svg class="wdmap ${cls}" viewBox="${box.map((v) => Math.round(v * 10) / 10).join(" ")}" preserveAspectRatio="xMidYMid slice" aria-hidden="true">${paths}${dot}${pl}</svg>`;
+}
+
+function wdStart(id) {
+  const S = wdState(); let L = wdLevel(id), list;
+  if (id === "swap") { // 7 countries whose names differ + 3 that are the same, shuffled
+    const diff = ccShuffle(S.data.filter(wdDiff)).slice(0, 7), same = ccShuffle(S.data.filter((x) => !wdDiff(x))).slice(0, 3);
+    list = ccShuffle([...diff, ...same]); L = { id: "swap", list };
+  } else { if (!L) return null; list = ccShuffle(L.list); }
+  const b = { id, L, list, queue: [...list], i: 0, hearts: 3, q: null, phase: "ask", stamped: new Set(), wrongs: new Set(), seen: [], right: 0, tok: 0 };
+  b.box = id === "swap" ? [0, 30, 1000, 440] : wdBox(L.list);
+  const first = L.list[0]; b.plane = [first.x, first.y];
+  S.b = b; wdNext(b); return b;
+}
+function wdNext(b) {
+  const S = wdState(), x = b.queue[b.i % b.queue.length]; b.i++;
+  if (b.id === "swap") {
+    const v = Math.random() < 0.5 ? "tw" : "cn";
+    b.q = { x, t: "swap", v, opts: ["tw", "cn", "both"], pick: null }; b.phase = "ask"; return;
+  }
+  const L = b.L, types = ["flag2name", "flag2name", "name2flag", "en2name", ...(L.n >= 2 && x.onMap ? ["map", "map"] : [])];
+  const t = types[Math.floor(Math.random() * types.length)];
+  const near = ccShuffle(S.data.filter((y) => y !== x && y.cont === x.cont && wdName(y) !== wdName(x)));
+  const far = ccShuffle(S.data.filter((y) => y !== x && y.cont !== x.cont));
+  const others = [...near, ...far].slice(0, 3);
+  b.q = { x, t, opts: ccShuffle([x, ...others]), pick: null }; b.phase = "ask";
+}
+function wdAnswer(k) {
+  const b = wdState().b; if (!b || b.phase !== "ask") return;
+  const q = b.q, x = q.x;
+  const ok = q.t === "swap" ? (q.opts[k] === (wdDiff(x) ? q.v : "both")) : q.opts[k] === x;
+  q.pick = k; if (!b.seen.includes(x)) b.seen.push(x);
+  if (ok) {
+    b.right++; b.stamped.add(x.c); b.phase = "right"; ccSfx("hit");
+    const from = b.plane; b.plane = [x.x, x.y]; b.from = from;
+    const tok = ++b.tok; render();
+    requestAnimationFrame(() => { const p = document.querySelector(".wdplane"); if (p && b.id !== "swap") { const pw = b.box[2] * 0.075; p.style.transform = `translate(${x.x - pw / 2}px,${x.y - pw / 3}px)`; } });
+    // A name that differs (or the Strait Swap explanation) waits for "Next"; otherwise fly on by itself.
+    if (q.t !== "swap" && !wdDiff(x)) setTimeout(() => { if (wdState().b !== b || b.tok !== tok || b.phase !== "right") return; wdAfter(b); }, 1500);
+  } else {
+    b.hearts--; b.wrongs.add(x.c); b.phase = "miss"; ccSfx("miss");
+    b.queue.splice(b.i + 2, 0, x); // it comes back a bit later
+    render();
+  }
+}
+function wdAfter(b) {
+  if (b.hearts <= 0) return wdEnd(b, false);
+  if (b.stamped.size >= b.list.length) return wdEnd(b, true);
+  while (b.stamped.has(b.queue[b.i % b.queue.length]?.c) && b.i < b.queue.length * 3) b.i++;
+  wdNext(b); render();
+}
+async function wdEnd(b, won) {
+  b.phase = won ? "win" : "lose"; b.stars = won ? Math.max(1, b.hearts) : 0; ccMusicStop(); ccSfx(won ? "win" : "lose"); render();
+  if (won) await arcSave("world", b.id, b.stars, b.right);
+  const grew = await ztCountDay();
+  tEvent("arcade", `環遊世界 · ${b.id === "swap" ? "Strait Swap" : b.id} · ${won ? "★".repeat(b.stars) : "lost"}`);
+  if (grew) toast("Trip played. Your streak tree grew today 🌱");
+  render();
+}
+// End screen: the countries go to the Flashcard Center, your set of names on the front, the other name in the meaning.
+const wdCard = (x) => { const v = wdNames(), o = wdOther(v);
+  return { hanzi: v === "tw" ? x.twS : x.cnS, hanzi_trad: v === "tw" ? x.twT : x.cnT, pinyin: wdPy(x, v), level: null,
+    meaning: `${x.en}${wdDiff(x) ? ` (${o === "cn" ? "mainland China" : "Taiwan"}: ${o === "cn" ? x.cnS : x.twT} ${wdPy(x, o)})` : ""}` }; };
+function wdAddBox(b) {
+  const deck = new Set((state.lu.cards || []).map((c) => c.hanzi)), fresh = b.seen.map(wdCard).filter((w) => !deck.has(w.hanzi));
+  if (b.added) return `<p class="ccadded">✓ ${b.added} countr${b.added === 1 ? "y" : "ies"} added to your flashcards</p>`;
+  if (!fresh.length) return `<p class="ccadded">✓ All these countries are in your flashcards</p>`;
+  return `<div class="ccadd"><button type="button" class="btn small ghost" data-wd="add">🃏 Add ${fresh.length === b.seen.length ? "these" : `the ${fresh.length} new`} countr${fresh.length === 1 ? "y" : "ies"} to my flashcards</button></div>`;
+}
+async function wdAdd() {
+  const b = wdState().b; if (!b || b.adding) return;
+  b.adding = true; const n = await ztAddWords(b.seen.map(wdCard), "game"); b.adding = false;
+  if (n) { b.added = n; toast(`🃏 ${n} countr${n === 1 ? "y" : "ies"} added. They'll come up in the Flashcard Center, a few new ones a day.`); }
+  render();
+}
+const wdSay = (x, v = wdNames()) => { try { const u = new SpeechSynthesisUtterance(v === "tw" ? x.twT : x.cnS); u.lang = v === "tw" ? "zh-TW" : "zh-CN"; u.rate = 0.8; speechSynthesis.cancel(); speechSynthesis.speak(u); } catch {} };
+const wdStamp = (x, i = 0, small = false) => { const col = ["#c0392b", "#1f4f86", "#2e7d48", "#8e44ad", "#a8431a"][i % 5];
+  return `<span class="wdstamp ${small ? "sm" : ""}" style="--c:${col};--r:${((i % 3) - 1) * 8}deg" title="${esc(x.en)}">${wdFlag(x)}<b class="lzh">${esc(wdName(x))}</b>${wdDiff(x) && !small ? `<i class="lzh">${esc(wdName(x, wdOther()))}</i>` : ""}</span>`; };
+
+function wdCartView() {
+  wdLoad();
+  const z = trad(), S = wdState(), st = arcProg("world").stars || {}, v = wdNames();
+  const head = `${ztHeader(ztStreak(), `Arcade <span class='zhsub'>${z ? "遊戲廳" : "游戏厅"}</span>`).replace('href="#/learn"', 'href="#/learn/arcade"').replace("‹ Zest Town", "‹ Arcade")}`;
+  if (!S.levels) return `${head}<p class="muted small">Loading the world…</p>`;
+  const stamps = wdStampsDone(), total = S.data.length;
+  const next = S.levels.find((L) => wdOpen(L.id) && !(+st[L.id] > 0)) || S.levels[0];
+  const title = `<span class="wdttl">${ztImg("arc-globe", "wdglobe")}<b class="lzh">${z ? "環遊世界" : "环游世界"}</b><span class="arcblink" style="font-size:clamp(5px,1vw,7px)">PRESS START</span></span>`;
+  const node = (L) => { const s = +st[L.id] || 0, open = wdOpen(L.id);
+    return open ? `<a class="ccnode ${s ? "done" : L === next ? "cur" : ""}" href="#/learn/arcade/world/${L.id}" aria-label="${esc(L.cont)} ${L.n}${s ? `, ${s} stars` : ""}"><b>${L.n}</b><span>${s ? "★".repeat(s) + "☆".repeat(3 - s) : ""}</span></a>`
+      : `<span class="ccnode lock" aria-label="${esc(L.cont)} ${L.n}, locked"><b>🔒</b><span></span></span>`; };
+  const rows = WD_CONT.map(([k]) => `<div class="wdcont">${wdContName(k)}</div><div class="ccnodes wdnodes">${S.levels.filter((L) => L.cont === k).map(node).join("")}</div>`).join("");
+  const swapOpen = wdOpen("swap"), ss = +st.swap || 0;
+  const diffN = S.data.filter(wdDiff).length;
+  return `${head}
+    <div class="arcwrap">${arcadeRoom(`<a href="#/learn/arcade/world/${next.id}" class="ccttlwrap wdttlwrap" aria-label="Play ${esc(next.id)}">${title}</a>`, "world")}
+      <div class="stack" style="gap:12px">
+        <div><b class="arct" style="font-size:20px;text-align:left"><span class="lzh" style="font-size:22px">${z ? "環遊世界" : "环游世界"}</span>Around the World</b>
+          <div class="row" style="gap:6px;margin-top:6px"><span class="arclv">Countries</span><span class="arcfree">Free</span><span class="tiny muted">${total} countries · flags · the world map</span></div></div>
+        <section class="card stack" style="gap:8px"><b>Country names</b>
+          <div class="seg" role="group" aria-label="Country names"><button type="button" data-wd="names" data-v="tw" aria-pressed="${v === "tw"}">Taiwan <span class="lzh">${z ? "台灣" : "台湾"}</span></button><button type="button" data-wd="names" data-v="cn" aria-pressed="${v === "cn"}">Mainland <span class="lzh">${z ? "大陸" : "大陆"}</span></button></div>
+          <span class="tiny muted">${diffN} of the ${total} countries have a different name in Taiwan and in mainland China (${z ? "紐西蘭 / 新西蘭" : "纽西兰 / 新西兰"}). You learn yours; the other one is shown after you answer.</span></section>
+        <section class="card stack" style="gap:10px"><div class="row between"><b>🛂 Passport</b><span class="small muted"><b>${stamps.length}</b> / ${total} stamps</span></div>
+          ${arcBar((stamps.length / total) * 100)}${rows}
+          <div class="wdcont">Bonus</div>
+          ${swapOpen ? `<a class="wdswap" href="#/learn/arcade/world/swap"><b>🔀 Strait Swap <span class="lzh">${z ? "兩岸大不同" : "两岸大不同"}</span></b><span class="tiny">Whose name is it: Taiwan, mainland China or both?${ss ? ` · ${"★".repeat(ss)}` : ""}</span></a>`
+            : `<span class="wdswap lock"><b>🔒 Strait Swap <span class="lzh">${z ? "兩岸大不同" : "两岸大不同"}</span></b><span class="tiny">Opens after your first level</span></span>`}
+          ${stamps.length ? `<details class="wdpp"><summary>See my passport</summary><div class="wdppgrid">${stamps.map((x, i) => wdStamp(x, i, true)).join("")}</div></details>` : ""}</section>
+        <a class="btn big" href="#/learn/arcade/world/${next.id}">✈ ${stamps.length ? `Continue · ${esc(next.cont[0].toUpperCase() + next.cont.slice(1))} ${next.n}` : "Start · Asia 1"}</a>
+        <p class="small muted" style="margin:0"><b>How to play:</b> fly from country to country. Recognise the flag, find the flag, or (from level 2 of each continent) spot the country on the map. Every right answer is a stamp in your passport; a wrong one costs a heart and that country comes back. Land with all 3 hearts for ★★★.</p>
+      </div></div>`;
+}
+function wdPlayView(id) {
+  wdLoad();
+  const S = wdState(); if (!S.levels) return `<p class="muted small">Loading the world…</p>`;
+  if ((id !== "swap" && !wdLevel(id)) || (arcState().prog && !wdOpen(id))) { location.hash = "#/learn/arcade/world"; return wdCartView(); }
+  let b = S.b;
+  if (!b || b.id !== id || ((b.phase === "win" || b.phase === "lose") && b.restart)) { b = wdStart(id); if (!b) return `<p class="muted small">Loading…</p>`; }
+  if (CCM.ctx && CCM.on() && !["win", "lose"].includes(b.phase)) setTimeout(() => { if (ccPlaying()) ccMusicStart(); }, 0);
+  const z = trad(), q = b.q, x = q.x, v = wdNames(), o = wdOther(v), done = b.phase !== "ask";
+  const nameBtn = (y) => `<span class="lzh">${esc(wdName(y))}</span>`;
+  let ask, opts;
+  if (q.t === "swap") {
+    ask = `<span class="ccpx">WHOSE NAME IS THIS?</span><b class="cczh lzh">${esc(wdName(x, wdDiff(x) ? q.v : v))}</b><span class="small muted">${esc(x.en)}</span>`;
+    const lab = { tw: `Taiwan <span class="lzh">${z ? "台灣" : "台湾"}</span>`, cn: `Mainland China <span class="lzh">${z ? "大陸" : "大陆"}</span>`, both: `Both <span class="lzh">${z ? "都一樣" : "都一样"}</span>` };
+    const right = wdDiff(x) ? q.v : "both";
+    opts = q.opts.map((k, i) => `<button type="button" class="ccopt txt wdwide ${done && k === right ? "right" : ""} ${done && q.pick === i && k !== right ? "wrong" : ""}" data-wd="ans" data-k="${i}" ${done ? "disabled" : ""}>${lab[k]}</button>`).join("");
+  } else if (q.t === "name2flag") {
+    ask = `<span class="ccpx">WHICH FLAG IS IT?</span><b class="cczh lzh">${esc(wdName(x))}</b><span class="small muted">${esc(py(wdPy(x)))}</span>`;
+    opts = q.opts.map((y, i) => `<button type="button" class="ccopt wdflagopt ${done && y === x ? "right" : ""} ${done && q.pick === i && y !== x ? "wrong" : ""}" data-wd="ans" data-k="${i}" ${done ? "disabled" : ""} aria-label="Flag ${i + 1}">${wdFlag(y)}</button>`).join("");
+  } else {
+    const prompt = q.t === "flag2name" ? `<span class="ccpx">WHICH COUNTRY IS THIS?</span>${wdFlag(x, "big")}`
+      : q.t === "en2name" ? `<span class="ccpx">HOW DO YOU SAY IT IN CHINESE?</span><b class="ccen">${esc(x.en)}</b>`
+      : `<span class="ccpx">WHICH COUNTRY IS ORANGE?</span>`;
+    ask = prompt;
+    opts = q.opts.map((y, i) => `<button type="button" class="ccopt ${wdName(y).length > 4 ? "wdlong" : ""} ${done && y === x ? "right" : ""} ${done && q.pick === i && y !== x ? "wrong" : ""}" data-wd="ans" data-k="${i}" ${done ? "disabled" : ""}>${nameBtn(y)}</button>`).join("");
+  }
+  // map: the level's area with the plane; a map question zooms on the country; after a right answer the country turns orange
+  const zb = S.zoom.get(x.c), mapQ = q.t === "map" && zb;
+  const box = mapQ ? (() => { const w = zb[2] - zb[0], h = zb[3] - zb[1], s = Math.max(w, h * 1.9, 40) * 2.6, cx = (zb[0] + zb[2]) / 2, cy = (zb[1] + zb[3]) / 2; return [cx - s / 2, cy - s / 3.8, s, s / 1.9]; })() : b.box;
+  const hi = mapQ || (done && b.phase === "right") ? x.c : "";
+  const map = q.t === "swap" ? "" : `<div class="wdmapwrap ${mapQ ? "q" : ""}">${wdMap(box, hi, mapQ ? null : (b.phase === "right" ? (b.from || b.plane) : b.plane))}</div>`;
+  const reveal = `<span class="wdrev">${wdFlag(x, "sm")}<b class="lzh">${esc(wdName(x))}</b><span>${esc(py(wdPy(x)))} · ${esc(x.en)}</span><button type="button" class="ccsay" data-wd="say" aria-label="Hear it">🔊</button></span>`;
+  const otherLine = wdDiff(x) ? `<div class="wdswapline">🔀 ${wdWhere(o)}: <b class="lzh">${esc(wdName(x, o))}</b> ${esc(py(wdPy(x, o)))} <button type="button" class="ccsay" data-wd="say2" aria-label="Hear it">🔊</button></div>` : "";
+  const swapExplain = q.t === "swap" ? (wdDiff(x)
+    ? `<div class="wdtwo"><span><span class="chipn tw">Taiwan</span><b class="lzh">${esc(wdName(x, "tw"))}</b><i>${esc(py(x.twPy))}</i></span><span><span class="chipn cn">Mainland</span><b class="lzh">${esc(wdName(x, "cn"))}</b><i>${esc(py(x.cnPy))}</i></span></div>`
+    : `<div class="wdtwo"><span><span class="chipn">Same on both sides</span><b class="lzh">${esc(wdName(x))}</b><i>${esc(py(wdPy(x)))}</i></span></div>`) : "";
+  const feed = b.phase === "right" ? `<div class="ccfeed ok wdfeed">${q.t === "swap" ? `<b class="wdok">✓ Right!</b>${swapExplain}` : `${reveal}${otherLine}`}${q.t === "swap" || wdDiff(x) ? `<button type="button" class="btn small" data-wd="next">Next ✈</button>` : ""}</div>`
+    : b.phase === "miss" ? `<div class="ccfeed no wdfeed"><b class="wdno">${q.t === "swap" ? "✗ Not quite." : "✗ It's…"}</b>${q.t === "swap" ? swapExplain : `${reveal}${otherLine}`}<button type="button" class="btn small" data-wd="next">Continue</button></div>` : `<div class="ccfeed"></div>`;
+  const L = b.L, lab = wdLvLabel(L);
+  const end = b.phase === "win" || b.phase === "lose" ? (() => {
+    const nextL = id === "swap" ? null : S.levels[S.levels.indexOf(L) + 1];
+    return `<div class="ccend"><div class="ccendbox">
+      ${b.phase === "win" ? `<b class="ccbig">${z ? "到站了！" : "到站了！"}</b><div class="ccstars">${"★".repeat(b.stars)}${"☆".repeat(3 - b.stars)}</div><p>${id === "swap" ? "Strait Swap done." : `${esc(L.cont[0].toUpperCase() + L.cont.slice(1))} ${L.n}: ${b.list.length} new stamps in your passport.`}</p>`
+        : `<b class="ccbig">${z ? "迷路了！" : "迷路了！"}</b><p>Out of hearts. Try again: the countries you missed come back first.</p>`}
+      <div class="wdppgrid end">${b.seen.map((y, i) => `<span class="${b.wrongs.has(y.c) ? "wdmissed" : ""}">${wdStamp(y, i, true)}</span>`).join("")}</div>
+      ${wdAddBox(b)}
+      <div class="row" style="gap:8px;justify-content:center;flex-wrap:wrap">
+        ${b.phase === "win" && nextL && nextL.cont === L.cont ? `<a class="btn" href="#/learn/arcade/world/${nextL.id}">Next stop ✈</a>` : ""}
+        <button type="button" class="btn ${b.phase === "win" ? "ghost" : ""}" data-wd="again">${b.phase === "win" ? "Fly again" : "Try again"}</button>
+        <a class="btn ghost" href="#/learn/arcade/world">Back to the cartridge</a></div></div></div>`; })() : "";
+  return `<div class="ccgame wdgame">
+    <div class="cctop"><a href="#/learn/arcade/world" class="ccquit">‹ Quit</a><span class="ccpx">${lab}</span><span class="row" style="gap:8px;align-items:center"><span class="cchearts">${ccHearts(b.hearts)}</span><button type="button" class="ccmusic ${CCM.on() ? "" : "off"}" data-cc="music" aria-pressed="${CCM.on()}" aria-label="Music and sounds ${CCM.on() ? "on" : "off"}" title="Music and sounds">${CCM.on() ? "🎵" : "🔇"}</button></span></div>
+    <div class="wdprog"><span class="ccpx">✈ ${b.stamped.size}/${b.list.length}</span>${arcBar((b.stamped.size / b.list.length) * 100)}</div>
+    ${mapQ ? "" : map}
+    <div class="ccask wdask">${ask}${mapQ ? map : ""}</div>
+    <div class="ccopts ${q.t === "swap" ? "wdone" : ""}">${opts}</div>${feed}${end}</div>`;
+}
+document.addEventListener("click", (e) => {
+  const el = e.target.closest("[data-wd]"); if (!el) return;
+  const S = wdState(), b = S.b, a = el.dataset.wd;
+  if (a === "ans") wdAnswer(+el.dataset.k);
+  else if (a === "names") { lsSet("mz-wd-names", el.dataset.v); render(); }
+  else if (a === "say" && b) wdSay(b.q.x);
+  else if (a === "say2" && b) wdSay(b.q.x, wdOther());
+  else if (a === "next" && b && (b.phase === "right" || b.phase === "miss")) wdAfter(b);
+  else if (a === "again" && b) { wdStart(b.id); render(); ccMusicStart(); }
+  else if (a === "add") wdAdd();
 });
 
 // ---------------------------------------------------------------------------
@@ -6349,7 +6587,7 @@ async function wsMake(mode, win) {
   W.busy = true; wsCount(); toast(`Making your ${list.length === 1 ? "sheet" : `${list.length} sheets`}…`);
   try {
     await wsInfo(list); try { await document.fonts.ready; } catch {}
-    const { jsPDF } = await import("./vendor/pdf.js?v=170");
+    const { jsPDF } = await import("./vendor/pdf.js?v=171");
     const pdf = new jsPDF({ unit: "mm", format: "a4", compress: true });
     const cv = document.createElement("canvas"); cv.width = WS_A4.w; cv.height = WS_A4.h; const ctx = cv.getContext("2d");
     for (let i = 0; i < list.length; i++) {
