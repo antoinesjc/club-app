@@ -1,12 +1,12 @@
-import { createClient } from "./vendor/supabase.js?v=172";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=172";
-import { COUNTRIES } from "./countries.js?v=172";
-import { toZhuyin } from "./zhuyin.js?v=172";
-import { ORACLE, ORACLE_T } from "./course-oracle.js?v=172";
+import { createClient } from "./vendor/supabase.js?v=173";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=173";
+import { COUNTRIES } from "./countries.js?v=173";
+import { toZhuyin } from "./zhuyin.js?v=173";
+import { ORACLE, ORACLE_T } from "./course-oracle.js?v=173";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=172";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=173";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -41,7 +41,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=172"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=173"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -1705,7 +1705,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=172"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=173"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -2346,7 +2346,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=172");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=173");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -3257,7 +3257,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=172").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=173").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -5726,7 +5726,7 @@ async function cgRemember(t) {
   if (data?.length) await sb.from("char_recent").delete().eq("user_id", state.user.id).in("text", data.map((r) => r.text));
 }
 let cgHW = null;
-const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=172")).default);
+const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=173")).default);
 const cgStrokes = async (c) => {
   const S = cgState(); if (S.data.has(c)) return S.data.get(c);
   const HW = await cgLib(); const d = await HW.loadCharacterData(c).catch(() => null);
@@ -6273,8 +6273,8 @@ const wdState = () => (state.wd ??= { data: null, map: null, loading: false, b: 
 async function wdLoad() {
   const S = wdState(); if (S.data || S.loading) return; S.loading = true;
   try {
-    const [d, m] = await Promise.all([import("./countries-zh.js?v=172"), import("./worldmap.js?v=172")]);
-    S.data = d.WORLD_ZH.map((r) => ({ c: r[0], en: r[1], cont: r[2], twT: r[3], twS: r[4], twPy: r[5], cnS: r[6], cnT: r[7], cnPy: r[8], x: r[9], y: r[10], onMap: !!r[11] }));
+    const [d, m] = await Promise.all([import("./countries-zh.js?v=173"), import("./worldmap.js?v=173")]);
+    S.data = d.WORLD_ZH.map((r) => ({ c: r[0], en: r[1], cont: r[2], twT: r[3], twS: r[4], twPy: r[5], cnS: r[6], cnT: r[7], cnPy: r[8], x: r[9], y: r[10], onMap: !!r[11], also: r[12] || null }));
     S.map = m.WORLD.filter((w) => w[0]);
     S.zoom = new Map(S.map.map((w) => [w[0], w[2]]));
     S.levels = [];
@@ -6355,7 +6355,7 @@ function wdAnswer(k) {
     const tok = ++b.tok; render();
     requestAnimationFrame(() => { const p = document.querySelector(".wdplane"); if (p && b.id !== "swap") { const pw = b.box[2] * 0.075; p.style.transform = `translate(${x.x - pw / 2}px,${x.y - pw / 3}px)`; } });
     // A name that differs (or the Strait Swap explanation) waits for "Next"; otherwise fly on by itself.
-    if (q.t !== "swap" && !wdDiff(x)) setTimeout(() => { if (wdState().b !== b || b.tok !== tok || b.phase !== "right") return; wdAfter(b); }, 1500);
+    if (q.t !== "swap" && !wdDiff(x) && !x.also) setTimeout(() => { if (wdState().b !== b || b.tok !== tok || b.phase !== "right") return; wdAfter(b); }, 1500);
   } else {
     b.hearts--; b.wrongs.add(x.c); b.phase = "miss"; ccSfx("miss");
     b.queue.splice(b.i + 2, 0, x); // it comes back a bit later
@@ -6379,7 +6379,7 @@ async function wdEnd(b, won) {
 // End screen: the countries go to the Flashcard Center, your set of names on the front, the other name in the meaning.
 const wdCard = (x) => { const v = wdNames(), o = wdOther(v);
   return { hanzi: v === "tw" ? x.twS : x.cnS, hanzi_trad: v === "tw" ? x.twT : x.cnT, pinyin: wdPy(x, v), level: null,
-    meaning: `${x.en}${wdDiff(x) ? ` (${o === "cn" ? "mainland China" : "Taiwan"}: ${o === "cn" ? x.cnS : x.twT} ${wdPy(x, o)})` : ""}` }; };
+    meaning: `${x.en}${wdDiff(x) ? ` (${o === "cn" ? "mainland China" : "Taiwan"}: ${o === "cn" ? x.cnS : x.twT} ${wdPy(x, o)})` : ""}${x.also ? ` (also ${x.also.side === "cn" ? x.also.s : x.also.t} ${x.also.py})` : ""}` }; };
 function wdAddBox(b) {
   const deck = new Set((state.lu.cards || []).map((c) => c.hanzi)), fresh = b.seen.map(wdCard).filter((w) => !deck.has(w.hanzi));
   if (b.added) return `<p class="ccadded">✓ ${b.added} countr${b.added === 1 ? "y" : "ies"} added to your flashcards</p>`;
@@ -6459,12 +6459,16 @@ function wdPlayView(id) {
   const hi = mapQ || (done && b.phase === "right") ? x.c : "";
   const map = q.t === "swap" ? "" : `<div class="wdmapwrap ${mapQ ? "q" : ""}">${wdMap(box, hi, mapQ ? null : (b.phase === "right" ? (b.from || b.plane) : b.plane))}</div>`;
   const reveal = `<span class="wdrev">${wdFlag(x, "sm")}<b class="lzh">${esc(wdName(x))}</b><span>${esc(py(wdPy(x)))} · ${esc(x.en)}</span><button type="button" class="ccsay" data-wd="say" aria-label="Hear it">🔊</button></span>`;
-  const otherLine = wdDiff(x) ? `<div class="wdswapline">🔀 ${wdWhere(o)}: <b class="lzh">${esc(wdName(x, o))}</b> ${esc(py(wdPy(x, o)))} <button type="button" class="ccsay" data-wd="say2" aria-label="Hear it">🔊</button></div>` : "";
+  // Another everyday name (e.g. Taiwan also says 南韓; the mainland also says 印尼, 澳洲, 沙特, 阿联酋).
+  const al = x.also, alName = al ? `<b class="lzh">${esc(trad() ? al.t : al.s)}</b> ${esc(py(al.py))}` : "";
+  const otherLine = wdDiff(x) ? `<div class="wdswapline">🔀 ${wdWhere(o)}: <b class="lzh">${esc(wdName(x, o))}</b> ${esc(py(wdPy(x, o)))}${al && al.side === o ? ` · also ${alName}` : ""} <button type="button" class="ccsay" data-wd="say2" aria-label="Hear it">🔊</button></div>`
+    : al ? `<div class="wdswapline">💬 ${wdWhere(al.side)} people also say ${alName}</div>` : "";
+  const mineAlso = al && al.side === v && wdDiff(x) ? `<div class="tiny muted">${wdWhere(v)} people also say ${alName}</div>` : "";
   const swapExplain = q.t === "swap" ? (wdDiff(x)
     ? `<div class="wdtwo"><span><span class="chipn tw">Taiwan</span><b class="lzh">${esc(wdName(x, "tw"))}</b><i>${esc(py(x.twPy))}</i></span><span><span class="chipn cn">Mainland</span><b class="lzh">${esc(wdName(x, "cn"))}</b><i>${esc(py(x.cnPy))}</i></span></div>`
-    : `<div class="wdtwo"><span><span class="chipn">Same on both sides</span><b class="lzh">${esc(wdName(x))}</b><i>${esc(py(wdPy(x)))}</i></span></div>`) : "";
-  const feed = b.phase === "right" ? `<div class="ccfeed ok wdfeed">${q.t === "swap" ? `<b class="wdok">✓ Right!</b>${swapExplain}` : `${reveal}${otherLine}`}${q.t === "swap" || wdDiff(x) ? `<button type="button" class="btn small" data-wd="next">Next ✈</button>` : ""}</div>`
-    : b.phase === "miss" ? `<div class="ccfeed no wdfeed"><b class="wdno">${q.t === "swap" ? "✗ Not quite." : "✗ It's…"}</b>${q.t === "swap" ? swapExplain : `${reveal}${otherLine}`}<button type="button" class="btn small" data-wd="next">Continue</button></div>` : `<div class="ccfeed"></div>`;
+    : `<div class="wdtwo"><span><span class="chipn">Same on both sides</span><b class="lzh">${esc(wdName(x))}</b><i>${esc(py(wdPy(x)))}</i></span></div>${al ? `<div class="tiny muted">${wdWhere(al.side)} people also say ${alName}</div>` : ""}`) : "";
+  const feed = b.phase === "right" ? `<div class="ccfeed ok wdfeed">${q.t === "swap" ? `<b class="wdok">✓ Right!</b>${swapExplain}` : `${reveal}${mineAlso}${otherLine}`}${q.t === "swap" || wdDiff(x) || al ? `<button type="button" class="btn small" data-wd="next">Next ✈</button>` : ""}</div>`
+    : b.phase === "miss" ? `<div class="ccfeed no wdfeed"><b class="wdno">${q.t === "swap" ? "✗ Not quite." : "✗ It's…"}</b>${q.t === "swap" ? swapExplain : `${reveal}${mineAlso}${otherLine}`}<button type="button" class="btn small" data-wd="next">Continue</button></div>` : `<div class="ccfeed"></div>`;
   const L = b.L, lab = wdLvLabel(L);
   const end = b.phase === "win" || b.phase === "lose" ? (() => {
     const nextL = id === "swap" ? null : S.levels[S.levels.indexOf(L) + 1];
@@ -6605,7 +6609,7 @@ async function wsMake(mode, win) {
   W.busy = true; wsCount(); toast(`Making your ${list.length === 1 ? "sheet" : `${list.length} sheets`}…`);
   try {
     await wsInfo(list); try { await document.fonts.ready; } catch {}
-    const { jsPDF } = await import("./vendor/pdf.js?v=172");
+    const { jsPDF } = await import("./vendor/pdf.js?v=173");
     const pdf = new jsPDF({ unit: "mm", format: "a4", compress: true });
     const cv = document.createElement("canvas"); cv.width = WS_A4.w; cv.height = WS_A4.h; const ctx = cv.getContext("2d");
     for (let i = 0; i < list.length; i++) {
