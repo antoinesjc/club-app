@@ -1,12 +1,12 @@
-import { createClient } from "./vendor/supabase.js?v=168";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=168";
-import { COUNTRIES } from "./countries.js?v=168";
-import { toZhuyin } from "./zhuyin.js?v=168";
-import { ORACLE, ORACLE_T } from "./course-oracle.js?v=168";
+import { createClient } from "./vendor/supabase.js?v=169";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=169";
+import { COUNTRIES } from "./countries.js?v=169";
+import { toZhuyin } from "./zhuyin.js?v=169";
+import { ORACLE, ORACLE_T } from "./course-oracle.js?v=169";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=168";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=169";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -41,7 +41,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=168"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=169"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -883,6 +883,7 @@ document.addEventListener("click", (e) => {
   else if (a === "planclose") { if (e.target.closest("[data-stop]") && !e.target.closest(".ztx")) return; planCloseCheckout(); }
   else if (a === "bootclose") { if (e.target.closest("[data-stop]") && !e.target.closest(".ztx")) return; bootCloseCheckout(); }
   else if (a === "cust-cancel") { state.draft = null; render(); }
+  else if (a === "dql") { try { localStorage.setItem("mz-dql-open", dqlOpen() ? "0" : "1"); } catch { /* fine */ } render(); }
 });
 
 // Plans bought inside the app: subscription checkout from the billing function, in Stripe's embedded form.
@@ -1704,7 +1705,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=168"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=169"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -2345,7 +2346,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=168");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=169");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -3256,7 +3257,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=168").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=169").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -3977,9 +3978,16 @@ function dashQilin() {
   const col = { day: "#c2410c", week: "#2e7d48", month: "#9b2c2c" }, lab = { day: "TODAY", week: "WEEK", month: "MONTH" };
   const rows = qlStatus().map((s) => `<span class="dqrow"><span class="dqlab" style="color:${col[s.p]}">${lab[s.p]}</span><span style="min-width:0"><b class="dqt">${esc(s.c.t)}</b>${dBar(s.done ? 100 : (s.have / s.c.n) * 100, s.done ? "#1b6f1b" : col[s.p])}</span>
     <b class="dqn ${s.done && !s.claimed ? "ready" : ""}">${s.claimed ? "✓" : s.done ? `Claim +${QL_XP[s.p]} XP` : `${Math.min(s.have, s.c.n)}/${s.c.n}`}</b></span>`).join("");
-  return `<button type="button" class="dql ${qlBang() ? "ready" : ""}" data-ql="open" aria-label="Qilin challenges"><span class="dqlart">${ztImg("qilin-0")}${qlBang() ? `<i class="qlbang">!</i>` : ""}</span>
-    <span class="dtxt"><span class="deye">Challenges ${trad() ? "麒麟" : "麒麟"}</span>${rows}</span></button>`;
+  // Drop-down (28 Nov 2026): closed by default, shows a one-line summary; open/closed remembered per device.
+  const st = qlStatus(), done = st.filter((s) => s.done).length, claim = st.filter((s) => s.done && !s.claimed);
+  const open = dqlOpen();
+  const summary = claim.length ? `<b class="dqn ready">Claim +${claim.reduce((t, s) => t + QL_XP[s.p], 0)} XP</b>` : `<span class="dsub">${done} of ${st.length} done</span>`;
+  return `<div class="dql ${qlBang() ? "ready" : ""} ${open ? "open" : ""}">
+    <button type="button" class="dqlhead" data-pl="dql" aria-expanded="${open}" aria-controls="dqlrows"><span class="dqlart">${ztImg("qilin-0")}${qlBang() ? `<i class="qlbang">!</i>` : ""}</span>
+      <span class="dtxt"><span class="deye">Challenges ${trad() ? "麒麟" : "麒麟"}</span>${summary}</span><span class="dqlchev" aria-hidden="true">▾</span></button>
+    ${open ? `<button type="button" class="dqlrows" id="dqlrows" data-ql="open" aria-label="Open the qilin challenges">${rows}</button>` : ""}</div>`;
 }
+const dqlOpen = () => { try { return localStorage.getItem("mz-dql-open") === "1"; } catch { return false; } };
 function dashForest() {
   const F = state.lu.forest, list = F.list ? forestWithMe(F.list).filter((m) => m.user_id !== state.user.id) : null;
   const n = list?.length || 0, fr = (list || []).slice(0, 3).map((m) => ztImg("fruit-" + (ZT_FRUITS.has(m.fruit) ? m.fruit : "orange"))).join("");
@@ -5718,7 +5726,7 @@ async function cgRemember(t) {
   if (data?.length) await sb.from("char_recent").delete().eq("user_id", state.user.id).in("text", data.map((r) => r.text));
 }
 let cgHW = null;
-const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=168")).default);
+const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=169")).default);
 const cgStrokes = async (c) => {
   const S = cgState(); if (S.data.has(c)) return S.data.get(c);
   const HW = await cgLib(); const d = await HW.loadCharacterData(c).catch(() => null);
@@ -6341,7 +6349,7 @@ async function wsMake(mode, win) {
   W.busy = true; wsCount(); toast(`Making your ${list.length === 1 ? "sheet" : `${list.length} sheets`}…`);
   try {
     await wsInfo(list); try { await document.fonts.ready; } catch {}
-    const { jsPDF } = await import("./vendor/pdf.js?v=168");
+    const { jsPDF } = await import("./vendor/pdf.js?v=169");
     const pdf = new jsPDF({ unit: "mm", format: "a4", compress: true });
     const cv = document.createElement("canvas"); cv.width = WS_A4.w; cv.height = WS_A4.h; const ctx = cv.getContext("2d");
     for (let i = 0; i < list.length; i++) {
