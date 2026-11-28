@@ -1,12 +1,12 @@
-import { createClient } from "./vendor/supabase.js?v=167";
-import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=167";
-import { COUNTRIES } from "./countries.js?v=167";
-import { toZhuyin } from "./zhuyin.js?v=167";
-import { ORACLE, ORACLE_T } from "./course-oracle.js?v=167";
+import { createClient } from "./vendor/supabase.js?v=168";
+import { FRUITS, HOST_AVATARS, SPECIAL_AVATARS, BACKGROUNDS, fruitSvg, fruitInfo, levelFor, progress, XP_SESSION, XP_STREAK, XP_BOOTCAMP } from "./fruits.js?v=168";
+import { COUNTRIES } from "./countries.js?v=168";
+import { toZhuyin } from "./zhuyin.js?v=168";
+import { ORACLE, ORACLE_T } from "./course-oracle.js?v=168";
 const XP_HONGBAO = 30;
 const MEMBER_CODE = "MZCLUB_8634D";                    // 70% off materials in the shop (Antoine, 24 Oct 2026)
 const SHOP_URL = "https://www.mandarinzest.com/shop";
-import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=167";
+import { STICKERS, STICKER_PAGES, MYSTERY_STICKERS, stickerInfo, stickerSvg, stickerForBootcamp } from "./stickers.js?v=168";
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -41,7 +41,7 @@ const CATEGORIES = {
 const LEVEL_OPTIONS = ["", "Complete beginner", "Beginner", "Lower intermediate", "Intermediate", "Upper intermediate", "Advanced", "Heritage learner", "Native"];
 const BIO_MAX = 140;
 
-const APP_BUILD = "v=167"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
+const APP_BUILD = "v=168"; // bump with the other ?v= numbers (sed "s/v=N/v=N+1/g" catches this line too)
 const state = {
   user: null,
   role: null,
@@ -243,23 +243,27 @@ function greeting() {
 // ---------------------------------------------------------------------------
 // Data
 // ---------------------------------------------------------------------------
-async function loadAll(tail = true) {
-  const since = new Date(Date.now() - 35 * 864e5).toISOString();
-  const [ses, ints, profs, roles] = await Promise.all([
+// Startup data in one call (app_boot, 28 Nov 2026): ~20 separate requests used to queue for the database's few
+// connections. Falls back to the separate requests if the call fails.
+async function bootData(since) {
+  const r = await sb.rpc("app_boot", { p_since: since });
+  if (r.error || !r.data) { if (r.error) console.error("app_boot:", r.error.message); return null; }
+  const d = r.data, ok = (data) => ({ data, error: null });
+  if (!Array.isArray(d.sessions) || !Array.isArray(d.profiles)) return null;
+  return { ses: ok(d.sessions), ints: ok(d.interests), profs: ok(d.profiles), roles: ok(d.roles), meet: d.meet, discords: d.discords,
+    att: ok(d.attendance), notes: ok(d.notes), board: ok(d.board), awards: ok(d.awards), stats: ok(d.stats), stk: ok(d.stickers), worn: ok(d.worn),
+    rewards: d.rewards, bootcamps: d.bootcamps, hosts: d.hosts, meetName: d.meet_name || "", hbIn: d.hb_in, avatarAwards: d.avatar_awards, hbGiven: d.hb_given || null };
+}
+async function bootDataSlow(since) {
+  const [ses, ints, profs, roles, mu, dc] = await Promise.all([
     sb.from("sessions").select(SESSION_COLS).eq("cancelled", false).gte("starts_at", since).order("starts_at"),
     sb.from("interests").select("session_id, user_id"),
     sb.from("profiles").select(PROFILE_COLS),
     sb.rpc("member_roles"),
     sb.rpc("club_meet_urls"),
     sb.rpc("club_discords"),
-  ]).then((r) => { const dc = r.pop(), mu = r.pop(); state.meet = new Map(mu.error ? [] : mu.data.map((x) => [x.id, x.meet_url])); state.discords = new Map(dc.error ? [] : dc.data.map((x) => [x.id, x.discord])); return r; });
-  for (const r of [ses, ints, profs, roles]) if (r.error) throw r.error;
-  state.sessions = withMeet(ses.data);
-  for (const p of profs.data) p.discord = state.discords.get(p.id) || "";
-
-  let stats;
-  let stk, worn;
-  const [att, notes, board, awards] = await Promise.all([
+  ]);
+  const [att, notes, board, awards, stats, stk, worn, rw, mb, sh, mn, hi, aa, hg] = await Promise.all([
     sb.from("attendance").select("session_id, user_id"),
     sb.from("session_notes").select("*"),
     sb.rpc("xp_board"),
@@ -274,8 +278,25 @@ async function loadAll(tail = true) {
     sb.rpc("hongbao_inbox"),
     sb.from("avatar_awards").select("*"),
     sb.from("hongbaos").select("*").eq("giver", state.user.id).order("created_at", { ascending: false }).limit(1),
-  ]).then((r) => { const hg = r.pop(), aa = r.pop(), hi = r.pop(); state.avatarAwards = aa.error ? [] : aa.data; state.hbIn = hi.error ? [] : hi.data; state.hbGiven = hg.error ? null : hg.data[0] || null; const mn = r.pop(), sh = r.pop(); state.meetName = mn.error ? "" : mn.data?.meet_name || ""; state.sessionHost = new Map(sh.error ? [] : sh.data.map((x) => [x.session_id, x.host_id])); const mb = r.pop(); state.bootcampsJoined = new Map(mb.error ? [] : mb.data.map((x) => [x.user_id, x.bootcamps])); const rw = r.pop(); state.rewards = new Map(rw.error ? [] : rw.data.map((x) => [x.bootcamp, x])); worn = r.pop(); stk = r.pop(); stats = r.pop(); return r; });
-  for (const r of [att, notes, board, awards]) if (r.error) throw r.error;
+  ]);
+  const or = (x) => (x.error ? [] : x.data);
+  return { ses, ints, profs, roles, meet: or(mu), discords: or(dc), att, notes, board, awards, stats, stk, worn,
+    rewards: or(rw), bootcamps: or(mb), hosts: or(sh), meetName: mn.error ? "" : mn.data?.meet_name || "", hbIn: or(hi), avatarAwards: or(aa), hbGiven: hg.error ? null : hg.data[0] || null };
+}
+async function loadAll(tail = true) {
+  const since = new Date(Date.now() - 35 * 864e5).toISOString();
+  const D = (await bootData(since)) || (await bootDataSlow(since));
+  const { ses, ints, profs, roles, att, notes, board, awards, stats } = D;
+  for (const r of [ses, ints, profs, roles, att, notes, board, awards]) if (r.error) throw r.error;
+  state.meet = new Map(D.meet.map((x) => [x.id, x.meet_url]));
+  state.discords = new Map(D.discords.map((x) => [x.id, x.discord]));
+  state.sessions = withMeet(ses.data);
+  for (const p of profs.data) p.discord = state.discords.get(p.id) || "";
+  state.avatarAwards = D.avatarAwards; state.hbIn = D.hbIn; state.hbGiven = D.hbGiven; state.meetName = D.meetName;
+  state.sessionHost = new Map(D.hosts.map((x) => [x.session_id, x.host_id]));
+  state.bootcampsJoined = new Map(D.bootcamps.map((x) => [x.user_id, x.bootcamps]));
+  state.rewards = new Map(D.rewards.map((x) => [x.bootcamp, x]));
+  const stk = D.stk, worn = D.worn;
   if (!stats.error) state.stats = new Map(stats.data.map((x) => [x.user_id, x.sessions]));
   state.board = board.data;
   state.awards = awards.data;
@@ -1683,7 +1704,7 @@ async function loadMap() {
   if (state.mapLoading) return;
   state.mapLoading = true;
   try {
-    const [m, cc] = await Promise.all([import("./worldmap.js?v=167"), sb.rpc("country_counts")]);
+    const [m, cc] = await Promise.all([import("./worldmap.js?v=168"), sb.rpc("country_counts")]);
     state.world = m.WORLD;
     state.countryCounts = new Map((cc.data || []).map((r) => [r.country, r.members]));
   } catch { state.world = "error"; }
@@ -2324,7 +2345,7 @@ async function downloadNotesPdf(sid) {
   if (!s || !n?.published_at) return;
   toast("Making your PDF…");
   try {
-    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=167");
+    const { jsPDF, html2canvas } = await import("./vendor/pdf.js?v=168");
     const a = new Date(s.starts_at);
     const date = a.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const vocab = (n.vocab || []).filter((v) => v.hanzi || v.pinyin || v.meaning);
@@ -3235,7 +3256,7 @@ document.addEventListener("focusout", hideTip);
 addEventListener("scroll", hideTip, { passive: true });
 addEventListener("hashchange", hideTip);
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=167").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=168").catch(() => {});
 
 // Escape closes the Idea box.
 document.addEventListener("keydown", (e) => {
@@ -5697,7 +5718,7 @@ async function cgRemember(t) {
   if (data?.length) await sb.from("char_recent").delete().eq("user_id", state.user.id).in("text", data.map((r) => r.text));
 }
 let cgHW = null;
-const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=167")).default);
+const cgLib = async () => (cgHW ??= (await import("./vendor/hanzi-writer.js?v=168")).default);
 const cgStrokes = async (c) => {
   const S = cgState(); if (S.data.has(c)) return S.data.get(c);
   const HW = await cgLib(); const d = await HW.loadCharacterData(c).catch(() => null);
@@ -6320,7 +6341,7 @@ async function wsMake(mode, win) {
   W.busy = true; wsCount(); toast(`Making your ${list.length === 1 ? "sheet" : `${list.length} sheets`}…`);
   try {
     await wsInfo(list); try { await document.fonts.ready; } catch {}
-    const { jsPDF } = await import("./vendor/pdf.js?v=167");
+    const { jsPDF } = await import("./vendor/pdf.js?v=168");
     const pdf = new jsPDF({ unit: "mm", format: "a4", compress: true });
     const cv = document.createElement("canvas"); cv.width = WS_A4.w; cv.height = WS_A4.h; const ctx = cv.getContext("2d");
     for (let i = 0; i < list.length; i++) {
